@@ -3,7 +3,11 @@ import { useAuth } from '../../../auth/useAuth';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
 import { usePedidoDeMesa, usePedidoMutations, useProductos } from '../hooks';
 import { useClientes } from '../../clientes/hooks';
+import { Button } from '../../../components/Button';
+import { Select } from '../../../components/Field';
+import { EmptyState } from '../../../components/EmptyState';
 import type { Database } from '../../../lib/supabase/types';
+import './PedidoPanel.css';
 
 type Mesa = Database['public']['Tables']['mesas']['Row'];
 type Producto = Database['public']['Tables']['productos']['Row'];
@@ -74,169 +78,93 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0,0,0,0.35)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 50,
-        padding: 16,
-      }}
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: 'var(--surface)',
-          borderRadius: 10,
-          width: 720,
-          maxWidth: '100%',
-          maxHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '14px 18px',
-            borderBottom: '1px solid var(--border)',
-          }}
-        >
-          <strong>Mesa {mesa.label ?? mesa.id}</strong>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer' }}>
+    <div className="pedido-overlay" onClick={onClose}>
+      <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="pedido-modal-header">
+          <h3>Mesa {mesa.label ?? mesa.id}</h3>
+          <button className="pedido-close" onClick={onClose}>
             ✕
           </button>
         </div>
 
         {!turno || turno.estado !== 'abierto' ? (
-          <p style={{ padding: 18, color: 'var(--text-dim)' }}>
-            Necesitás un turno abierto para tomar pedidos.
-          </p>
+          <EmptyState>Necesitás un turno abierto para tomar pedidos.</EmptyState>
         ) : (
-          <div style={{ display: 'flex', flex: 1, minHeight: 0, flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 300px', padding: 14, borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+          <div className="pedido-body">
+            <div className="pedido-menu">
+              <div className="pedido-cat-tabs">
                 {CATEGORIAS.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setCategoria(c.id)}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: 5,
-                      border: '1px solid var(--border)',
-                      background: categoria === c.id ? 'var(--terracota)' : 'var(--surface)',
-                      color: categoria === c.id ? '#fff' : 'var(--text)',
-                      fontSize: 12,
-                    }}
-                  >
+                  <button key={c.id} className={`pedido-cat-tab ${categoria === c.id ? 'active' : ''}`} onClick={() => setCategoria(c.id)}>
                     {c.label}
                   </button>
                 ))}
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="pedido-producto-list">
                 {productos
                   ?.filter((p) => p.categoria === categoria)
                   .map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => agregarProducto(p)}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: '8px 10px',
-                        borderRadius: 5,
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface)',
-                        fontSize: 13,
-                        textAlign: 'left',
-                      }}
-                    >
+                    <button key={p.id} className="pedido-producto-btn" onClick={() => agregarProducto(p)}>
                       <span>{p.nombre}</span>
-                      <span style={{ color: 'var(--text-dim)' }}>{fmt.format(p.precio)}</span>
+                      <span className="pedido-producto-precio">{fmt.format(p.precio)}</span>
                     </button>
                   ))}
               </div>
             </div>
 
-            <div style={{ flex: '1 1 300px', padding: 14, display: 'flex', flexDirection: 'column', gap: 10, overflowY: 'auto' }}>
+            <div className="pedido-cart">
               {isLoading ? (
-                <p>Cargando…</p>
+                <EmptyState>Cargando…</EmptyState>
               ) : items.length === 0 ? (
-                <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>Todavía no agregaste nada.</p>
+                <EmptyState>Todavía no agregaste nada.</EmptyState>
               ) : (
-                items.map((it) => (
-                  <ItemFila key={it.id} item={it} mutations={mutations} />
-                ))
+                items.map((it) => <ItemFila key={it.id} item={it} mutations={mutations} />)
               )}
 
-              <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+              <div className="pedido-footer">
                 {!cobrando ? (
                   <>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: 10 }}>
-                      <span>Total</span>
+                    <div className="pedido-total-row">
+                      <span className="label">Total</span>
                       <span>{fmt.format(subtotal)}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button
-                        disabled={!pedido || !hayPendientesDeCocina || enviando}
-                        onClick={handleEnviarCocina}
-                        style={{ flex: 1, padding: 9, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)' }}
-                      >
+                    <div className="pedido-actions">
+                      <Button block disabled={!pedido || !hayPendientesDeCocina || enviando} onClick={handleEnviarCocina}>
                         🍳 Enviar a cocina
-                      </button>
-                      <button
-                        disabled={!pedido || items.length === 0}
-                        onClick={() => setCobrando(true)}
-                        style={{ flex: 1, padding: 9, borderRadius: 5, border: 'none', background: 'var(--green)', color: '#fff', fontWeight: 600 }}
-                      >
+                      </Button>
+                      <Button variant="success" block disabled={!pedido || items.length === 0} onClick={() => setCobrando(true)}>
                         💰 Cobrar
-                      </button>
+                      </Button>
                     </div>
                   </>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <select
-                      value={clienteId}
-                      onChange={(e) => setClienteId(e.target.value ? Number(e.target.value) : '')}
-                      style={{ padding: 6, borderRadius: 4, border: '1px solid var(--border)', fontSize: 12 }}
-                    >
+                    <Select value={clienteId} onChange={(e) => setClienteId(e.target.value ? Number(e.target.value) : '')} style={{ fontSize: 12.5 }}>
                       <option value="">Sin cliente</option>
                       {clientes?.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.nombre} {c.apellido} {Number(c.descuento_pct) > 0 ? `(-${c.descuento_pct}%)` : ''}
                         </option>
                       ))}
-                    </select>
-                    <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                    </Select>
+                    <div className="pedido-cobro-summary">
                       Subtotal {fmt.format(subtotal)}
                       {descuento > 0 && ` · Descuento −${fmt.format(descuento)}`}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-                      <span>Total</span>
+                    <div className="pedido-total-row">
+                      <span className="label">Total</span>
                       <span>{fmt.format(total)}</span>
                     </div>
-                    <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Método de pago:</span>
-                    <div style={{ display: 'flex', gap: 6 }}>
+                    <span className="field-label">Método de pago</span>
+                    <div className="pedido-actions">
                       {METODOS.map((m) => (
-                        <button
-                          key={m}
-                          onClick={() => handleCobrar(m)}
-                          style={{ flex: 1, padding: 8, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 12 }}
-                        >
+                        <Button key={m} size="sm" block onClick={() => handleCobrar(m)}>
                           {m}
-                        </button>
+                        </Button>
                       ))}
                     </div>
-                    <button onClick={() => setCobrando(false)} style={{ fontSize: 12, background: 'none', border: 'none', color: 'var(--text-dim)' }}>
+                    <Button variant="ghost" size="sm" onClick={() => setCobrando(false)}>
                       cancelar
-                    </button>
+                    </Button>
                   </div>
                 )}
               </div>
@@ -262,37 +190,35 @@ function ItemFila({
   const [nota, setNota] = useState(item.nota ?? '');
 
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 8 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13 }}>
-        <span>
+    <div className="pedido-item">
+      <div className="pedido-item-top">
+        <span className="pedido-item-nombre">
           {item.productos?.nombre ?? `Producto #${item.producto_id}`}
-          {item.enviado_cocina && <span style={{ marginLeft: 6, fontSize: 10, color: 'var(--teal)' }}>· en cocina</span>}
+          {item.enviado_cocina && (
+            <span className="badge badge-info" style={{ marginLeft: 6 }}>
+              en cocina
+            </span>
+          )}
         </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button
-            onClick={() => mutations.actualizarCantidad.mutate({ itemId: item.id, cantidad: Math.max(1, Number(item.cantidad) - 1) })}
-            style={{ width: 22, height: 22 }}
-          >
+        <div className="pedido-item-controls">
+          <button className="pedido-qty-btn" onClick={() => mutations.actualizarCantidad.mutate({ itemId: item.id, cantidad: Math.max(1, Number(item.cantidad) - 1) })}>
             −
           </button>
-          <span>{item.cantidad}</span>
-          <button
-            onClick={() => mutations.actualizarCantidad.mutate({ itemId: item.id, cantidad: Number(item.cantidad) + 1 })}
-            style={{ width: 22, height: 22 }}
-          >
+          <span style={{ minWidth: 14, textAlign: 'center' }}>{item.cantidad}</span>
+          <button className="pedido-qty-btn" onClick={() => mutations.actualizarCantidad.mutate({ itemId: item.id, cantidad: Number(item.cantidad) + 1 })}>
             +
           </button>
-          <button onClick={() => mutations.quitarItem.mutate(item.id)} style={{ color: 'var(--red)', border: 'none', background: 'none' }}>
+          <button className="btn-danger btn-icon" onClick={() => mutations.quitarItem.mutate(item.id)}>
             🗑
           </button>
         </div>
       </div>
       <input
+        className="pedido-item-nota"
         placeholder="Nota (ej: sin azúcar)"
         value={nota}
         onChange={(e) => setNota(e.target.value)}
         onBlur={() => nota !== (item.nota ?? '') && mutations.actualizarNota.mutate({ itemId: item.id, nota })}
-        style={{ width: '100%', marginTop: 6, padding: 5, fontSize: 12, border: '1px solid var(--border)', borderRadius: 4 }}
       />
     </div>
   );

@@ -1,13 +1,23 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { CUENTAS as OPCIONES } from './accounts';
 import './LoginScreen.css';
+
+function useReloj() {
+  const [ahora, setAhora] = useState(new Date());
+  useEffect(() => {
+    const id = setInterval(() => setAhora(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return ahora;
+}
 
 export function LoginScreen() {
   const { signIn } = useAuth();
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const ahora = useReloj();
 
   async function handleSubmit(e: FormEvent, opcion: (typeof OPCIONES)[number]) {
     e.preventDefault();
@@ -20,12 +30,22 @@ export function LoginScreen() {
 
   return (
     <div className="login-screen">
-      <h1 className="login-title">☕ ComandaCafé</h1>
-      <p className="login-subtitle">Elegí tu acceso e ingresá la contraseña</p>
+      <div className="login-brand">
+        <div className="login-mark">☕</div>
+        <h1 className="login-title">ComandaCafé</h1>
+        <p className="login-subtitle">Elegí tu acceso e ingresá la contraseña</p>
+        <span className="login-clock">
+          🕐 {ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} ·{' '}
+          {ahora.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+        </span>
+      </div>
+
       <div className="shift-cards">
         {OPCIONES.map((opcion) => (
           <form key={opcion.id} className="shift-card" onSubmit={(e) => handleSubmit(e, opcion)}>
-            <span className="shift-icon">{opcion.icon}</span>
+            <span className="shift-icon-wrap">
+              <span className="shift-icon">{opcion.icon}</span>
+            </span>
             <span className="shift-name">{opcion.label}</span>
             <input
               type="password"

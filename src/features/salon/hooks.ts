@@ -9,6 +9,14 @@ export function useMesas() {
   return useQuery({ queryKey: ['mesas'], queryFn: api.fetchMesas });
 }
 
+export function useMesasOcupadas() {
+  return useQuery({
+    queryKey: ['mesas-ocupadas'],
+    queryFn: async () => new Set((await api.fetchMesasOcupadas()).map((p) => p.mesa_id)),
+    refetchInterval: 15000,
+  });
+}
+
 export function useSalonMutations() {
   const qc = useQueryClient();
   const invalidar = () => {

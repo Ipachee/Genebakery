@@ -1,5 +1,10 @@
 import { useState } from 'react';
 import { useEmpleadoMutations, useEmpleados } from '../hooks';
+import { PageHeader } from '../../../components/PageHeader';
+import { DataTable } from '../../../components/DataTable';
+import { Button } from '../../../components/Button';
+import { TextInput } from '../../../components/Field';
+import { EmptyState } from '../../../components/EmptyState';
 
 export function EmpleadosView() {
   const { data: empleados, isLoading } = useEmpleados();
@@ -13,58 +18,57 @@ export function EmpleadosView() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        <input placeholder="Nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} style={inp} />
-        <input placeholder="Apellido" value={form.apellido} onChange={(e) => setForm({ ...form, apellido: e.target.value })} style={inp} />
-        <input placeholder="DNI" value={form.dni} onChange={(e) => setForm({ ...form, dni: e.target.value })} style={{ ...inp, width: 110 }} />
-        <input placeholder="Puesto" value={form.puesto} onChange={(e) => setForm({ ...form, puesto: e.target.value })} style={inp} />
-        <input placeholder="Ingreso" type="date" value={form.ingreso} onChange={(e) => setForm({ ...form, ingreso: e.target.value })} style={{ ...inp, width: 150 }} />
-        <input placeholder="% descuento" type="number" value={form.descuentoPct} onChange={(e) => setForm({ ...form, descuentoPct: e.target.value })} style={{ ...inp, width: 100 }} />
-        <button onClick={submit} style={btnPrimary}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+      <PageHeader title="Empleados" subtitle="Equipo del local. El % de descuento aplica cuando consumen durante su turno." />
+
+      <div className="toolbar-form">
+        <TextInput placeholder="Nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} style={{ width: 130 }} />
+        <TextInput placeholder="Apellido" value={form.apellido} onChange={(e) => setForm({ ...form, apellido: e.target.value })} style={{ width: 130 }} />
+        <TextInput placeholder="DNI" value={form.dni} onChange={(e) => setForm({ ...form, dni: e.target.value })} style={{ width: 110 }} />
+        <TextInput placeholder="Puesto" value={form.puesto} onChange={(e) => setForm({ ...form, puesto: e.target.value })} style={{ width: 140 }} />
+        <TextInput placeholder="Ingreso" type="date" value={form.ingreso} onChange={(e) => setForm({ ...form, ingreso: e.target.value })} style={{ width: 150 }} />
+        <TextInput placeholder="% descuento" type="number" value={form.descuentoPct} onChange={(e) => setForm({ ...form, descuentoPct: e.target.value })} style={{ width: 100 }} />
+        <Button variant="primary" onClick={submit}>
           + Agregar
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
-        <p>Cargando…</p>
+        <EmptyState>Cargando…</EmptyState>
+      ) : !empleados?.length ? (
+        <EmptyState>Todavía no cargaste empleados.</EmptyState>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <DataTable>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-              <th style={th}>Nombre</th>
-              <th style={th}>DNI</th>
-              <th style={th}>Puesto</th>
-              <th style={th}>Ingreso</th>
-              <th style={th}>Desc.</th>
-              <th style={th}></th>
+            <tr>
+              <th>Nombre</th>
+              <th>DNI</th>
+              <th>Puesto</th>
+              <th>Ingreso</th>
+              <th>Desc.</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            {empleados?.map((e) => (
-              <tr key={e.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={td}>
+            {empleados.map((e) => (
+              <tr key={e.id}>
+                <td>
                   {e.nombre} {e.apellido}
                 </td>
-                <td style={td}>{e.dni || '—'}</td>
-                <td style={td}>{e.puesto || '—'}</td>
-                <td style={td}>{e.ingreso || '—'}</td>
-                <td style={td}>{e.descuento_pct}%</td>
-                <td style={td}>
-                  <button onClick={() => borrar.mutate(e.id)} style={{ color: 'var(--red)', border: 'none', background: 'none' }}>
+                <td>{e.dni || '—'}</td>
+                <td>{e.puesto || '—'}</td>
+                <td>{e.ingreso || '—'}</td>
+                <td>{e.descuento_pct}%</td>
+                <td>
+                  <Button variant="danger" size="sm" onClick={() => borrar.mutate(e.id)}>
                     🗑
-                  </button>
+                  </Button>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </DataTable>
       )}
     </div>
   );
 }
-
-const inp: React.CSSProperties = { padding: 7, borderRadius: 5, border: '1px solid var(--border)', fontSize: 13 };
-const btnPrimary: React.CSSProperties = { padding: '7px 12px', borderRadius: 5, border: 'none', background: 'var(--terracota)', color: '#fff', fontWeight: 600, fontSize: 13 };
-const th: React.CSSProperties = { padding: '6px 8px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-dim)' };
-const td: React.CSSProperties = { padding: '7px 8px' };

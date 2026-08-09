@@ -17,6 +17,7 @@ export function usePedidoMutations(mesaId: number) {
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ['pedido-mesa', mesaId] });
     qc.invalidateQueries({ queryKey: ['facturado-turno'] });
+    qc.invalidateQueries({ queryKey: ['mesas-ocupadas'] });
   };
 
   return {

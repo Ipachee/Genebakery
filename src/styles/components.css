@@ -1,0 +1,154 @@
+/* ---------- Botones ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: background-color 0.12s, border-color 0.12s, transform 0.05s, box-shadow 0.12s;
+  white-space: nowrap;
+}
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: var(--shadow-sm);
+}
+.btn-primary:hover:not(:disabled) { background: var(--terracota-dark); }
+
+.btn-secondary {
+  background: var(--surface-raised);
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--surface-sunken); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-dim);
+  border-color: transparent;
+}
+.btn-ghost:hover:not(:disabled) { background: var(--surface-sunken); color: var(--text); }
+
+.btn-danger {
+  background: transparent;
+  color: var(--red);
+  border-color: transparent;
+  padding: 6px 8px;
+}
+.btn-danger:hover:not(:disabled) { background: var(--red-soft); }
+
+.btn-success {
+  background: var(--green);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+.btn-success:hover:not(:disabled) { background: #3d6849; }
+
+.btn-sm { padding: 6px 10px; font-size: 12.5px; }
+.btn-block { width: 100%; }
+.btn-icon { padding: 6px; width: 30px; height: 30px; }
+
+/* ---------- Tarjetas ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+.card-pad { padding: var(--space-5); }
+
+/* ---------- Inputs ---------- */
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.input, .select {
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 13.5px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.input:focus, .select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  outline: none;
+}
+.input::placeholder { color: var(--text-faint); }
+
+/* ---------- Badges ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.badge-neutral { background: var(--surface-sunken); color: var(--text-dim); }
+.badge-warn { background: var(--red-soft); color: var(--red); }
+.badge-good { background: var(--green-soft); color: var(--green); }
+.badge-info { background: var(--teal-soft); color: var(--teal); }
+.badge-accent { background: rgba(193, 102, 59, 0.12); color: var(--terracota-dark); }
+
+/* ---------- Tablas ---------- */
+.table-wrap { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--surface); }
+table.data-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.data-table thead th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  background: var(--surface-sunken);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.data-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.data-table tbody tr:last-child td { border-bottom: none; }
+table.data-table tbody tr { transition: background-color 0.1s; }
+table.data-table tbody tr:hover { background: var(--surface-sunken); }
+table.data-table tbody tr.row-warn { background: var(--red-soft); }
+table.data-table tbody tr.row-warn:hover { background: #f6d9d3; }
+
+/* ---------- Encabezado de sección ---------- */
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-5); flex-wrap: wrap; }
+.page-title { font-size: 18px; margin: 0 0 2px; }
+.page-subtitle { font-size: 12.5px; color: var(--text-dim); margin: 0; max-width: 60ch; }
+
+/* ---------- Estado vacío ---------- */
+.empty-state { padding: var(--space-8) var(--space-5); text-align: center; color: var(--text-dim); font-size: 13.5px; }
+
+/* ---------- Tabs ---------- */
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; padding: 4px; background: var(--surface-sunken); border-radius: var(--radius-md); width: fit-content; }
+.tab {
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: transparent;
+  border: none;
+}
+.tab.active { background: var(--surface-raised); color: var(--brown-dark); box-shadow: var(--shadow-sm); }
+.tab:hover:not(.active) { color: var(--text); }
+
+/* ---------- Formularios inline (toolbar de alta) ---------- */
+.toolbar-form { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: flex-end; padding: var(--space-4); background: var(--surface-sunken); border-radius: var(--radius-md); border: 1px solid var(--border); }

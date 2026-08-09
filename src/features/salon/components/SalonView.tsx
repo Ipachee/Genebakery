@@ -1,7 +1,10 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useAuth } from '../../../auth/useAuth';
-import { useMesas, useSalonMutations, useSalones } from '../hooks';
+import { useMesas, useMesasOcupadas, useSalonMutations, useSalones } from '../hooks';
 import { PedidoPanel } from '../../pedidos/components/PedidoPanel';
+import { Button } from '../../../components/Button';
+import { TextInput } from '../../../components/Field';
+import { EmptyState } from '../../../components/EmptyState';
 import type { Database } from '../../../lib/supabase/types';
 
 type Mesa = Database['public']['Tables']['mesas']['Row'];
@@ -26,6 +29,7 @@ export function SalonView() {
   const { profile } = useAuth();
   const { data: salones, isLoading: loadingSalones, error: errorSalones } = useSalones();
   const { data: mesas, isLoading: loadingMesas, error: errorMesas } = useMesas();
+  const { data: ocupadas } = useMesasOcupadas();
   const mutations = useSalonMutations();
 
   const [editando, setEditando] = useState(false);
@@ -37,16 +41,12 @@ export function SalonView() {
 
   const esAdmin = profile?.rol === 'admin';
 
-  if (loadingSalones || loadingMesas) return <p>Cargando salón…</p>;
+  if (loadingSalones || loadingMesas) return <EmptyState>Cargando salón…</EmptyState>;
   if (errorSalones || errorMesas) {
-    return (
-      <p style={{ color: 'var(--red)' }}>
-        No se pudo leer el salón desde Supabase. Reintentá recargando la página.
-      </p>
-    );
+    return <EmptyState>No se pudo leer el salón desde Supabase. Reintentá recargando la página.</EmptyState>;
   }
   if (!salones?.length) {
-    return <p>Todavía no hay salones cargados.</p>;
+    return <EmptyState>Todavía no hay salones cargados.</EmptyState>;
   }
 
   const todasLasMesas = mesas ?? [];
@@ -113,48 +113,51 @@ export function SalonView() {
     seleccion?.tipo === 'salon' ? salones.find((s) => s.id === seleccion.id) : null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {esAdmin && (
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button
-            onClick={() => {
-              setEditando((v) => !v);
-              setSeleccion(null);
-            }}
-            style={{
-              padding: '7px 12px',
-              borderRadius: 5,
-              border: '1px solid var(--border)',
-              background: editando ? 'var(--terracota)' : 'var(--surface)',
-              color: editando ? '#fff' : 'var(--text)',
-              fontWeight: 600,
-              fontSize: 13,
-            }}
-          >
-            ✏️ {editando ? 'Terminar edición' : 'Editar plano'}
-          </button>
-          {editando && (
-            <button
-              onClick={() => mutations.crearSalon.mutate('Nuevo salón')}
-              style={{ padding: '7px 12px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13 }}
-            >
-              + Salón
-            </button>
-          )}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+        <div style={{ display: 'flex', gap: 'var(--space-4)', fontSize: 12.5, color: 'var(--text-dim)' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 11, height: 11, borderRadius: 3, background: 'var(--surface)', border: '1.5px solid var(--brown)', display: 'inline-block' }} />
+            Libre
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 11, height: 11, borderRadius: 3, background: 'var(--terracota)', display: 'inline-block' }} />
+            Ocupada
+          </span>
         </div>
-      )}
+        {esAdmin && (
+          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <Button
+              variant={editando ? 'primary' : 'secondary'}
+              size="sm"
+              onClick={() => {
+                setEditando((v) => !v);
+                setSeleccion(null);
+              }}
+            >
+              ✏️ {editando ? 'Terminar edición' : 'Editar plano'}
+            </Button>
+            {editando && (
+              <Button variant="secondary" size="sm" onClick={() => mutations.crearSalon.mutate('Nuevo salón')}>
+                + Salón
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
 
-      <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${maxX} ${maxY}`}
+          role="img"
+          aria-label="Plano del salón"
+          className="card"
           style={{
             width: '100%',
             maxWidth: 1120,
             height: 'auto',
-            background: 'var(--surface)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
+            padding: 4,
             touchAction: editando ? 'none' : 'auto',
           }}
           onPointerMove={moverDrag}
@@ -170,26 +173,27 @@ export function SalonView() {
                   y={p.y}
                   width={salon.w}
                   height={salon.h}
-                  fill="none"
+                  fill="var(--surface-sunken)"
+                  fillOpacity={0.4}
                   stroke={seleccion?.tipo === 'salon' && seleccion.id === salon.id ? 'var(--terracota)' : 'var(--brown-mid)'}
                   strokeWidth={seleccion?.tipo === 'salon' && seleccion.id === salon.id ? 2 : 1.2}
-                  rx={4}
+                  rx={6}
                   style={{ cursor: editando ? 'grab' : 'default' }}
                   onPointerDown={(e) => iniciarDrag(e, 'salon', salon)}
                 />
-                <text x={p.x + 8} y={p.y + 16} fontSize="11" fill="var(--brown-dark)" fontWeight={700}>
-                  {salon.nombre}
+                <text x={p.x + 10} y={p.y + 18} fontSize="11" fill="var(--brown-dark)" fontWeight={700} letterSpacing="0.02em">
+                  {salon.nombre.toUpperCase()}
                 </text>
                 {salon.tag && (
-                  <text x={p.x + salon.w - 8} y={p.y + 16} fontSize="10" fill="var(--text-dim)" textAnchor="end">
+                  <text x={p.x + salon.w - 10} y={p.y + 18} fontSize="10" fill="var(--text-dim)" textAnchor="end">
                     {salon.tag}
                   </text>
                 )}
                 {editando && (
                   <text
-                    x={p.x + salon.w - 8}
-                    y={p.y + salon.h - 8}
-                    fontSize="14"
+                    x={p.x + salon.w - 10}
+                    y={p.y + salon.h - 10}
+                    fontSize="15"
                     textAnchor="end"
                     style={{ cursor: 'pointer' }}
                     onClick={(e) => {
@@ -205,13 +209,17 @@ export function SalonView() {
           })}
 
           {DOORS.map((d, i) => (
-            <rect key={i} x={d.x} y={d.y} width={d.w} height={d.h} fill="var(--cream)" stroke="var(--brown-mid)" strokeWidth={0.5} />
+            <rect key={i} x={d.x} y={d.y} width={d.w} height={d.h} fill="var(--bg)" stroke="var(--brown-mid)" strokeWidth={0.5} />
           ))}
-          <rect x={BARRA.x} y={BARRA.y} width={BARRA.w} height={BARRA.h} fill="var(--amber)" opacity={0.5} />
+          <rect x={BARRA.x} y={BARRA.y} width={BARRA.w} height={BARRA.h} rx={3} fill="var(--amber)" opacity={0.45} />
 
           {mesasVisibles.map((mesa) => {
             const p = posDe('mesa', mesa);
             const seleccionada = seleccion?.tipo === 'mesa' && seleccion.id === mesa.id;
+            const ocupada = ocupadas?.has(mesa.id) ?? false;
+            const fill = ocupada ? 'var(--terracota)' : 'var(--surface)';
+            const textColor = ocupada ? '#fff' : 'var(--brown-dark)';
+            const stroke = seleccionada ? 'var(--brown-dark)' : ocupada ? 'var(--terracota-dark)' : 'var(--brown)';
             return (
               <g
                 key={mesa.id}
@@ -227,10 +235,10 @@ export function SalonView() {
                     cx={p.x + mesa.w / 2}
                     cy={p.y + mesa.h / 2}
                     r={mesa.w / 2}
-                    fill="var(--surface)"
-                    stroke={seleccionada ? 'var(--terracota)' : 'var(--brown)'}
+                    fill={fill}
+                    stroke={stroke}
                     strokeWidth={seleccionada ? 2.5 : 1.5}
-                    style={{ cursor: editando ? 'grab' : 'pointer' }}
+                    style={{ cursor: editando ? 'grab' : 'pointer', filter: 'drop-shadow(0 1px 2px rgba(59,36,24,0.15))' }}
                   />
                 ) : (
                   <rect
@@ -238,19 +246,20 @@ export function SalonView() {
                     y={p.y}
                     width={mesa.w}
                     height={mesa.h}
-                    rx={4}
-                    fill="var(--surface)"
-                    stroke={seleccionada ? 'var(--terracota)' : 'var(--brown)'}
+                    rx={6}
+                    fill={fill}
+                    stroke={stroke}
                     strokeWidth={seleccionada ? 2.5 : 1.5}
-                    style={{ cursor: editando ? 'grab' : 'pointer' }}
+                    style={{ cursor: editando ? 'grab' : 'pointer', filter: 'drop-shadow(0 1px 2px rgba(59,36,24,0.15))' }}
                   />
                 )}
                 <text
                   x={p.x + mesa.w / 2}
                   y={p.y + mesa.h / 2 + 4}
                   fontSize="12"
+                  fontWeight={600}
                   textAnchor="middle"
-                  fill="var(--brown-dark)"
+                  fill={textColor}
                   style={{ pointerEvents: 'none' }}
                 >
                   {mesa.label ?? mesa.id}
@@ -288,61 +297,82 @@ function PanelEdicion({
   mutations: ReturnType<typeof useSalonMutations>;
   onCerrar: () => void;
 }) {
-  const box: React.CSSProperties = {
-    background: 'var(--surface)',
-    border: '1px solid var(--border)',
-    borderRadius: 8,
-    padding: 16,
+  const boxStyle: React.CSSProperties = {
     width: 220,
     display: 'flex',
     flexDirection: 'column',
-    gap: 10,
+    gap: 'var(--space-3)',
     fontSize: 13,
   };
 
   if (mesa) {
     return (
-      <div style={box}>
-        <strong>Mesa {mesa.label ?? mesa.id}</strong>
+      <div className="card card-pad" style={boxStyle}>
+        <strong style={{ fontSize: 14 }}>Mesa {mesa.label ?? mesa.id}</strong>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => mutations.redimensionarMesa.mutate({ id: mesa.id, w: Math.max(30, mesa.w - 10), h: Math.max(30, mesa.h - 10) })}>
+          <Button
+            size="sm"
+            block
+            onClick={() => mutations.redimensionarMesa.mutate({ id: mesa.id, w: Math.max(30, mesa.w - 10), h: Math.max(30, mesa.h - 10) })}
+          >
             − tamaño
-          </button>
-          <button onClick={() => mutations.redimensionarMesa.mutate({ id: mesa.id, w: mesa.w + 10, h: mesa.h + 10 })}>
+          </Button>
+          <Button size="sm" block onClick={() => mutations.redimensionarMesa.mutate({ id: mesa.id, w: mesa.w + 10, h: mesa.h + 10 })}>
             + tamaño
-          </button>
+          </Button>
         </div>
         {mesa.mesa_padre_id == null ? (
-          <button onClick={() => mutations.dividirMesa.mutate(mesa)}>Dividir en A / B</button>
+          <Button size="sm" onClick={() => mutations.dividirMesa.mutate(mesa)}>
+            Dividir en A / B
+          </Button>
         ) : (
-          <button onClick={() => mutations.unirMesa.mutate(mesa.mesa_padre_id!)}>Unir mesa</button>
+          <Button size="sm" onClick={() => mutations.unirMesa.mutate(mesa.mesa_padre_id!)}>
+            Unir mesa
+          </Button>
         )}
-        <button style={{ color: 'var(--red)' }} onClick={() => { mutations.borrarMesa.mutate(mesa.id); onCerrar(); }}>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => {
+            mutations.borrarMesa.mutate(mesa.id);
+            onCerrar();
+          }}
+        >
           🗑 Borrar mesa
-        </button>
+        </Button>
       </div>
     );
   }
 
   if (salon) {
     return (
-      <div style={box}>
-        <input
+      <div className="card card-pad" style={boxStyle}>
+        <TextInput
           defaultValue={salon.nombre}
           onBlur={(e) => e.target.value !== salon.nombre && mutations.renombrarSalon.mutate({ id: salon.id, nombre: e.target.value })}
-          style={{ padding: 6, border: '1px solid var(--border)', borderRadius: 4 }}
         />
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => mutations.redimensionarSalon.mutate({ id: salon.id, w: Math.max(80, salon.w - 20), h: Math.max(60, salon.h - 20) })}>
+          <Button
+            size="sm"
+            block
+            onClick={() => mutations.redimensionarSalon.mutate({ id: salon.id, w: Math.max(80, salon.w - 20), h: Math.max(60, salon.h - 20) })}
+          >
             − tamaño
-          </button>
-          <button onClick={() => mutations.redimensionarSalon.mutate({ id: salon.id, w: salon.w + 20, h: salon.h + 20 })}>
+          </Button>
+          <Button size="sm" block onClick={() => mutations.redimensionarSalon.mutate({ id: salon.id, w: salon.w + 20, h: salon.h + 20 })}>
             + tamaño
-          </button>
+          </Button>
         </div>
-        <button style={{ color: 'var(--red)' }} onClick={() => { mutations.borrarSalon.mutate(salon.id); onCerrar(); }}>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => {
+            mutations.borrarSalon.mutate(salon.id);
+            onCerrar();
+          }}
+        >
           🗑 Borrar salón
-        </button>
+        </Button>
       </div>
     );
   }

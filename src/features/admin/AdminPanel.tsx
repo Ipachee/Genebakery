@@ -27,21 +27,9 @@ export function AdminPanel() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+      <div className="tabs" style={{ marginBottom: 'var(--space-5)' }}>
         {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{
-              padding: '7px 14px',
-              borderRadius: 5,
-              border: '1px solid var(--border)',
-              background: tab === t.id ? 'var(--brown-dark)' : 'var(--surface)',
-              color: tab === t.id ? '#fff' : 'var(--text)',
-              fontSize: 13,
-              fontWeight: 600,
-            }}
-          >
+          <button key={t.id} className={`tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
             {t.label}
           </button>
         ))}

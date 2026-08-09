@@ -4,50 +4,90 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 28px;
-  padding: 24px;
+  gap: var(--space-8);
+  padding: var(--space-6);
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -10%, rgba(217, 154, 61, 0.16), transparent 60%),
+    radial-gradient(ellipse 900px 500px at 85% 110%, rgba(193, 102, 59, 0.14), transparent 60%),
+    var(--bg);
 }
 
+.login-brand { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; }
+.login-mark {
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--brown-dark);
+  color: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  box-shadow: var(--shadow-lg);
+  margin-bottom: var(--space-2);
+}
 .login-title {
   margin: 0;
   font-size: 26px;
+  font-family: var(--font-display);
   color: var(--brown-dark);
+  letter-spacing: -0.01em;
 }
-
+.login-clock {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .login-subtitle {
-  margin: -18px 0 0;
+  margin: 0;
   color: var(--text-dim);
   font-size: 13.5px;
 }
 
 .shift-cards {
   display: flex;
-  gap: 18px;
+  gap: var(--space-5);
   flex-wrap: wrap;
   justify-content: center;
+  position: relative;
+  z-index: 1;
 }
 
 .shift-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 22px 20px;
-  width: 168px;
+  border-radius: var(--radius-lg);
+  padding: var(--space-6) var(--space-5);
+  width: 180px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  transition: border-color 0.15s, transform 0.15s;
+  gap: var(--space-3);
+  box-shadow: var(--shadow-md);
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
 .shift-card:focus-within {
-  border-color: var(--terracota);
-  transform: translateY(-2px);
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
 }
 
-.shift-icon {
-  font-size: 32px;
+.shift-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--surface-sunken);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.shift-icon { font-size: 26px; }
 
 .shift-name {
   font-weight: 700;
@@ -58,30 +98,39 @@
 
 .shift-card input {
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 5px;
-  border: 1px solid var(--border);
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
   text-align: center;
+  font-size: 14px;
+  letter-spacing: 0.15em;
+}
+.shift-card input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+  outline: none;
 }
 
 .shift-card button {
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 5px;
+  padding: 9px 10px;
+  border-radius: var(--radius-sm);
   border: none;
   background: var(--terracota);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 13px;
+  transition: background-color 0.12s;
 }
-
-.shift-card button:disabled {
-  opacity: 0.6;
-}
+.shift-card button:hover:not(:disabled) { background: var(--terracota-dark); }
+.shift-card button:disabled { opacity: 0.6; }
 
 .login-error {
-  margin: -10px 0 0;
+  margin: 0;
   color: var(--red);
   font-size: 12.5px;
   text-align: center;
+  background: var(--red-soft);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
 }

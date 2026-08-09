@@ -1,6 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
 import { useGastoMutations, useGastos, useInsumos } from '../hooks';
+import { PageHeader } from '../../../components/PageHeader';
+import { DataTable } from '../../../components/DataTable';
+import { Button } from '../../../components/Button';
+import { Select, TextInput } from '../../../components/Field';
+import { EmptyState } from '../../../components/EmptyState';
 
 const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
@@ -31,56 +36,57 @@ export function GastosView() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        <select value={form.insumoId} onChange={(e) => setForm({ ...form, insumoId: e.target.value })} style={inp}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+      <PageHeader title="Gastos" subtitle="Compras de insumos. Recalculan el costo promedio ponderado automáticamente." />
+
+      <div className="toolbar-form">
+        <Select value={form.insumoId} onChange={(e) => setForm({ ...form, insumoId: e.target.value })} style={{ minWidth: 200 }}>
           <option value="">Insumo comprado…</option>
           {insumos?.map((i) => (
             <option key={i.id} value={i.id}>
               {i.nombre} ({i.unidad})
             </option>
           ))}
-        </select>
-        <input placeholder="Cantidad" type="number" value={form.cantidad} onChange={(e) => setForm({ ...form, cantidad: e.target.value })} style={{ ...inp, width: 100 }} />
-        <input placeholder="Costo total $" type="number" value={form.costoTotal} onChange={(e) => setForm({ ...form, costoTotal: e.target.value })} style={{ ...inp, width: 120 }} />
-        <input placeholder="Proveedor" value={form.proveedor} onChange={(e) => setForm({ ...form, proveedor: e.target.value })} style={inp} />
-        <button onClick={submit} style={btnPrimary}>
+        </Select>
+        <TextInput placeholder="Cantidad" type="number" value={form.cantidad} onChange={(e) => setForm({ ...form, cantidad: e.target.value })} style={{ width: 100 }} />
+        <TextInput placeholder="Costo total $" type="number" value={form.costoTotal} onChange={(e) => setForm({ ...form, costoTotal: e.target.value })} style={{ width: 130 }} />
+        <TextInput placeholder="Proveedor" value={form.proveedor} onChange={(e) => setForm({ ...form, proveedor: e.target.value })} style={{ minWidth: 160 }} />
+        <Button variant="primary" onClick={submit}>
           + Registrar gasto
-        </button>
+        </Button>
       </div>
-      {error && <p style={{ color: 'var(--red)', fontSize: 13 }}>{error}</p>}
+      {error && (
+        <p style={{ color: 'var(--red)', fontSize: 13, background: 'var(--red-soft)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>{error}</p>
+      )}
 
       {isLoading ? (
-        <p>Cargando…</p>
+        <EmptyState>Cargando…</EmptyState>
+      ) : !gastos?.length ? (
+        <EmptyState>Todavía no hay gastos registrados.</EmptyState>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <DataTable>
           <thead>
-            <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-              <th style={th}>Fecha</th>
-              <th style={th}>Insumo</th>
-              <th style={th}>Cantidad</th>
-              <th style={th}>Costo total</th>
-              <th style={th}>Proveedor</th>
+            <tr>
+              <th>Fecha</th>
+              <th>Insumo</th>
+              <th>Cantidad</th>
+              <th>Costo total</th>
+              <th>Proveedor</th>
             </tr>
           </thead>
           <tbody>
-            {gastos?.map((g) => (
-              <tr key={g.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                <td style={td}>{g.fecha}</td>
-                <td style={td}>{g.insumos?.nombre}</td>
-                <td style={td}>{g.cantidad}</td>
-                <td style={td}>{fmt.format(Number(g.costo_total))}</td>
-                <td style={td}>{g.proveedor ?? '—'}</td>
+            {gastos.map((g) => (
+              <tr key={g.id}>
+                <td>{g.fecha}</td>
+                <td>{g.insumos?.nombre}</td>
+                <td>{g.cantidad}</td>
+                <td>{fmt.format(Number(g.costo_total))}</td>
+                <td>{g.proveedor ?? '—'}</td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </DataTable>
       )}
     </div>
   );
 }
-
-const inp: React.CSSProperties = { padding: 7, borderRadius: 5, border: '1px solid var(--border)', fontSize: 13 };
-const btnPrimary: React.CSSProperties = { padding: '7px 12px', borderRadius: 5, border: 'none', background: 'var(--terracota)', color: '#fff', fontWeight: 600, fontSize: 13 };
-const th: React.CSSProperties = { padding: '6px 8px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-dim)' };
-const td: React.CSSProperties = { padding: '7px 8px' };

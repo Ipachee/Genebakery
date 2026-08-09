@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
 import { useElaboradoMutations, useElaborados, useProductosSinElaborado } from '../hooks';
+import { PageHeader } from '../../../components/PageHeader';
+import { Button } from '../../../components/Button';
+import { Select, TextInput } from '../../../components/Field';
+import { Badge } from '../../../components/Badge';
+import { EmptyState } from '../../../components/EmptyState';
+import { Card } from '../../../components/Card';
 
 const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 });
 
@@ -39,59 +45,65 @@ export function ElaboradosView() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        <input placeholder="Nombre (ej: Torta de chocolate)" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} style={inp} />
-        <select value={form.productoId} onChange={(e) => setForm({ ...form, productoId: e.target.value })} style={inp}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+      <PageHeader title="Elaborados" subtitle="Se producen en unidades (ej. una torta entera) y se venden por porción." />
+
+      <div className="toolbar-form">
+        <TextInput placeholder="Nombre (ej: Torta de chocolate)" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} style={{ minWidth: 200 }} />
+        <Select value={form.productoId} onChange={(e) => setForm({ ...form, productoId: e.target.value })} style={{ minWidth: 200 }}>
           <option value="">Producto del menú vinculado…</option>
           {productosDisponibles?.map((p) => (
             <option key={p.id} value={p.id}>
               {p.nombre}
             </option>
           ))}
-        </select>
-        <input placeholder="Porciones por unidad" type="number" value={form.porcionesPorUnidad} onChange={(e) => setForm({ ...form, porcionesPorUnidad: e.target.value })} style={{ ...inp, width: 140 }} />
-        <input placeholder="Porciones mínimas" type="number" value={form.porcionesMin} onChange={(e) => setForm({ ...form, porcionesMin: e.target.value })} style={{ ...inp, width: 130 }} />
-        <button onClick={crear} style={btnPrimary}>
+        </Select>
+        <TextInput placeholder="Porciones por unidad" type="number" value={form.porcionesPorUnidad} onChange={(e) => setForm({ ...form, porcionesPorUnidad: e.target.value })} style={{ width: 150 }} />
+        <TextInput placeholder="Porciones mínimas" type="number" value={form.porcionesMin} onChange={(e) => setForm({ ...form, porcionesMin: e.target.value })} style={{ width: 140 }} />
+        <Button variant="primary" onClick={crear}>
           + Agregar
-        </button>
+        </Button>
       </div>
 
-      {error && <p style={{ color: 'var(--red)', fontSize: 13 }}>{error}</p>}
+      {error && (
+        <p style={{ color: 'var(--red)', fontSize: 13, background: 'var(--red-soft)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>{error}</p>
+      )}
 
       {isLoading ? (
-        <p>Cargando…</p>
+        <EmptyState>Cargando…</EmptyState>
+      ) : !elaborados?.length ? (
+        <EmptyState>Todavía no cargaste elaborados.</EmptyState>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {elaborados?.map((e) => {
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          {elaborados.map((e) => {
             const bajo = Number(e.stock_porciones) <= Number(e.porciones_min);
             return (
-              <div key={e.id} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <Card key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
                 <div>
                   <strong>{e.nombre}</strong>
-                  <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-dim)', margin: '2px 0 4px' }}>
                     {e.productos?.nombre} · {e.porciones_por_unidad} porciones/unidad · costo/porción {fmt.format(Number(e.costo_unit_porcion))}
                   </div>
-                  <div style={{ fontSize: 13 }}>
-                    Stock: {e.stock_porciones} porciones {bajo && <span style={{ color: 'var(--red)', fontSize: 11 }}>⚠ bajo</span>}
+                  <div style={{ fontSize: 13.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    Stock: <strong>{e.stock_porciones}</strong> porciones {bajo && <Badge tone="warn">bajo</Badge>}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input
+                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                  <TextInput
                     placeholder="Unidades hechas"
                     type="number"
                     value={producciones[e.id] ?? ''}
                     onChange={(ev) => setProducciones({ ...producciones, [e.id]: ev.target.value })}
-                    style={{ width: 110, padding: 6, borderRadius: 5, border: '1px solid var(--border)', fontSize: 12 }}
+                    style={{ width: 120 }}
                   />
-                  <button onClick={() => producir(e.id)} style={{ padding: '6px 10px', borderRadius: 5, border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12 }}>
+                  <Button variant="success" size="sm" onClick={() => producir(e.id)}>
                     Registrar producción
-                  </button>
-                  <button onClick={() => mutations.borrar.mutate(e.id)} style={{ color: 'var(--red)', border: 'none', background: 'none' }}>
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => mutations.borrar.mutate(e.id)}>
                     🗑
-                  </button>
+                  </Button>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -99,6 +111,3 @@ export function ElaboradosView() {
     </div>
   );
 }
-
-const inp: React.CSSProperties = { padding: 7, borderRadius: 5, border: '1px solid var(--border)', fontSize: 13 };
-const btnPrimary: React.CSSProperties = { padding: '7px 12px', borderRadius: 5, border: 'none', background: 'var(--terracota)', color: '#fff', fontWeight: 600, fontSize: 13 };

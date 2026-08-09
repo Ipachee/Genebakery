@@ -5,30 +5,26 @@ const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS',
 export function TurnoBadge() {
   const { turno, facturado, loading, cerrarTurno, reabrirTurno } = useTurnoActual();
 
-  if (loading) return <span style={{ opacity: 0.7 }}>Abriendo turno…</span>;
+  if (loading) return <span style={{ opacity: 0.7, fontSize: 12.5 }}>Abriendo turno…</span>;
   if (!turno) return null;
 
   const cerrado = turno.estado === 'cerrado';
 
   return (
-    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span>
-        Turno {turno.etiqueta} · {fmt.format(facturado)}
-        {cerrado && ' · cerrado'}
-      </span>
+    <div className="shell-turno">
+      <div className="shell-turno-info">
+        <span className="shell-turno-label">
+          Turno {turno.etiqueta} {cerrado && '· cerrado'}
+        </span>
+        <span className="shell-turno-total">{fmt.format(facturado)}</span>
+      </div>
       <button
+        className="shell-signout"
         onClick={cerrado ? reabrirTurno : cerrarTurno}
-        style={{
-          background: cerrado ? 'var(--green)' : 'transparent',
-          border: '1px solid rgba(255,255,255,0.4)',
-          color: '#fff',
-          borderRadius: 4,
-          padding: '5px 9px',
-          fontSize: 12,
-        }}
+        style={{ background: cerrado ? 'var(--green)' : undefined, borderColor: cerrado ? 'var(--green)' : undefined }}
       >
-        {cerrado ? '↺ Reabrir turno' : '🔒 Cerrar turno'}
+        {cerrado ? '↺ Reabrir' : '🔒 Cerrar'}
       </button>
-    </span>
+    </div>
   );
 }

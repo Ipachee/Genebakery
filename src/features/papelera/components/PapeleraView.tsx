@@ -1,4 +1,9 @@
 import { usePapelera, usePapeleraMutations } from '../hooks';
+import { PageHeader } from '../../../components/PageHeader';
+import { DataTable } from '../../../components/DataTable';
+import { Button } from '../../../components/Button';
+import { Badge } from '../../../components/Badge';
+import { EmptyState } from '../../../components/EmptyState';
 
 const TIPO_LABEL: Record<string, string> = {
   insumo: 'Insumo',
@@ -18,39 +23,42 @@ export function PapeleraView() {
   const { data: papelera, isLoading } = usePapelera();
   const { restaurar } = usePapeleraMutations();
 
-  if (isLoading) return <p>Cargando…</p>;
-  if (!papelera?.length) return <p style={{ color: 'var(--text-dim)' }}>La papelera está vacía.</p>;
-
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-      <thead>
-        <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-          <th style={th}>Tipo</th>
-          <th style={th}>Resumen</th>
-          <th style={th}>Borrado</th>
-          <th style={th}></th>
-        </tr>
-      </thead>
-      <tbody>
-        {papelera.map((p) => (
-          <tr key={`${p.tipo}-${p.id}`} style={{ borderBottom: '1px solid var(--border)' }}>
-            <td style={td}>{TIPO_LABEL[p.tipo ?? ''] ?? p.tipo}</td>
-            <td style={td}>{p.resumen}</td>
-            <td style={td}>{p.deleted_at ? new Date(p.deleted_at).toLocaleString('es-AR') : '—'}</td>
-            <td style={td}>
-              <button
-                onClick={() => p.tipo && p.id && restaurar.mutate({ tipo: p.tipo, id: p.id })}
-                style={{ padding: '4px 10px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 12 }}
-              >
-                ↺ Restaurar
-              </button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+      <PageHeader title="Papelera" subtitle="Todo lo borrado en el sistema, unificado. Restaurar es un click." />
+
+      {isLoading ? (
+        <EmptyState>Cargando…</EmptyState>
+      ) : !papelera?.length ? (
+        <EmptyState>La papelera está vacía.</EmptyState>
+      ) : (
+        <DataTable>
+          <thead>
+            <tr>
+              <th>Tipo</th>
+              <th>Resumen</th>
+              <th>Borrado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {papelera.map((p) => (
+              <tr key={`${p.tipo}-${p.id}`}>
+                <td>
+                  <Badge tone="neutral">{TIPO_LABEL[p.tipo ?? ''] ?? p.tipo}</Badge>
+                </td>
+                <td>{p.resumen}</td>
+                <td style={{ color: 'var(--text-dim)' }}>{p.deleted_at ? new Date(p.deleted_at).toLocaleString('es-AR') : '—'}</td>
+                <td>
+                  <Button variant="secondary" size="sm" onClick={() => p.tipo && p.id && restaurar.mutate({ tipo: p.tipo, id: p.id })}>
+                    ↺ Restaurar
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </DataTable>
+      )}
+    </div>
   );
 }
-
-const th: React.CSSProperties = { padding: '6px 8px', fontSize: 11, textTransform: 'uppercase', color: 'var(--text-dim)' };
-const td: React.CSSProperties = { padding: '7px 8px' };

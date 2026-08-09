@@ -19,6 +19,17 @@ export async function fetchMesas() {
   return data;
 }
 
+export async function fetchMesasOcupadas() {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select('mesa_id')
+    .in('estado', ['abierto', 'enviado_cocina'])
+    .is('deleted_at', null)
+    .not('mesa_id', 'is', null);
+  if (error) throw error;
+  return data;
+}
+
 export async function moverMesa(id: number, x: number, y: number) {
   const { error } = await supabase.from('mesas').update({ x, y }).eq('id', id);
   if (error) throw error;
