@@ -1,0 +1,3733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ComandaCafé — Sistema de Gestión de Mesas</title>
+<style>
+  :root{
+    --brown-dark:#3b2418;
+    --brown:#6b4226;
+    --brown-mid:#8a5a3b;
+    --cream:#f7ecd9;
+    --cream-2:#fdf6ea;
+    --terracota:#c1663b;
+    --terracota-dark:#a34e28;
+    --green:#4a7c59;
+    --amber:#d99a3d;
+    --blue:#3f6b8a;
+    --teal:#2f8f7f;
+    --red:#c0392b;
+    --gray:#8d8375;
+    --shadow: 0 6px 18px rgba(59,36,24,.15);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(180deg,#fdf6ea 0%, #f2e3c9 100%);
+    color:var(--brown-dark);
+  }
+  header{
+    background:var(--brown-dark);
+    color:var(--cream-2);
+    padding:16px 28px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    box-shadow:var(--shadow);
+    position:sticky;
+    top:0;
+    z-index:50;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  header .brand{display:flex;align-items:center;gap:12px;}
+  header .brand .logo{
+    width:38px;height:38px;border-radius:10px;
+    background:var(--terracota);
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;
+  }
+  header h1{font-size:18px;margin:0;font-weight:600;letter-spacing:.3px;}
+  header .sub{font-size:11px;color:#d8c7ac;margin-top:1px;}
+  nav{display:flex;gap:6px;flex-wrap:wrap;}
+  nav button{
+    background:transparent;border:1px solid rgba(255,255,255,.25);
+    color:var(--cream-2);padding:9px 16px;border-radius:8px;
+    cursor:pointer;font-size:13.5px;font-weight:500;transition:.15s;
+  }
+  nav button:hover{background:rgba(255,255,255,.1);}
+  nav button.active{background:var(--terracota);border-color:var(--terracota);}
+  .badge-count{
+    background:var(--red);color:#fff;border-radius:20px;font-size:11px;
+    padding:1px 7px;margin-left:6px;
+  }
+
+  /* ---- Notificaciones ---- */
+  .notif-wrap{position:relative;display:inline-block;}
+  .notif-btn{
+    background:transparent;border:1px solid rgba(255,255,255,.25);
+    color:var(--cream-2);padding:9px 14px;border-radius:8px;
+    cursor:pointer;font-size:14px;position:relative;
+  }
+  .notif-btn:hover{background:rgba(255,255,255,.1);}
+  .notif-badge{
+    position:absolute;top:-6px;right:-6px;background:var(--gray);color:#fff;
+    border-radius:20px;font-size:10px;min-width:16px;height:16px;line-height:16px;
+    text-align:center;padding:0 3px;font-weight:700;
+  }
+  .notif-badge.has-alerts{background:var(--red);}
+  .notif-panel{
+    position:absolute;top:calc(100% + 8px);left:0;background:var(--cream-2);color:var(--brown-dark);
+    border-radius:10px;box-shadow:0 14px 30px rgba(0,0,0,.25);width:280px;padding:14px;z-index:80;
+    font-size:12.5px;text-align:left;
+  }
+  .notif-panel h4{margin:0 0 8px;font-size:13px;color:var(--brown-dark);}
+  .notif-item{padding:6px 0;border-bottom:1px solid #f1e6cf;}
+  .notif-item:last-child{border-bottom:none;}
+  .notif-empty{color:var(--gray);font-style:italic;padding:4px 0;}
+
+  main{max-width:1200px;margin:0 auto;padding:24px 20px 60px;}
+
+  /* ---- Dashboard strip ---- */
+  .stats{display:flex;gap:14px;margin-bottom:22px;flex-wrap:wrap;}
+  .stat-card{
+    background:var(--cream-2);border-radius:12px;padding:14px 20px;
+    box-shadow:var(--shadow);flex:1;min-width:140px;
+    border-left:4px solid var(--terracota);
+  }
+  .stat-card .num{font-size:24px;font-weight:700;color:var(--brown-dark);}
+  .stat-card .label{font-size:12px;color:var(--gray);margin-top:2px;}
+
+  /* ---- Salón (floor plan) ---- */
+  .salon-wrap{
+    background:var(--cream-2);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    padding:26px;
+  }
+  .salon-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+  .salon-header h2{margin:0;font-size:17px;}
+  .legend{display:flex;gap:16px;font-size:12px;color:var(--brown);flex-wrap:wrap;}
+  .legend span{display:flex;align-items:center;gap:6px;}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block;}
+  .dot.libre{background:var(--green);}
+  .dot.ocupada{background:var(--terracota);}
+  .dot.pedido{background:var(--blue);}
+  .dot.entregado{background:var(--teal);}
+  .dot.cuenta{background:var(--amber);}
+
+  .salon{
+    position:relative;
+    background:
+      repeating-linear-gradient(0deg, #efe0c2 0 2px, transparent 2px 40px),
+      repeating-linear-gradient(90deg, #efe0c2 0 2px, transparent 2px 40px),
+      #f6ead2;
+    border:2px solid #e4d2a8;
+    border-radius:12px;
+    height:480px;
+    overflow:auto;
+    /* Solo bloqueamos el gesto de scroll del navegador cuando se está arrastrando
+       una mesa (.edit-mode); en modo normal tiene que poder hacerse scroll táctil
+       para ver el plano completo en un celular. */
+    touch-action:pan-x pan-y;
+  }
+  .salon.edit-mode{outline:3px dashed var(--terracota);outline-offset:-3px;touch-action:none;}
+
+  /* Ambientes del local (según el plano real) — solo decorativos, no son clickeables */
+  .room{
+    position:absolute;
+    border:2px solid #cbb488;
+    border-radius:6px;
+    background:rgba(255,255,255,.4);
+    box-sizing:border-box;
+    padding:8px 10px;
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    color:#a8916a;
+    pointer-events:none;
+  }
+  .room .room-tag{position:absolute;top:8px;right:10px;font-size:9.5px;color:#a8916a;}
+  .room .room-bottom-tag{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--brown);}
+  .salon.edit-mode .room{
+    pointer-events:auto;cursor:grab;background:rgba(255,255,255,.6);
+    border-style:dashed;border-color:var(--terracota);
+  }
+  .salon.edit-mode .room:active{cursor:grabbing;}
+  .salon.edit-mode .room .room-label-text{cursor:text;}
+
+  /* Botón ✕ para borrar mesa/salón y manija ▪ para agrandar/achicar, solo en modo edición */
+  .room-del, .table-del{
+    position:absolute;top:-9px;right:-9px;width:20px;height:20px;border-radius:50%;
+    background:var(--red);color:#fff;border:2px solid #fff;font-size:10px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    pointer-events:auto;z-index:6;box-shadow:0 2px 6px rgba(0,0,0,.25);
+  }
+  .resize-handle{
+    position:absolute;right:-7px;bottom:-7px;width:16px;height:16px;border-radius:4px;
+    background:var(--brown-dark);border:2px solid #fff;cursor:nwse-resize;
+    pointer-events:auto;z-index:6;box-shadow:0 2px 6px rgba(0,0,0,.25);
+  }
+  .table-split{
+    position:absolute;top:-9px;left:-9px;width:20px;height:20px;border-radius:50%;
+    background:var(--blue);color:#fff;border:2px solid #fff;font-size:10px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    pointer-events:auto;z-index:6;box-shadow:0 2px 6px rgba(0,0,0,.25);
+  }
+
+  /* Marcas decorativas de puertas entre ambientes (no interactivas) */
+  .door-mark{position:absolute;pointer-events:none;z-index:3;display:flex;}
+  .door-mark.h{flex-direction:row;align-items:center;justify-content:space-between;}
+  .door-mark.v{flex-direction:column;align-items:center;justify-content:space-between;}
+  .door-mark span{background:var(--brown-dark);border-radius:1px;}
+  .door-mark.h span{width:3px;height:100%;}
+  .door-mark.v span{height:3px;width:100%;}
+
+  /* Barra completa, decorativa */
+  .barra-deco{
+    position:absolute;background:var(--brown-dark);color:var(--cream-2);
+    border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;letter-spacing:.4px;box-shadow:0 2px 6px rgba(0,0,0,.2);
+    pointer-events:none;z-index:2;
+  }
+
+  .table{
+    position:absolute;
+    border-radius:14px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    color:#fff;
+    font-weight:700;
+    box-shadow:0 4px 10px rgba(0,0,0,.18);
+    transition:.15s transform;
+    border:3px solid rgba(255,255,255,.4);
+    z-index:2;
+    user-select:none;
+  }
+  .table:hover{transform:scale(1.06);}
+  .table small{font-weight:500;font-size:9.5px;opacity:.9;margin-top:1px;}
+  .table.libre{background:var(--green);}
+  .table.ocupada{background:var(--terracota);}
+  .table.pedido{background:var(--blue);}
+  .table.entregado{background:var(--teal);}
+  .table.cuenta{background:var(--amber);}
+  .salon.edit-mode .table{cursor:grab;transform:none !important;}
+  .salon.edit-mode .table:active{cursor:grabbing;box-shadow:0 8px 18px rgba(0,0,0,.3);}
+
+  .round{border-radius:50%;}
+
+  /* ---- Modal ---- */
+  .overlay{
+    position:fixed;inset:0;background:rgba(30,18,10,.55);
+    display:none;align-items:center;justify-content:center;z-index:100;
+    padding:16px;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:var(--cream-2);border-radius:16px;max-width:760px;width:100%;
+    max-height:88vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.35);
+  }
+  .modal-head{
+    padding:18px 24px;border-bottom:1px solid #e8dcc2;
+    display:flex;justify-content:space-between;align-items:center;
+    position:sticky;top:0;background:var(--cream-2);z-index:5;
+  }
+  .modal-head h3{margin:0;font-size:17px;}
+  .modal-head .status-tag{font-size:11px;padding:3px 10px;border-radius:20px;color:#fff;margin-left:10px;}
+  .close-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--brown);}
+  .modal-body{padding:20px 24px;}
+
+  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .tab{
+    padding:8px 16px;border-radius:8px;border:1px solid #e0cfa6;background:#fff;
+    cursor:pointer;font-size:13px;font-weight:600;color:var(--brown);
+  }
+  .tab.active{background:var(--brown-dark);color:#fff;border-color:var(--brown-dark);}
+
+  .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+  .menu-item{
+    background:#fff;border:1px solid #ecdfc2;border-radius:10px;padding:10px 12px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .menu-item .info{font-size:13.5px;}
+  .menu-item .price{font-size:12px;color:var(--gray);margin-top:2px;}
+  .menu-item button{
+    background:var(--terracota);color:#fff;border:none;border-radius:7px;
+    width:28px;height:28px;font-size:16px;cursor:pointer;font-weight:700;
+  }
+  .menu-item button:hover{background:var(--terracota-dark);}
+
+  .order-summary{
+    background:#fff;border:1px dashed #d8c39a;border-radius:10px;padding:14px 16px;
+  }
+  .order-summary h4{margin:0 0 10px;font-size:13.5px;color:var(--brown);}
+  .order-line{padding:6px 0;border-bottom:1px solid #f1e6cf;}
+  .order-line-top{display:flex;justify-content:space-between;font-size:13.5px;}
+  .order-line .qty-controls{display:flex;align-items:center;gap:8px;}
+  .order-line .qty-controls button{
+    background:#eee;border:none;width:20px;height:20px;border-radius:5px;cursor:pointer;font-weight:700;
+  }
+  .order-line-note{
+    width:100%;margin-top:5px;font-size:11.5px;padding:5px 9px;border:1px dashed #d8c39a;
+    border-radius:6px;font-family:inherit;background:#fffaf2;color:var(--brown-dark);
+  }
+  .order-line-note::placeholder{color:var(--gray);}
+  .order-total{display:flex;justify-content:space-between;font-weight:700;padding-top:10px;font-size:14.5px;}
+  .empty-note{color:var(--gray);font-size:13px;font-style:italic;}
+
+  /* ---- Layout del modal de pedido: contenido + resumen de la mesa a un costado ---- */
+  .order-modal-layout{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+  .order-modal-main{flex:1 1 320px;min-width:280px;}
+  .order-modal-side{flex:0 1 210px;min-width:190px;position:sticky;top:0;}
+  .mesa-summary-box{
+    background:#fff7ec;border:1px dashed #d8c39a;border-radius:10px;padding:14px 16px;
+  }
+  .mesa-summary-box h4{margin:0 0 10px;font-size:13px;color:var(--brown);}
+  .mesa-summary-line{
+    display:flex;justify-content:space-between;font-size:12.5px;padding:6px 0;
+    border-bottom:1px solid #f1e6cf;color:var(--brown-dark);gap:8px;
+  }
+  .mesa-summary-line span:last-child{font-weight:600;white-space:nowrap;}
+  .mesa-summary-line.total{font-weight:700;font-size:14px;border-bottom:none;padding-top:9px;}
+
+
+  .modal-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+  .btn{
+    padding:11px 18px;border-radius:9px;border:none;font-size:13.5px;font-weight:600;cursor:pointer;
+  }
+  .btn-primary{background:var(--terracota);color:#fff;}
+  .btn-primary:hover{background:var(--terracota-dark);}
+  .btn-secondary{background:#eee1c4;color:var(--brown-dark);}
+  .btn-secondary:hover{background:#e3d3ab;}
+  .btn-danger{background:#f4d9d2;color:var(--red);}
+  .btn-danger:hover{background:#eec2b6;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn-sm{padding:6px 10px;font-size:12px;border-radius:7px;}
+
+  /* ---- Comandera view ---- */
+  .comandera-wrap{
+    background:var(--cream-2);border-radius:16px;box-shadow:var(--shadow);padding:26px;
+  }
+  .comandera-wrap h2{margin-top:0;font-size:17px;}
+  .tickets-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-top:16px;}
+  .ticket-card{
+    background:#fffdf7;border:1px solid #e8dcc2;border-radius:10px;
+    font-family:'Courier New', monospace;padding:14px 16px;box-shadow:0 3px 8px rgba(0,0,0,.08);
+  }
+  .ticket-card .t-head{
+    text-align:center;border-bottom:1px dashed #ccc;padding-bottom:8px;margin-bottom:8px;
+  }
+  .ticket-card .t-head b{font-size:15px;}
+  .ticket-card .t-head .time{font-size:11px;color:var(--gray);}
+  .ticket-line{display:flex;justify-content:space-between;font-size:12.5px;margin:3px 0;}
+  .ticket-notes{font-size:11.5px;font-style:italic;color:var(--brown);margin-top:8px;}
+  .ticket-foot{display:flex;justify-content:space-between;margin-top:8px;border-top:1px dashed #ccc;padding-top:8px;}
+  .ticket-card .card-actions{display:flex;gap:8px;margin-top:12px;}
+  .card-actions button{
+    flex:1;font-family:inherit;padding:7px;border-radius:6px;border:none;font-size:11.5px;font-weight:600;cursor:pointer;
+  }
+  .mini-print{background:var(--brown-dark);color:#fff;}
+  .mini-done{background:var(--green);color:#fff;}
+  .mini-edit{background:var(--blue);color:#fff;}
+  .ready-tag{background:var(--green);color:#fff;font-size:9.5px;padding:2px 8px;border-radius:10px;margin-left:6px;font-family:inherit;}
+  .empty-state{text-align:center;color:var(--gray);padding:50px 0;font-size:14px;}
+
+  /* ---- Admin ---- */
+  .admin-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+  .admin-panel{display:none;}
+  .admin-panel.active{display:block;}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;align-items:end;}
+  .form-grid label{font-size:11px;color:var(--gray);display:block;margin-bottom:4px;font-weight:600;}
+  .form-grid input, .form-grid select{
+    width:100%;padding:8px 10px;border-radius:7px;border:1px solid #e0cfa6;font-size:13px;font-family:inherit;background:#fff;
+  }
+  .data-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px;}
+  .data-table th{
+    text-align:left;padding:8px 10px;background:#f1e6cf;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--brown);
+  }
+  .data-table td{padding:8px 10px;border-bottom:1px solid #f1e6cf;}
+  .data-table tr.low-stock td{background:#fbe3db;}
+  .warn-icon{color:var(--red);margin-right:4px;}
+  .tag-compra{color:var(--green);font-weight:700;}
+  .tag-consumo{color:var(--terracota-dark);font-weight:700;}
+  .section-title{font-size:14.5px;font-weight:700;margin:22px 0 8px;color:var(--brown-dark);}
+  .helper-text{font-size:12px;color:var(--gray);margin-bottom:14px;}
+  .recipe-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;}
+  .recipe-row select{flex:2;padding:8px 10px;border-radius:7px;border:1px solid #e0cfa6;font-family:inherit;}
+  .recipe-row input{flex:1;padding:8px 10px;border-radius:7px;border:1px solid #e0cfa6;font-family:inherit;}
+  .recipe-row .unit-tag{font-size:11.5px;color:var(--gray);width:34px;}
+  .recipe-row button{background:#f4d9d2;color:var(--red);border:none;border-radius:7px;width:30px;height:34px;cursor:pointer;font-weight:700;}
+  .cost-box{background:#fff;border:1px dashed #d8c39a;border-radius:10px;padding:14px 16px;margin:14px 0;font-size:13.5px;display:flex;gap:24px;flex-wrap:wrap;}
+  .cost-box b{display:block;font-size:16px;}
+  .totals-line{text-align:right;font-weight:700;margin-top:10px;font-size:13.5px;}
+
+  /* ---- Payment modal ---- */
+  .payment-methods{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px;}
+  .pay-btn{
+    background:#fff;border:2px solid #e0cfa6;border-radius:12px;padding:16px 10px;
+    font-size:13.5px;font-weight:700;cursor:pointer;color:var(--brown-dark);text-align:center;
+    line-height:1.8;transition:.15s;
+  }
+  .pay-btn:hover{border-color:var(--terracota);background:#fff7ec;transform:translateY(-1px);}
+  .pay-line{
+    display:flex;justify-content:space-between;align-items:center;font-size:13px;
+    padding:7px 0;border-bottom:1px solid #f1e6cf;
+  }
+  .pay-line .pay-line-amt{display:flex;align-items:center;gap:8px;}
+  .pay-line button{background:#f4d9d2;color:var(--red);border:none;border-radius:6px;width:22px;height:22px;cursor:pointer;font-weight:700;font-size:11px;}
+
+  /* ---- Ticket preview (pantalla) ---- */
+  #ticket-preview-content{
+    background:#fffdf7;border:1px solid #e8dcc2;border-radius:8px;padding:16px 18px;
+    font-family:'Courier New', monospace;font-size:12.5px;line-height:1.55;
+  }
+  #ticket-preview-content hr{border:none;border-top:1px dashed #ccc;margin:8px 0;}
+  #ticket-preview-content .p-center{text-align:center;}
+
+  /* ---- Printable ticket ---- */
+  #print-area{display:none;}
+  @media print{
+    body *{visibility:hidden;}
+    #print-area, #print-area *{visibility:visible;}
+    #print-area{
+      display:block;position:fixed;top:0;left:0;width:280px;
+      font-family:'Courier New', monospace;font-size:12px;padding:10px;
+    }
+    #print-area .p-center{text-align:center;}
+    #print-area hr{border:none;border-top:1px dashed #000;}
+  }
+
+  footer{
+    text-align:center;font-size:11.5px;color:var(--gray);padding:24px 0 10px;
+  }
+
+  /* ---- Login por turno ---- */
+  #login-screen{
+    position:fixed;inset:0;z-index:300;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(193,102,59,.35) 0%, transparent 45%),
+      radial-gradient(circle at 85% 15%, rgba(217,154,61,.28) 0%, transparent 40%),
+      radial-gradient(circle at 80% 85%, rgba(47,143,127,.18) 0%, transparent 45%),
+      linear-gradient(160deg,var(--brown-dark) 0%, var(--brown) 100%);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;overflow:hidden;
+  }
+  /* Fondo decorativo: café y medialunas de fondo, bien sutiles, solo ambiente */
+  .login-decor{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .login-decor span{
+    position:absolute;opacity:.13;filter:drop-shadow(0 6px 10px rgba(0,0,0,.25));
+    line-height:1;user-select:none;
+  }
+  .login-clock{
+    position:absolute;top:18px;right:22px;z-index:2;text-align:right;
+    color:var(--cream-2);font-size:12px;background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:8px 14px;
+    backdrop-filter:blur(2px);
+  }
+  .login-clock .lc-day{text-transform:capitalize;font-weight:700;font-size:12.5px;}
+  .login-clock .lc-time{font-size:17px;font-weight:700;letter-spacing:.5px;margin-top:2px;}
+  .login-card-wrap{text-align:center;color:var(--cream-2);position:relative;z-index:1;}
+  .login-card-wrap .logo{font-size:44px;margin-bottom:6px;}
+  .login-card-wrap h1{margin:0 0 4px;font-size:24px;letter-spacing:.3px;}
+  .login-card-wrap p{margin:0 0 28px;color:#d8c7ac;font-size:13.5px;}
+  .shift-cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;}
+  .shift-card{
+    background:var(--cream-2);color:var(--brown-dark);border-radius:16px;
+    padding:26px 28px;width:190px;box-shadow:0 14px 34px rgba(0,0,0,.35);
+  }
+  .shift-card .shift-icon{font-size:34px;}
+  .shift-card .shift-name{font-weight:700;margin:10px 0 14px;font-size:14.5px;}
+  .shift-card input{
+    width:100%;padding:9px 10px;border-radius:8px;border:1px solid #e0cfa6;
+    margin-bottom:10px;text-align:center;font-size:13.5px;font-family:inherit;
+  }
+  .shift-card .btn{width:100%;}
+  .login-error{color:var(--red);font-size:11.5px;margin-top:8px;min-height:14px;font-weight:600;}
+  .shift-badge{
+    font-size:11px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+    padding:5px 12px;border-radius:20px;color:var(--cream-2);display:inline-flex;align-items:center;gap:6px;
+  }
+  .shift-badge button{
+    background:transparent;border:none;color:#d8c7ac;cursor:pointer;font-size:11px;text-decoration:underline;padding:0;
+  }
+
+  /* =====================================================================
+     RESPONSIVE — celular / pantallas angostas
+     ===================================================================== */
+  @media (max-width: 768px){
+    header{padding:10px 14px;gap:8px;}
+    header .brand{gap:8px;}
+    header .brand .logo{width:32px;height:32px;font-size:16px;}
+    header h1{font-size:15.5px;}
+    header .sub{display:none;} /* la bajada ocupa mucho lugar en una sola línea de celular */
+    nav{gap:5px;}
+    nav button, .notif-btn{padding:7px 10px;font-size:12px;}
+    .shift-badge{font-size:10px;padding:4px 9px;}
+
+    main{padding:14px 10px 40px;}
+
+    .stats{gap:8px;margin-bottom:16px;}
+    .stat-card{padding:10px 12px;min-width:120px;}
+    .stat-card .num{font-size:19px;}
+    .stat-card .label{font-size:11px;}
+
+    .salon-wrap{padding:14px;}
+    .salon-header{gap:8px;}
+    .salon-header h2{font-size:15px;}
+    .legend{gap:8px;font-size:11px;}
+    .salon{height:340px;}
+    .helper-text{font-size:11.5px;}
+
+    /* Modales a pantalla casi completa, sin márgenes laterales desperdiciados */
+    .overlay{padding:0;align-items:flex-end;}
+    .modal{
+      max-width:none;width:100%;border-radius:16px 16px 0 0;max-height:94vh;
+    }
+    .modal-head{padding:14px 16px;}
+    .modal-head h3{font-size:15px;}
+    .modal-body{padding:14px 16px;}
+    .modal-actions{gap:8px;}
+    .modal-actions .btn{flex:1;min-width:120px;}
+
+    .menu-grid{grid-template-columns:1fr;}
+    .payment-methods{grid-template-columns:1fr 1fr;}
+    .order-modal-side{width:100%;position:static;flex-basis:100%;}
+
+    .tabs .tab, .admin-tabs .tab{padding:7px 12px;font-size:12px;}
+
+    /* Tablas de administración: en vez de romper el layout, se hacen scrolleables
+       horizontalmente y mantienen su ancho de columnas original. */
+    .data-table{
+      display:block;overflow-x:auto;white-space:nowrap;
+      -webkit-overflow-scrolling:touch;
+    }
+    .data-table th, .data-table td{font-size:12px;padding:7px 8px;}
+
+    .form-grid{grid-template-columns:repeat(auto-fit,minmax(115px,1fr));}
+    .recipe-row{flex-wrap:wrap;}
+    .recipe-row select{flex:1 1 100%;}
+    .recipe-row input{flex:1 1 auto;}
+
+    .cost-box{gap:14px;padding:12px 14px;}
+    .tickets-grid{grid-template-columns:1fr;}
+
+    .shift-cards{gap:14px;}
+    .shift-card{width:100%;max-width:220px;padding:20px 20px;}
+
+    .login-clock{top:10px;right:10px;padding:6px 10px;}
+    .login-clock .lc-time{font-size:14px;}
+    .login-decor span{opacity:.09;}
+    .login-decor span:nth-child(n+5){display:none;} /* menos elementos decorativos en celu, no compiten con las tarjetas */
+  }
+
+  @media (max-width: 420px){
+    header h1{font-size:14px;}
+    nav button, .notif-btn{padding:6px 8px;font-size:11px;}
+    .stat-card{min-width:100%;}
+    .payment-methods{grid-template-columns:1fr;}
+    .form-grid{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN POR TURNO -->
+<div id="login-screen">
+  <div class="login-decor" aria-hidden="true">
+    <span style="top:6%; left:5%; font-size:110px; transform:rotate(-12deg);">🥐</span>
+    <span style="top:60%; left:3%; font-size:80px; transform:rotate(8deg);">☕</span>
+    <span style="top:12%; right:6%; font-size:90px; transform:rotate(10deg);">☕</span>
+    <span style="top:65%; right:8%; font-size:120px; transform:rotate(-8deg);">🥐</span>
+    <span style="bottom:4%; left:22%; font-size:70px; transform:rotate(6deg);">🍰</span>
+    <span style="bottom:8%; right:26%; font-size:60px; transform:rotate(-6deg);">🧁</span>
+    <span style="top:40%; left:46%; font-size:50px; transform:rotate(4deg);">☕</span>
+  </div>
+  <div class="login-clock" id="login-clock">
+    <div class="lc-day" id="login-clock-day">—</div>
+    <div class="lc-time" id="login-clock-time">--:--</div>
+  </div>
+  <div class="login-card-wrap">
+    <div class="logo">☕</div>
+    <h1>ComandaCafé</h1>
+    <p>Seleccioná el turno para ingresar al sistema</p>
+    <div class="shift-cards">
+      <div class="shift-card">
+        <div class="shift-icon">☀️</div>
+        <div class="shift-name">Turno Mañana</div>
+        <input type="password" id="pass-manana" placeholder="Contraseña" onkeypress="if(event.key==='Enter') login('manana')">
+        <button class="btn btn-primary" id="btn-login-manana" onclick="login('manana')">Ingresar</button>
+        <div class="login-error" id="err-manana"></div>
+        <div id="closed-tag-manana" style="display:none;color:var(--green);font-size:11.5px;margin-top:6px;font-weight:700;">✅ Turno cerrado — reingresá tu contraseña para reabrirlo</div>
+      </div>
+      <div class="shift-card">
+        <div class="shift-icon">🌙</div>
+        <div class="shift-name">Turno Tarde</div>
+        <input type="password" id="pass-tarde" placeholder="Contraseña" onkeypress="if(event.key==='Enter') login('tarde')">
+        <button class="btn btn-primary" id="btn-login-tarde" onclick="login('tarde')">Ingresar</button>
+        <div class="login-error" id="err-tarde"></div>
+        <div id="closed-tag-tarde" style="display:none;color:var(--green);font-size:11.5px;margin-top:6px;font-weight:700;">✅ Turno cerrado — reingresá tu contraseña para reabrirlo</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app-root" style="display:none;">
+
+<header>
+  <div class="brand">
+    <div class="logo">☕</div>
+    <div>
+      <h1>ComandaCafé</h1>
+      <div class="sub">Sistema de gestión de mesas, pedidos y stock — Propuesta demo</div>
+    </div>
+  </div>
+  <nav>
+    <button id="nav-salon" class="active" onclick="showView('salon')">🪑 Salón</button>
+    <div class="notif-wrap">
+      <button class="notif-btn" onclick="toggleNotifPanel(event)">🔔<span class="notif-badge" id="stock-warn-badge">0</span></button>
+      <div class="notif-panel" id="notif-panel" style="display:none;">
+        <h4>Notificaciones de stock</h4>
+        <div id="notif-panel-content"></div>
+      </div>
+    </div>
+    <button id="nav-comandera" onclick="showView('comandera')">🧾 Comandera <span class="badge-count" id="ticket-count">0</span></button>
+    <button id="nav-admin" onclick="showView('admin')">⚙️ Administrador <span class="badge-count" id="low-stock-badge" style="display:none;">0</span></button>
+    <span class="shift-badge">👤 <span id="current-shift-label">Turno</span> · <button onclick="openCierreTurnoModal()">🔒 cerrar turno</button></span>
+  </nav>
+</header>
+
+<main>
+
+  <div class="stats">
+    <div class="stat-card"><div class="num" id="stat-libres">0</div><div class="label">Mesas libres</div></div>
+    <div class="stat-card"><div class="num" id="stat-ocupadas">0</div><div class="label">Mesas ocupadas</div></div>
+    <div class="stat-card"><div class="num" id="stat-pedidos">0</div><div class="label">Pedidos en curso</div></div>
+    <div class="stat-card"><div class="num" id="stat-total">$0</div><div class="label">Facturado en este turno</div></div>
+  </div>
+
+  <!-- SALÓN VIEW -->
+  <section id="view-salon">
+    <div class="salon-wrap">
+      <div class="salon-header">
+        <h2>Plano del local</h2>
+        <div class="legend">
+          <span><i class="dot libre"></i>Libre</span>
+          <span><i class="dot ocupada"></i>Ocupada</span>
+          <span><i class="dot pedido"></i>Pedido enviado</span>
+          <span><i class="dot entregado"></i>Pedido entregado</span>
+          <span><i class="dot cuenta"></i>Cobrando</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" id="btn-edit-plano" onclick="toggleSalonEdit()">✏️ Editar plano</button>
+          <button class="btn btn-secondary btn-sm" id="btn-add-mesa" onclick="addTable()" style="display:none;">+ Mesa</button>
+          <button class="btn btn-secondary btn-sm" id="btn-add-salon" onclick="addRoom()" style="display:none;">+ Salón</button>
+          <button class="btn btn-secondary btn-sm" onclick="resetSalonLayout()">↺ Restablecer</button>
+        </div>
+      </div>
+      <p class="helper-text" id="edit-plano-hint" style="display:none;">Modo edición activo: arrastrá cada mesa o salón a donde esté ubicado en tu local real. Los salones se pueden agrandar/achicar tirando de la esquina (▪), renombrar con doble clic, y tanto mesas como salones se agregan o eliminan (✕) con los botones de arriba. Mientras editás el plano, tocar una mesa no abre su pedido.</p>
+      <div class="salon" id="salon"></div>
+    </div>
+  </section>
+
+  <!-- COMANDERA VIEW -->
+  <section id="view-comandera" style="display:none;">
+    <div class="comandera-wrap">
+      <h2>Comandera — pedidos enviados a cocina/barra</h2>
+      <p class="helper-text">Estas comandas son solo para cocina/barra (sin precios, sin cobro). El cobro se hace desde la mesa con el botón <b>💳 Cobrar mesa</b>, que recién ahí descuenta los insumos y libera la mesa.</p>
+      <div id="tickets-container">
+        <div class="empty-state">Todavía no se enviaron pedidos.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADMIN VIEW -->
+  <section id="view-admin" style="display:none;">
+    <div class="comandera-wrap">
+      <h2>Panel de administrador</h2>
+      <div class="admin-tabs">
+        <div class="tab active" id="atab-insumos" onclick="switchAdminTab('insumos')">📦 Insumos</div>
+        <div class="tab" id="atab-recetas" onclick="switchAdminTab('recetas')">📖 Recetas</div>
+        <div class="tab" id="atab-elaborados" onclick="switchAdminTab('elaborados')">🎂 Elaborados</div>
+        <div class="tab" id="atab-gastos" onclick="switchAdminTab('gastos')">💸 Gastos (compras)</div>
+        <div class="tab" id="atab-movimientos" onclick="switchAdminTab('movimientos')">🔄 Movimientos de stock</div>
+        <div class="tab" id="atab-clientes" onclick="switchAdminTab('clientes')">🧾 Clientes / Facturación</div>
+        <div class="tab" id="atab-empleados" onclick="switchAdminTab('empleados')">👥 Empleados</div>
+        <div class="tab" id="atab-ventas" onclick="switchAdminTab('ventas')">💰 Ventas</div>
+        <div class="tab" id="atab-papelera" onclick="switchAdminTab('papelera')">🗑️ Papelera <span class="badge-count" id="papelera-badge" style="display:none;">0</span></div>
+      </div>
+
+      <!-- INSUMOS -->
+      <div class="admin-panel active" id="admin-panel-insumos">
+        <p class="helper-text">Cargá acá todos los insumos de mercadería del local (café, leche, pan, etc.) con su stock y costo. Cuando un plato se cobra, su receta descuenta automáticamente de este stock. Lo que borres va a la 🗑️ Papelera, nunca se pierde del todo.</p>
+        <div class="form-grid">
+          <div><label>Nombre</label><input type="text" id="ins-nombre" placeholder="Ej: Café en grano"></div>
+          <div><label>Unidad</label>
+            <select id="ins-unidad">
+              <option value="kg">kg</option>
+              <option value="L">L</option>
+              <option value="unid">unid</option>
+            </select>
+          </div>
+          <div><label>Stock inicial</label><input type="number" id="ins-stock" placeholder="0" step="0.01"></div>
+          <div><label>Costo unitario</label><input type="number" id="ins-costo" placeholder="$" step="0.01"></div>
+          <div><label>Stock mínimo</label><input type="number" id="ins-min" placeholder="0" step="0.01"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" id="ins-submit-btn" onclick="saveInsumoForm()">+ Agregar insumo</button>
+            <button class="btn btn-secondary" id="ins-cancel-btn" onclick="cancelEditInsumo()" style="display:none;">Cancelar</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Insumo</th><th>Unidad</th><th>Stock</th><th>Mínimo</th><th>Costo unit.</th><th>Valorizado</th><th></th></tr></thead>
+          <tbody id="insumos-tbody"></tbody>
+        </table>
+        <div class="totals-line" id="insumos-total-valorizado"></div>
+      </div>
+
+      <!-- RECETAS -->
+      <div class="admin-panel" id="admin-panel-recetas">
+        <div class="section-title" style="margin-top:0;">Nuevo producto del menú</div>
+        <p class="helper-text">Si el plato o bebida todavía no existe en el menú, cargalo acá primero — después va a aparecer para elegirlo abajo y armarle la receta, y también en la carta al tomar el pedido.</p>
+        <div class="form-grid">
+          <div><label>Nombre</label><input type="text" id="menu-nuevo-nombre" placeholder="Ej: Frappé de café"></div>
+          <div><label>Categoría</label>
+            <select id="menu-nuevo-categoria">
+              <option value="bebidas">🥤 Bebida</option>
+              <option value="comidas">🥐 Comida (cocina)</option>
+              <option value="pasteleria">🍰 Pastelería</option>
+            </select>
+          </div>
+          <div><label>Precio</label><input type="number" id="menu-nuevo-precio" placeholder="$" step="0.01"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="agregarProductoMenu()">+ Agregar al menú</button>
+          </div>
+        </div>
+
+        <div class="section-title">Receta del producto</div>
+        <p class="helper-text">Elegí un producto del menú y definí qué insumos y en qué cantidad se usan para prepararlo. Eso es lo que se descuenta del stock al cobrar.</p>
+        <div class="form-grid" style="grid-template-columns:1fr;">
+          <div><label>Producto</label><select id="receta-producto" onchange="loadRecipeProduct(this.value)"></select></div>
+        </div>
+        <div id="receta-rows"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addRecipeRow()">+ Agregar insumo a la receta</button>
+        <div class="cost-box" id="receta-cost-info"></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="saveRecipe()">💾 Guardar receta</button>
+          <button class="btn btn-danger" onclick="vaciarReceta()">🗑️ Vaciar receta</button>
+        </div>
+
+        <div class="section-title">Costo estimado por plato (todas las recetas cargadas)</div>
+        <table class="data-table">
+          <thead><tr><th>Producto</th><th>Costo insumos</th><th>Precio venta</th><th>Margen</th></tr></thead>
+          <tbody id="recetas-summary-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- ELABORADOS -->
+      <div class="admin-panel" id="admin-panel-elaborados">
+        <p class="helper-text">Para productos que se PREPARAN en el local en unidades completas y se venden por porción — ej. una torta que se hornea, se freeza, y se vende de a porciones en el mostrador. La receta de insumos para armar CADA unidad completa (ej. 1 torta entera) se carga en la solapa <b>Recetas</b>, eligiendo el producto vinculado. Acá abajo simplemente registrás lo que se produjo en el día (ej. "se hicieron 2 tortas de chocolate") — el sistema descuenta los insumos crudos según esa receta y suma las porciones al stock. La venta de la porción después descuenta del stock del elaborado, no de los insumos crudos otra vez.</p>
+
+        <div class="section-title" style="margin-top:0;">1. Elaborados</div>
+        <div class="form-grid">
+          <div><label>Nombre</label><input type="text" id="elab-nombre" placeholder="Ej: Torta de chocolate"></div>
+          <div><label>Porciones por unidad</label><input type="number" id="elab-porciones-unidad" placeholder="8" step="1"></div>
+          <div><label>Porciones mínimo (alerta)</label><input type="number" id="elab-min" placeholder="0" step="1"></div>
+          <div><label>Se vende como (producto de menú)</label>
+            <select id="elab-menu-item"></select>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" id="elab-submit-btn" onclick="saveElaboradoForm()">+ Agregar elaborado</button>
+            <button class="btn btn-secondary" id="elab-cancel-btn" onclick="cancelEditElaborado()" style="display:none;">Cancelar</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Elaborado</th><th>Porciones/unidad</th><th>Stock (porciones)</th><th>Mínimo</th><th>Costo/porción</th><th>Se vende como</th><th></th></tr></thead>
+          <tbody id="elaborados-tbody"></tbody>
+        </table>
+
+        <div class="section-title">2. Registrar producción (ej. "hoy se hicieron 2 tortas de chocolate")</div>
+        <p class="helper-text">Usa la receta cargada en la solapa Recetas para el producto vinculado (columna "Se vende como" de arriba). Si todavía no le cargaste receta, el sistema te avisa antes de registrar.</p>
+        <div class="form-grid">
+          <div><label>Elaborado</label><select id="prod-elaborado"></select></div>
+          <div><label>Unidades producidas</label><input type="number" id="prod-cantidad" placeholder="Ej: 2" step="1"></div>
+          <div style="display:flex;gap:8px;align-items:end;">
+            <button class="btn btn-primary" onclick="producirElaborado()">🎂 Registrar producción</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Fecha</th><th>Elaborado</th><th>Unidades</th><th>Porciones generadas</th><th>Costo total</th><th></th></tr></thead>
+          <tbody id="producciones-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- GASTOS -->
+      <div class="admin-panel" id="admin-panel-gastos">
+        <p class="helper-text">Cargá acá cada compra de mercadería. El stock del insumo se suma automáticamente y el costo unitario se actualiza (promedio ponderado). Si editás una compra ya cargada, el sistema revierte el efecto de la anterior y aplica el nuevo.</p>
+        <div class="form-grid">
+          <div><label>Insumo</label><select id="gasto-insumo"></select></div>
+          <div><label>Cantidad comprada</label><input type="number" id="gasto-cantidad" placeholder="0" step="0.01"></div>
+          <div><label>Costo total ($)</label><input type="number" id="gasto-costo" placeholder="$" step="0.01"></div>
+          <div><label>Proveedor (opcional)</label><input type="text" id="gasto-proveedor" placeholder="Nombre proveedor"></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" id="gasto-submit-btn" onclick="saveGastoForm()">+ Cargar gasto</button>
+            <button class="btn btn-secondary" id="gasto-cancel-btn" onclick="cancelEditGasto()" style="display:none;">Cancelar</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Fecha</th><th>Insumo</th><th>Cantidad</th><th>Costo total</th><th>Proveedor</th><th></th></tr></thead>
+          <tbody id="gastos-tbody"></tbody>
+        </table>
+        <div class="totals-line" id="gastos-total"></div>
+      </div>
+
+      <!-- MOVIMIENTOS -->
+      <div class="admin-panel" id="admin-panel-movimientos">
+        <p class="helper-text">Historial automático de entradas (compras) y salidas (consumo por ventas) de cada insumo. Es un registro de auditoría: no se edita ni se borra, para que siempre quede la trazabilidad real de qué pasó con el stock.</p>
+        <table class="data-table">
+          <thead><tr><th>Fecha</th><th>Insumo</th><th>Tipo</th><th>Cantidad</th><th>Stock resultante</th><th>Referencia</th></tr></thead>
+          <tbody id="movimientos-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- CLIENTES / FACTURACIÓN -->
+      <div class="admin-panel" id="admin-panel-clientes">
+        <p class="helper-text">Cargá acá a los clientes que piden factura o que son habituales del local. Es opcional: la mayoría de los pedidos van a quedar "sin cliente asignado" — esto es solo para los que piden factura, tienen descuento fijo, o querés hacerles seguimiento de visitas. La tabla se ordena sola por cantidad de visitas.</p>
+        <button class="btn btn-primary" onclick="openClienteModal()">+ Agregar cliente</button>
+        <table class="data-table" style="margin-top:16px;">
+          <thead><tr><th>Cliente</th><th>Condición fiscal</th><th>DNI</th><th>CUIT</th><th>Descuento</th><th>Visitas</th><th>Total gastado</th><th></th></tr></thead>
+          <tbody id="clientes-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- EMPLEADOS -->
+      <div class="admin-panel" id="admin-panel-empleados">
+        <p class="helper-text">Cargá a tu equipo con sus datos. Si les asignás un % de descuento, también van a poder elegirse al armar el pedido de una mesa, por ejemplo cuando un empleado consume durante su turno.</p>
+        <button class="btn btn-primary" onclick="openEmpleadoModal()">+ Agregar empleado</button>
+        <table class="data-table" style="margin-top:16px;">
+          <thead><tr><th>Nombre</th><th>DNI</th><th>CUIT</th><th>Puesto</th><th>Ingreso</th><th>Descuento</th><th>Consumos</th><th>Total consumido</th><th></th></tr></thead>
+          <tbody id="empleados-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- VENTAS -->
+      <div class="admin-panel" id="admin-panel-ventas">
+        <p class="helper-text">Todas las ventas cobradas. Si alguna se cargó mal, se anula (se descuenta del total facturado) en vez de borrarla — queda en la 🗑️ Papelera por si hay que restaurarla.</p>
+        <table class="data-table">
+          <thead><tr><th>Mesa</th><th>Fecha</th><th>Turno</th><th>Cliente</th><th>Total</th><th>Medio de pago</th><th></th></tr></thead>
+          <tbody id="ventas-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- PAPELERA -->
+      <div class="admin-panel" id="admin-panel-papelera">
+        <p class="helper-text">Acá caen los insumos, compras, clientes, empleados, ventas y recetas que borraste o anulaste. Nada se pierde para siempre: se puede restaurar en un clic.</p>
+        <table class="data-table">
+          <thead><tr><th>Tipo</th><th>Detalle</th><th>Fecha</th><th></th></tr></thead>
+          <tbody id="papelera-tbody"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer>Prototipo comercial — ComandaCafé · Diseño de ejemplo, personalizable al layout y menú real del local</footer>
+
+</div><!-- /#app-root -->
+
+<!-- ORDER MODAL -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">Mesa</h3>
+      <button class="close-btn" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="order-modal-layout">
+        <div class="order-modal-main">
+          <div class="tabs">
+            <div class="tab active" id="tab-bebidas" onclick="switchTab('bebidas')">🥤 Bebidas</div>
+            <div class="tab" id="tab-comidas" onclick="switchTab('comidas')">🥐 Comidas</div>
+            <div class="tab" id="tab-pasteleria" onclick="switchTab('pasteleria')">🍰 Pastelería</div>
+          </div>
+          <div class="menu-grid" id="menu-grid"></div>
+
+          <div class="order-summary">
+            <h4>Pedido de esta ronda</h4>
+            <p class="helper-text" style="margin:-4px 0 10px;">La nota de cada producto (ej. "sin azúcar", "con jamón y queso") se escribe debajo de ese producto, no acá abajo — así no queda pegada en los próximos pedidos de la mesa.</p>
+            <div id="order-lines"><div class="empty-note">Todavía no agregaste productos.</div></div>
+            <div class="order-total"><span>Total</span><span id="order-total">$0</span></div>
+          </div>
+
+          <div class="order-summary" style="margin-top:12px;">
+            <h4>Cliente / Empleado (opcional — aplica descuento y datos de factura)</h4>
+            <select id="order-cliente" onchange="onClienteChange()">
+              <option value="">Sin cliente asignado</option>
+            </select>
+            <div id="cliente-info" style="margin-top:8px;font-size:12.5px;color:var(--gray);"></div>
+          </div>
+        </div>
+
+        <div class="order-modal-side">
+          <div class="mesa-summary-box">
+            <h4>🧾 Total de la mesa</h4>
+            <div id="mesa-summary-items"><div class="empty-note">Todavía no se pidió nada en esta mesa.</div></div>
+            <div class="mesa-summary-line total"><span>Total mesa</span><span id="side-gran-total">$0</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="sendOrder()">📨 Enviar pedido a comandera</button>
+        <button class="btn btn-secondary" onclick="openPaymentModal(currentTable)">💳 Cobrar mesa</button>
+        <button class="btn btn-secondary" onclick="cobrarSinCocina()">🥡 Cobrar sin enviar a cocina (take away)</button>
+        <button class="btn btn-danger" onclick="freeTable()">Liberar mesa</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT TICKET MODAL -->
+<div class="overlay" id="edit-ticket-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="edit-ticket-title">Editar comanda</h3>
+      <button class="close-btn" onclick="closeEditTicket()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <div class="tab active" id="edit-tab-bebidas" onclick="switchEditTab('bebidas')">🥤 Bebidas</div>
+        <div class="tab" id="edit-tab-comidas" onclick="switchEditTab('comidas')">🥐 Comidas</div>
+        <div class="tab" id="edit-tab-pasteleria" onclick="switchEditTab('pasteleria')">🍰 Pastelería</div>
+      </div>
+      <div class="menu-grid" id="edit-menu-grid"></div>
+
+      <div class="order-summary">
+        <h4>Productos de esta comanda</h4>
+        <p class="helper-text" style="margin:-4px 0 10px;">La nota de cada producto se edita debajo de ese producto.</p>
+        <div id="edit-order-lines"><div class="empty-note">Sin productos.</div></div>
+        <div class="order-total"><span>Total</span><span id="edit-order-total">$0</span></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="saveEditTicket(false)">💾 Guardar cambios</button>
+        <button class="btn btn-secondary" onclick="saveEditTicket(true)">🖨️ Guardar y reimprimir</button>
+        <button class="btn btn-danger" onclick="closeEditTicket()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CIERRE DE TURNO MODAL -->
+<div class="overlay" id="cierre-turno-overlay">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-head">
+      <h3>🔒 Cierre de turno</h3>
+      <button class="close-btn" onclick="closeCierreTurnoModal()">✕</button>
+    </div>
+    <div class="modal-body" id="cierre-turno-content"></div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="overlay" id="payment-overlay">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-head">
+      <h3 id="payment-title">Cobrar mesa</h3>
+      <button class="close-btn" onclick="closePaymentModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="payment-lines"></div>
+      <div class="order-line" id="pay-subtotal-row" style="display:none;"><span>Subtotal</span><span id="pay-subtotal">$0</span></div>
+      <div class="order-line" id="pay-discount-row" style="display:none;color:var(--green);"><span id="pay-discount-label">Descuento</span><span id="pay-discount">-$0</span></div>
+      <div class="order-total"><span>Total a cobrar</span><span id="pay-total">$0</span></div>
+
+      <div class="section-title">Medios de pago (se puede dividir entre varios)</div>
+      <div class="form-grid" style="grid-template-columns:1.3fr 1fr auto;">
+        <div><label>Método</label>
+          <select id="pay-metodo-select">
+            <option value="Efectivo">💵 Efectivo</option>
+            <option value="Débito">💳 Débito</option>
+            <option value="Crédito">💳 Crédito</option>
+            <option value="Mercado Pago">📱 Mercado Pago</option>
+          </select>
+        </div>
+        <div><label>Monto</label><input type="number" id="pay-monto-input" step="0.01" placeholder="0"></div>
+        <div><button class="btn btn-secondary btn-sm" onclick="addPaymentLine()">+ Agregar</button></div>
+      </div>
+
+      <div id="payment-lines-list"></div>
+      <div class="totals-line" id="pay-pagado-restante"></div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="pay-confirm-btn" onclick="finalizePayment()" disabled>✅ Confirmar cobro</button>
+        <button class="btn btn-secondary" onclick="closePaymentModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDITAR MEDIOS DE PAGO DE UNA VENTA YA COBRADA -->
+<div class="overlay" id="edit-venta-overlay">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-head">
+      <h3 id="edit-venta-title">Editar medios de pago</h3>
+      <button class="close-btn" onclick="closeEditVentaModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="helper-text">El total de la venta no cambia — esto es solo para corregir con qué medio(s) se cobró, si se cargó mal por error.</p>
+      <div class="order-total"><span>Total de la venta</span><span id="edit-venta-total">$0</span></div>
+
+      <div class="section-title">Medios de pago</div>
+      <div class="form-grid" style="grid-template-columns:1.3fr 1fr auto;">
+        <div><label>Método</label>
+          <select id="edit-venta-metodo-select">
+            <option value="Efectivo">💵 Efectivo</option>
+            <option value="Débito">💳 Débito</option>
+            <option value="Crédito">💳 Crédito</option>
+            <option value="Mercado Pago">📱 Mercado Pago</option>
+          </select>
+        </div>
+        <div><label>Monto</label><input type="number" id="edit-venta-monto-input" step="0.01" placeholder="0"></div>
+        <div><button class="btn btn-secondary btn-sm" onclick="addEditVentaPaymentLine()">+ Agregar</button></div>
+      </div>
+
+      <div id="edit-venta-lines-list"></div>
+      <div class="totals-line" id="edit-venta-pagado-restante"></div>
+
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="edit-venta-save-btn" onclick="saveEditVentaPagos()">💾 Guardar cambios</button>
+        <button class="btn btn-secondary" onclick="closeEditVentaModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TICKET PREVIEW MODAL -->
+<div class="overlay" id="ticket-preview-overlay">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-head">
+      <h3 id="ticket-preview-title">Vista previa del ticket</h3>
+      <button class="close-btn" onclick="closeTicketPreview()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="ticket-preview-content"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" onclick="printFromPreview()">🖨️ Imprimir</button>
+        <button class="btn btn-secondary" onclick="closeTicketPreview()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CLIENTE MODAL -->
+<div class="overlay" id="cliente-overlay">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-head">
+      <h3 id="cliente-modal-title">🧾 Nuevo cliente</h3>
+      <button class="close-btn" onclick="closeClienteModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div><label>Nombre</label><input type="text" id="cli-nombre" placeholder="Ej: Juan"></div>
+        <div><label>Apellido</label><input type="text" id="cli-apellido" placeholder="Ej: Pérez"></div>
+        <div><label>DNI</label><input type="text" id="cli-dni" placeholder="Ej: 30123456"></div>
+        <div><label>CUIT (si tiene)</label><input type="text" id="cli-cuit" placeholder="Ej: 20-30123456-4"></div>
+        <div><label>Dirección</label><input type="text" id="cli-direccion" placeholder="Ej: Av. Siempre Viva 123"></div>
+        <div><label>Condición fiscal</label>
+          <select id="cli-tipo">
+            <option>Consumidor Final</option>
+            <option>Responsable Inscripto</option>
+            <option>Monotributista</option>
+            <option>Exento</option>
+          </select>
+        </div>
+        <div><label>Email (opcional)</label><input type="text" id="cli-email" placeholder="correo@ejemplo.com"></div>
+        <div><label>Descuento</label>
+          <select id="cli-descuento">
+            <option value="0">Sin descuento</option>
+            <option value="10">10%</option>
+            <option value="15">15%</option>
+            <option value="20">20%</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="cli-submit-btn" onclick="addCliente()">💾 Guardar cliente</button>
+        <button class="btn btn-secondary" onclick="closeClienteModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EMPLEADO MODAL -->
+<div class="overlay" id="empleado-overlay">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-head">
+      <h3 id="empleado-modal-title">👥 Nuevo empleado</h3>
+      <button class="close-btn" onclick="closeEmpleadoModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div><label>Nombre</label><input type="text" id="emp-nombre" placeholder="Ej: María"></div>
+        <div><label>Apellido</label><input type="text" id="emp-apellido" placeholder="Ej: Gómez"></div>
+        <div><label>DNI</label><input type="text" id="emp-dni" placeholder="Ej: 28456123"></div>
+        <div><label>CUIT (si tiene)</label><input type="text" id="emp-cuit" placeholder="Ej: 27-28456123-5"></div>
+        <div><label>Dirección</label><input type="text" id="emp-direccion" placeholder="Ej: Calle Falsa 456"></div>
+        <div><label>Puesto</label><input type="text" id="emp-puesto" placeholder="Ej: Mesera / Barista"></div>
+        <div><label>Fecha de ingreso</label><input type="date" id="emp-ingreso"></div>
+        <div><label>Descuento</label>
+          <select id="emp-descuento">
+            <option value="0">Sin descuento</option>
+            <option value="10">10%</option>
+            <option value="15">15%</option>
+            <option value="20">20%</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="emp-submit-btn" onclick="addEmpleado()">💾 Guardar empleado</button>
+        <button class="btn btn-secondary" onclick="closeEmpleadoModal()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="print-area"></div>
+
+<script>
+/* ---------------- LOGIN POR TURNO ---------------- */
+const SHIFT_PASSWORDS = {manana:'1', tarde:'2'};
+const SHIFT_LABELS = {manana:'☀️ Turno Mañana', tarde:'🌙 Turno Tarde'};
+let currentShift = null;
+// Nota demo: esto vive solo en memoria del navegador. En la app real este estado
+// (y el envío de mail) se guardaría en la base de datos / se mandaría desde un backend.
+let shiftClosed = {manana:false, tarde:false};
+
+function login(shift){
+  const passInput = document.getElementById('pass-'+shift);
+  const errDiv = document.getElementById('err-'+shift);
+  if(passInput.value !== SHIFT_PASSWORDS[shift]){
+    errDiv.textContent = 'Contraseña incorrecta';
+    return;
+  }
+  // Si el turno ya estaba cerrado, la propia contraseña de ESE turno sirve para
+  // reabrirlo (con confirmación) — así se soluciona un cierre hecho por error
+  // sin depender de nadie más ni de tocar el código.
+  if(shiftClosed[shift]){
+    if(!confirm(`El ${SHIFT_LABELS[shift]} ya fue cerrado hoy. ¿Fue un error y querés reabrirlo para seguir cargando en él?`)){
+      return;
+    }
+    shiftClosed[shift] = false;
+    refreshShiftCards();
+  }
+  currentShift = shift;
+  errDiv.textContent = '';
+  passInput.value = '';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-root').style.display = '';
+  document.getElementById('current-shift-label').textContent = SHIFT_LABELS[shift];
+  // "Facturado en este turno" depende de currentShift — sin este refresco quedaba
+  // mostrando el número del turno anterior hasta que se cobraba algo nuevo.
+  updateStats();
+}
+
+function refreshShiftCards(){
+  ['manana','tarde'].forEach(shift=>{
+    const tag = document.getElementById('closed-tag-'+shift);
+    tag.style.display = shiftClosed[shift] ? 'block' : 'none';
+  });
+}
+
+// Reloj de la pantalla de login: día y hora en la esquina, para que el mozo/a que
+// entra vea de un vistazo si le corresponde el turno mañana o tarde.
+function updateLoginClock(){
+  const dayEl = document.getElementById('login-clock-day');
+  const timeEl = document.getElementById('login-clock-time');
+  if(!dayEl || !timeEl) return;
+  const now = new Date();
+  dayEl.textContent = now.toLocaleDateString('es-AR', {weekday:'long', day:'numeric', month:'short'});
+  timeEl.textContent = now.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+}
+updateLoginClock();
+setInterval(updateLoginClock, 1000);
+
+function logout(){
+  currentShift = null;
+  document.getElementById('pass-manana').value = '';
+  document.getElementById('pass-tarde').value = '';
+  document.getElementById('err-manana').textContent = '';
+  document.getElementById('err-tarde').textContent = '';
+  document.getElementById('app-root').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  refreshShiftCards();
+}
+
+/* ---------------- DATA: MENÚ ---------------- */
+let MENU = {
+  bebidas: [
+    {n:"Café espresso", p:2500},
+    {n:"Café con leche", p:3000},
+    {n:"Capuccino", p:3500},
+    {n:"Latte", p:3500},
+    {n:"Té / infusión", p:2500},
+    {n:"Chocolate caliente", p:3600},
+    {n:"Jugo de naranja", p:3200},
+    {n:"Licuado de fruta", p:3800},
+    {n:"Gaseosa", p:2800},
+    {n:"Agua mineral", p:2000},
+  ],
+  comidas: [
+    {n:"Tostado J&Q", p:4500},
+    {n:"Sandwich de miga", p:4000},
+    {n:"Bagel", p:4200},
+    {n:"Ensalada", p:5200},
+  ],
+  pasteleria: [
+    {n:"Medialunas (2)", p:2200},
+    {n:"Croissant", p:2800},
+    {n:"Torta del día", p:3800},
+    {n:"Tarta salada", p:4800},
+    {n:"Alfajor", p:2000},
+    {n:"Budín", p:3000},
+  ]
+};
+function getMenuItem(name){
+  return [...MENU.bebidas, ...MENU.comidas, ...MENU.pasteleria].find(i=>i.n===name);
+}
+
+// Ambientes del local, según el plano real que pasó el dueño (editable: se pueden
+// arrastrar, agrandar/achicar, renombrar y agregar o borrar en modo "Editar plano").
+let roomSeq = 8;
+let ROOMS = [
+  {id:1, label:"Salón 3", x:10,  y:10,  w:290, h:195},
+  {id:2, label:"Salón 2", x:305, y:10,  w:345, h:280},
+  {id:3, label:"Salón 1", x:655, y:10,  w:460, h:280, tag:"Salida →"},
+  {id:4, label:"Cuartito", x:10, y:210, w:290, h:110},
+  {id:5, label:"Baño", x:120, y:325, w:95, h:105},
+  {id:6, label:"Baño", x:10,  y:410, w:105, h:75},
+  {id:7, label:"Cocina", x:655, y:195, w:65, h:95},
+];
+const ORIGINAL_ROOMS = ROOMS.map(r=>({...r}));
+
+// Elementos puramente decorativos del plano: marcas de puertas entre ambientes
+// (los pares de trazos del dibujo) y la barra completa de Salón 1. No son editables
+// (no se arrastran ni se borran), son solo referencia visual del local real.
+const DOORS = [
+  {x:298, y:95,  w:6,  h:26, orient:'v'},  // Salón 3 -> Salón 2
+  {x:653, y:95,  w:6,  h:26, orient:'v'},  // Salón 2 -> Salón 1
+  {x:140, y:203, w:26, h:6,  orient:'h'},  // Salón 3 -> Cuartito
+  {x:55,  y:318, w:26, h:6,  orient:'h'},  // Cuartito -> Baño
+  {x:55,  y:403, w:26, h:6,  orient:'h'},  // Baño -> Baño
+];
+const BARRA = {x:760, y:205, w:340, h:16};
+
+// Posición y tamaño de cada mesa (editable con "✏️ Editar plano": arrastrar, agregar
+// o borrar). El dueño puede acomodarlas a la distribución exacta de su local.
+// shape "square" = esquinas apenas redondeadas; "round" = circular.
+let tableSeq = 13;
+let TABLES = [
+  {id:1, x:1030, y:100, w:55, h:55, shape:"square"}, // Salón 1
+  {id:2, x:900,  y:20,  w:55, h:55, shape:"square"}, // Salón 1
+  {id:3, x:712,  y:95,  w:55, h:55, shape:"square"}, // Salón 1
+  {id:4, x:555,  y:40,  w:68, h:46, shape:"square"}, // Salón 2 (rectangular)
+  {id:5, x:310,  y:35,  w:55, h:55, shape:"square"}, // Salón 2
+  {id:6, x:310,  y:105, w:68, h:46, shape:"square"}, // Salón 2 (rectangular)
+  {id:7, x:505,  y:215, w:55, h:55, shape:"square"}, // Salón 2
+  {id:8, x:370,  y:215, w:55, h:55, shape:"square"}, // Salón 2
+  {id:9, x:215,  y:78,  w:68, h:46, shape:"square"}, // Salón 3 (rectangular)
+  {id:10,x:25,   y:45,  w:68, h:46, shape:"square"}, // Salón 3 (rectangular)
+  {id:11,x:30,   y:128, w:68, h:46, shape:"square"}, // Salón 3 (rectangular)
+  {id:12,x:165,  y:240, w:55, h:55, shape:"square"}, // Cuartito
+];
+const ORIGINAL_TABLES = TABLES.map(t=>({...t}));
+
+/* ---------------- DATA: INSUMOS, RECETAS, GASTOS, MOVIMIENTOS ---------------- */
+let insumoSeq = 23;
+let insumos = [
+  {id:1, nombre:"Café en grano", unidad:"kg", stock:5, stockInicial:5, costoUnit:9000, stockMin:1},
+  {id:2, nombre:"Leche", unidad:"L", stock:12, stockInicial:12, costoUnit:1200, stockMin:3},
+  {id:3, nombre:"Azúcar", unidad:"kg", stock:6, stockInicial:6, costoUnit:1500, stockMin:1},
+  {id:4, nombre:"Pan de miga", unidad:"unid", stock:40, stockInicial:40, costoUnit:150, stockMin:10},
+  {id:5, nombre:"Jamón", unidad:"kg", stock:3, stockInicial:3, costoUnit:8000, stockMin:0.5},
+  {id:6, nombre:"Queso", unidad:"kg", stock:3, stockInicial:3, costoUnit:9000, stockMin:0.5},
+  {id:7, nombre:"Harina", unidad:"kg", stock:10, stockInicial:10, costoUnit:1000, stockMin:2},
+  {id:8, nombre:"Manteca", unidad:"kg", stock:2, stockInicial:2, costoUnit:4500, stockMin:0.5},
+  {id:9, nombre:"Huevos", unidad:"unid", stock:30, stockInicial:30, costoUnit:200, stockMin:6},
+  {id:10, nombre:"Naranjas", unidad:"kg", stock:8, stockInicial:8, costoUnit:1200, stockMin:2},
+  {id:11, nombre:"Gaseosa (botella)", unidad:"unid", stock:24, stockInicial:24, costoUnit:1200, stockMin:6},
+  {id:12, nombre:"Agua mineral (botella)", unidad:"unid", stock:24, stockInicial:24, costoUnit:800, stockMin:6},
+  {id:13, nombre:"Chocolate taza", unidad:"kg", stock:2, stockInicial:2, costoUnit:6000, stockMin:0.3},
+  {id:14, nombre:"Medialunas (masa)", unidad:"unid", stock:60, stockInicial:60, costoUnit:250, stockMin:12},
+  {id:15, nombre:"Croissant", unidad:"unid", stock:20, stockInicial:20, costoUnit:600, stockMin:5},
+  {id:16, nombre:"Bagel", unidad:"unid", stock:15, stockInicial:15, costoUnit:700, stockMin:5},
+  {id:17, nombre:"Torta (porción)", unidad:"unid", stock:12, stockInicial:12, costoUnit:1200, stockMin:3},
+  {id:18, nombre:"Tarta (porción)", unidad:"unid", stock:10, stockInicial:10, costoUnit:1500, stockMin:3},
+  {id:19, nombre:"Mix ensalada", unidad:"kg", stock:4, stockInicial:4, costoUnit:3500, stockMin:1},
+  {id:20, nombre:"Alfajor", unidad:"unid", stock:30, stockInicial:30, costoUnit:800, stockMin:6},
+  {id:21, nombre:"Budín (porción)", unidad:"unid", stock:15, stockInicial:15, costoUnit:900, stockMin:3},
+  {id:22, nombre:"Té (saquitos)", unidad:"unid", stock:50, stockInicial:50, costoUnit:150, stockMin:10},
+];
+
+// receta: nombre de producto del MENU -> [{insumoId, cantidad}]
+let recetas = {
+  "Café espresso": [{insumoId:1, cantidad:0.02}],
+  "Café con leche": [{insumoId:1, cantidad:0.018},{insumoId:2, cantidad:0.15}],
+  "Capuccino": [{insumoId:1, cantidad:0.018},{insumoId:2, cantidad:0.12}],
+  "Latte": [{insumoId:1, cantidad:0.018},{insumoId:2, cantidad:0.2}],
+  "Té / infusión": [{insumoId:22, cantidad:1}],
+  "Chocolate caliente": [{insumoId:13, cantidad:0.03},{insumoId:2, cantidad:0.15}],
+  "Jugo de naranja": [{insumoId:10, cantidad:0.3}],
+  "Licuado de fruta": [{insumoId:2, cantidad:0.15},{insumoId:10, cantidad:0.2}],
+  "Gaseosa": [{insumoId:11, cantidad:1}],
+  "Agua mineral": [{insumoId:12, cantidad:1}],
+  "Medialunas (2)": [{insumoId:14, cantidad:2}],
+  "Tostado J&Q": [{insumoId:4, cantidad:2},{insumoId:5, cantidad:0.05},{insumoId:6, cantidad:0.05}],
+  "Sandwich de miga": [{insumoId:4, cantidad:3},{insumoId:5, cantidad:0.04},{insumoId:6, cantidad:0.04}],
+  "Croissant": [{insumoId:15, cantidad:1}],
+  "Bagel": [{insumoId:16, cantidad:1}],
+  // "Torta del día" NO tiene receta directa acá — se vende por porción desde un
+  // Elaborado (ver más abajo), que descuenta insumos al hornear, no al vender.
+  "Torta del día": [],
+  "Tarta salada": [{insumoId:18, cantidad:1}],
+  "Ensalada": [{insumoId:19, cantidad:0.25}],
+  "Alfajor": [{insumoId:20, cantidad:1}],
+  "Budín": [{insumoId:21, cantidad:1}],
+};
+
+/* ---------------- ELABORADOS (producción propia: tortas horneadas y freezadas, etc.) ----------------
+   A diferencia de un Insumo (se compra) o una receta directa (descuenta al vender),
+   un Elaborado se PRODUCE en el local: se hornea una unidad completa (que consume
+   insumos crudos según su propia receta) y esa unidad rinde varias porciones que
+   quedan en stock (freezadas, en la vitrina, da igual — para el sistema es un solo
+   número). Cuando se vende el producto de menú vinculado (ej. "Torta del día"),
+   se descuenta 1 porción del Elaborado — NO se vuelve a tocar el insumo crudo,
+   porque ese consumo ya pasó al momento de hornear. */
+let elaboradoSeq = 2;
+let elaborados = [
+  {id:1, nombre:"Torta de chocolate", porcionesPorUnidad:8, stockPorciones:0, costoUnitPorcion:0, porcionesMin:4, menuItem:"Torta del día", deleted:false},
+];
+// La receta de insumos para armar UNA unidad completa (ej. 1 torta entera = 8 porciones)
+// se carga y se guarda en `recetas`, igual que cualquier otro producto del menú —
+// keyeada por el nombre del producto vinculado (elaborado.menuItem). Así hay una
+// sola solapa (Recetas) donde se define qué lleva cada cosa, y acá en Elaborados
+// solo se registra la producción del día.
+let producciones = []; // {id, fecha, elaboradoId, cantidadUnidades, costoTotal, deleted} — cada "horneada" registrada
+let prodSeq = 1;
+
+let gastos = [];      // {id, fecha, insumoId, cantidad, costoTotal, proveedor, deleted}
+let gastoSeq = 1;
+let movimientos = []; // {id, fecha, insumoId?, elaboradoId?, tipo, cantidad, stockResultante, ref} — auditoría, no se edita ni se borra
+let movSeq = 1;
+let ventas = [];       // ventas cobradas {id, table, items, subtotal, descuento, total, metodo, cliente, time, deleted}
+let ventaSeq = 1;
+
+// Clientes (facturación + habituales) y Empleados
+let clienteSeq = 3;
+let clientes = [
+  {id:1, nombre:"Carlos", apellido:"Fernández", dni:"25123456", cuit:"20-25123456-3", direccion:"Av. Corrientes 1234", tipo:"Responsable Inscripto", email:"", descuentoPct:0, visitas:0, totalGastado:0, deleted:false},
+  {id:2, nombre:"Lucía", apellido:"Fernández", dni:"32456789", cuit:"", direccion:"Av. Santa Fe 500", tipo:"Consumidor Final", email:"", descuentoPct:10, visitas:0, totalGastado:0, deleted:false},
+];
+let empleadoSeq = 2;
+let empleados = [
+  {id:1, nombre:"María", apellido:"Gómez", dni:"28456123", cuit:"", direccion:"", puesto:"Mesera", ingreso:"2024-03-01", descuentoPct:20, visitas:0, totalGastado:0, deleted:false},
+];
+function fullName(r){ return [r.nombre, r.apellido].filter(Boolean).join(' '); }
+
+/* ---------------- PAPELERA (soft delete) ----------------
+   En vez de borrar definitivo, los registros se marcan deleted:true y se listan acá
+   con lo necesario para restaurarlos. En la app real esto sería una columna
+   "deleted_at" en cada tabla de la base de datos. */
+let papelera = []; // {id, tipo, fecha, resumen, refId}
+let papeleraSeq = 1;
+
+function enviarAPapelera(tipo, resumen, refId){
+  papelera.unshift({id: papeleraSeq++, tipo, fecha: new Date(), resumen, refId});
+  renderPapelera();
+}
+
+const TIPO_LABELS = {insumo:'Insumo', gasto:'Compra', cliente:'Cliente', empleado:'Empleado', venta:'Venta', receta:'Receta', elaborado:'Elaborado', produccion:'Producción'};
+
+function renderPapelera(){
+  const tbody = document.getElementById('papelera-tbody');
+  const badge = document.getElementById('papelera-badge');
+  if(badge){
+    if(papelera.length){ badge.style.display = 'inline-block'; badge.textContent = papelera.length; }
+    else { badge.style.display = 'none'; }
+  }
+  if(!tbody) return;
+  tbody.innerHTML = papelera.map(p=>`
+    <tr>
+      <td>${TIPO_LABELS[p.tipo] || p.tipo}</td>
+      <td>${p.resumen}</td>
+      <td>${p.fecha.toLocaleString('es-AR')}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="restaurarPapelera(${p.id})">↺ Restaurar</button></td>
+    </tr>`).join('') || '<tr><td colspan="4" class="empty-note">La papelera está vacía.</td></tr>';
+}
+
+// Dispatcher único: cada tipo sabe cómo "revivirse" a partir de lo que se guardó
+// al momento de enviarlo a la papelera (refId + datos extra si hacían falta, como
+// los ingredientes de una receta vaciada).
+function restaurarPapelera(id){
+  const p = papelera.find(x=>x.id===id);
+  if(!p) return;
+  switch(p.tipo){
+    case 'insumo': {
+      const ins = insumos.find(i=>i.id===p.refId);
+      if(ins) ins.deleted = false;
+      renderInsumos();
+      initRecetasTab();
+      break;
+    }
+    case 'gasto': {
+      const g = gastos.find(x=>x.id===p.refId);
+      if(g){
+        g.deleted = false;
+        const insumo = insumos.find(i=>i.id===g.insumoId);
+        if(insumo){
+          applyCompra(insumo, g.cantidad, g.costoTotal);
+          movimientos.unshift({id:movSeq++, fecha:new Date(), insumoId:insumo.id, tipo:'compra', cantidad:g.cantidad, stockResultante:insumo.stock, ref:`Restaurado: Gasto #${g.id}`});
+        }
+      }
+      renderGastos();
+      renderInsumos();
+      renderMovimientos();
+      break;
+    }
+    case 'cliente': {
+      const c = clientes.find(x=>x.id===p.refId);
+      if(c) c.deleted = false;
+      renderClientes();
+      break;
+    }
+    case 'empleado': {
+      const e = empleados.find(x=>x.id===p.refId);
+      if(e) e.deleted = false;
+      renderEmpleados();
+      break;
+    }
+    case 'venta': {
+      const v = ventas.find(x=>x.id===p.refId);
+      if(v) v.deleted = false;
+      renderVentas();
+      break;
+    }
+    case 'receta': {
+      recetas[p.refId] = (p.ingredientes || []).map(r=>({...r}));
+      if(currentRecipeProduct === p.refId){ loadRecipeProduct(p.refId); }
+      renderRecetasSummary();
+      break;
+    }
+    case 'elaborado': {
+      const e = elaborados.find(x=>x.id===p.refId);
+      if(e) e.deleted = false;
+      renderElaborados();
+      break;
+    }
+    case 'produccion': {
+      const prod = producciones.find(x=>x.id===p.refId);
+      if(prod){
+        prod.deleted = false;
+        const elaborado = elaborados.find(e=>e.id===prod.elaboradoId);
+        if(elaborado){
+          const receta = (elaborado.menuItem ? recetas[elaborado.menuItem] : null) || [];
+          receta.forEach(ing=>{
+            const insumo = insumos.find(i=>i.id===ing.insumoId);
+            if(!insumo) return;
+            const consumo = ing.cantidad*prod.cantidadUnidades;
+            insumo.stock = Math.round((insumo.stock-consumo)*1000)/1000;
+            movimientos.unshift({id:movSeq++, fecha:new Date(), insumoId:insumo.id, tipo:'consumo', cantidad:-consumo, stockResultante:insumo.stock, ref:`Restaurado: Producción #${prod.id}`});
+          });
+          const porcionesNuevas = prod.cantidadUnidades*elaborado.porcionesPorUnidad;
+          const valorAntes = elaborado.stockPorciones*elaborado.costoUnitPorcion;
+          const valorNuevo = valorAntes+prod.costoTotal;
+          elaborado.stockPorciones = Math.round((elaborado.stockPorciones+porcionesNuevas)*1000)/1000;
+          elaborado.costoUnitPorcion = elaborado.stockPorciones>0 ? Math.round((valorNuevo/elaborado.stockPorciones)*100)/100 : elaborado.costoUnitPorcion;
+          movimientos.unshift({id:movSeq++, fecha:new Date(), elaboradoId:elaborado.id, tipo:'produccion', cantidad:porcionesNuevas, stockResultante:elaborado.stockPorciones, ref:`Restaurado: Producción #${prod.id}`});
+        }
+      }
+      renderProducciones();
+      renderElaborados();
+      renderInsumos();
+      renderMovimientos();
+      break;
+    }
+  }
+  updateStockWarnBadge();
+  updateLowStockBadge();
+  papelera = papelera.filter(x=>x.id!==id);
+  renderPapelera();
+}
+
+/* ---- VENTAS ---- */
+function renderVentas(){
+  const tbody = document.getElementById('ventas-tbody');
+  if(!tbody) return;
+  const activas = ventas.filter(v=>!v.deleted);
+  tbody.innerHTML = [...activas].reverse().map(v=>`
+    <tr>
+      <td>${v.table}</td>
+      <td>${v.time.toLocaleString('es-AR')}</td>
+      <td>${SHIFT_LABELS[v.turno] || v.turno || '—'}</td>
+      <td>${v.cliente || '—'}</td>
+      <td>$${v.total.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+      <td>${v.metodo}${v.pagosEditados ? ' <span style="color:var(--blue);font-size:10.5px;">(editado)</span>' : ''}</td>
+      <td>
+        <button class="mini-edit" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="openEditVentaPagos(${v.id})">✏️</button>
+        <button class="mini-print" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="anularVenta(${v.id})">🗑</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="7" class="empty-note">Todavía no se registraron ventas.</td></tr>';
+}
+
+function anularVenta(id){
+  const v = ventas.find(x=>x.id===id);
+  if(!v) return;
+  if(!confirm(`¿Anular la venta de la Mesa ${v.table} por $${v.total.toLocaleString('es-AR')}? Se envía a la papelera; el stock consumido NO se repone automáticamente.`)) return;
+  v.deleted = true;
+  enviarAPapelera('venta', `Venta Mesa ${v.table} · $${v.total.toLocaleString('es-AR',{maximumFractionDigits:0})}`, id);
+  renderVentas();
+}
+
+/* ---- Editar medios de pago de una venta ya cobrada ----
+   Solo corrige CON QUÉ se cobró (ej. se cargó "Efectivo" por error y era "Débito").
+   El total de la venta queda fijo — no se re-abre el pedido ni se toca el stock,
+   eso ya pasó al cobrar. Se guarda para que Ventas y el cierre de turno (desglose
+   por medio de pago) queden consistentes con lo que realmente entró. */
+let editingVentaId = null;
+let editVentaPaymentLines = [];
+
+function openEditVentaPagos(id){
+  const v = ventas.find(x=>x.id===id && !x.deleted);
+  if(!v) return;
+  editingVentaId = id;
+  editVentaPaymentLines = (v.pagos || []).map(p=>({...p}));
+  document.getElementById('edit-venta-title').textContent = `Editar medios de pago — Mesa ${v.table} · Venta #${v.id}`;
+  document.getElementById('edit-venta-total').textContent = '$'+v.total.toLocaleString('es-AR',{maximumFractionDigits:0});
+  renderEditVentaPagos();
+  document.getElementById('edit-venta-overlay').classList.add('show');
+}
+
+function closeEditVentaModal(){
+  document.getElementById('edit-venta-overlay').classList.remove('show');
+  editingVentaId = null;
+  editVentaPaymentLines = [];
+}
+
+function renderEditVentaPagos(){
+  const v = ventas.find(x=>x.id===editingVentaId);
+  if(!v) return;
+  const listDiv = document.getElementById('edit-venta-lines-list');
+  listDiv.innerHTML = editVentaPaymentLines.map((p,idx)=>`
+    <div class="pay-line">
+      <span>${p.metodo}</span>
+      <span class="pay-line-amt">$${p.monto.toLocaleString('es-AR')} <button onclick="removeEditVentaPaymentLine(${idx})">✕</button></span>
+    </div>`).join('') || '<div class="empty-note">Todavía no cargaste ningún medio de pago.</div>';
+
+  const pagado = editVentaPaymentLines.reduce((sum,p)=>sum+p.monto,0);
+  const restante = Math.round((v.total-pagado)*100)/100;
+  const resumen = document.getElementById('edit-venta-pagado-restante');
+  if(pagado===0){
+    resumen.textContent = `Falta cubrir: $${v.total.toLocaleString('es-AR')}`;
+  } else if(restante>0){
+    resumen.innerHTML = `Cargado: $${pagado.toLocaleString('es-AR')} · <span style="color:var(--red);">Falta: $${restante.toLocaleString('es-AR')}</span>`;
+  } else if(restante<0){
+    resumen.innerHTML = `Cargado: $${pagado.toLocaleString('es-AR')} · <span style="color:var(--red);">Sobra: $${(-restante).toLocaleString('es-AR')}</span>`;
+  } else {
+    resumen.innerHTML = `Cargado: $${pagado.toLocaleString('es-AR')} · <span style="color:var(--green);">Coincide con el total ✅</span>`;
+  }
+  document.getElementById('edit-venta-save-btn').disabled = pagado !== v.total;
+}
+
+function addEditVentaPaymentLine(){
+  const metodo = document.getElementById('edit-venta-metodo-select').value;
+  const monto = parseFloat(document.getElementById('edit-venta-monto-input').value);
+  if(!monto || monto<=0){ alert('Ingresá un monto válido para este medio de pago.'); return; }
+  editVentaPaymentLines.push({metodo, monto: Math.round(monto*100)/100});
+  document.getElementById('edit-venta-monto-input').value = '';
+  renderEditVentaPagos();
+}
+
+function removeEditVentaPaymentLine(idx){
+  editVentaPaymentLines.splice(idx,1);
+  renderEditVentaPagos();
+}
+
+function saveEditVentaPagos(){
+  const v = ventas.find(x=>x.id===editingVentaId);
+  if(!v) return;
+  const pagado = editVentaPaymentLines.reduce((sum,p)=>sum+p.monto,0);
+  if(pagado !== v.total){
+    alert(`Los medios de pago tienen que sumar exactamente el total de la venta ($${v.total.toLocaleString('es-AR')}).`);
+    return;
+  }
+  v.pagos = editVentaPaymentLines.map(p=>({...p}));
+  v.metodo = v.pagos.map(p=>`${p.metodo} $${p.monto.toLocaleString('es-AR')}`).join(' + ');
+  v.pagosEditados = true;
+  closeEditVentaModal();
+  renderVentas();
+}
+
+/* ---------------- STATE MESAS ---------------- */
+let state = {};
+// La posición/tamaño de cada mesa vive en TABLES (así agregar/borrar/arrastrar mesas
+// es un solo lugar); acá solo el estado del pedido en curso de cada una.
+TABLES.forEach(t=> state[t.id] = {status:"libre", items:[], notes:"", cuenta:[], clienteSel:null});
+let salonEditMode = false;
+
+let currentTable = null;
+let currentTab = "bebidas";
+let tickets = []; // {id, table, items, notes, time, ready} — solo informativo para cocina, sin cobro
+let ticketSeq = 1;
+let payingTable = null;
+let paymentLines = []; // {metodo, monto} — permite dividir el cobro entre varios medios de pago
+
+/* ---------------- RENDER SALÓN ---------------- */
+function renderSalon(){
+  const salon = document.getElementById('salon');
+  salon.innerHTML = '';
+
+  ROOMS.forEach(r=>{
+    const div = document.createElement('div');
+    div.className = 'room';
+    div.style.left = r.x+'px';
+    div.style.top = r.y+'px';
+    div.style.width = r.w+'px';
+    div.style.height = r.h+'px';
+    div.innerHTML = `
+      <span class="room-label-text">${r.label}</span>
+      ${r.tag ? `<span class="room-tag">${r.tag}</span>` : ''}
+      ${r.bottomTag ? `<span class="room-bottom-tag">${r.bottomTag}</span>` : ''}
+    `;
+    if(salonEditMode){
+      div.onpointerdown = (e)=> startRoomDrag(e, r.id);
+
+      const labelEl = div.querySelector('.room-label-text');
+      labelEl.ondblclick = (e)=>{ e.stopPropagation(); renameRoom(r.id); };
+
+      const del = document.createElement('div');
+      del.className = 'room-del';
+      del.textContent = '✕';
+      del.title = 'Eliminar salón';
+      del.onpointerdown = (e)=> e.stopPropagation();
+      del.onclick = (e)=>{ e.stopPropagation(); deleteRoom(r.id); };
+      div.appendChild(del);
+
+      const handle = document.createElement('div');
+      handle.className = 'resize-handle';
+      handle.title = 'Arrastrar para agrandar/achicar';
+      handle.onpointerdown = (e)=>{ e.stopPropagation(); startRoomResize(e, r.id); };
+      div.appendChild(handle);
+    }
+    salon.appendChild(div);
+  });
+
+  // Marcas decorativas de puertas (entre salones) y la barra completa — solo visuales.
+  DOORS.forEach(d=>{
+    const div = document.createElement('div');
+    div.className = `door-mark ${d.orient}`;
+    div.style.left = d.x+'px';
+    div.style.top = d.y+'px';
+    div.style.width = d.w+'px';
+    div.style.height = d.h+'px';
+    div.innerHTML = '<span></span><span></span>';
+    salon.appendChild(div);
+  });
+  const barraDiv = document.createElement('div');
+  barraDiv.className = 'barra-deco';
+  barraDiv.style.left = BARRA.x+'px';
+  barraDiv.style.top = BARRA.y+'px';
+  barraDiv.style.width = BARRA.w+'px';
+  barraDiv.style.height = BARRA.h+'px';
+  barraDiv.innerHTML = '☕ Barra';
+  salon.appendChild(barraDiv);
+
+  TABLES.forEach(t=>{
+    const s = state[t.id];
+    const div = document.createElement('div');
+    div.className = `table ${s.status} ${t.shape==='round' ? 'round':''}`;
+    div.style.left = t.x+'px';
+    div.style.top = t.y+'px';
+    div.style.width = t.w+'px';
+    div.style.height = t.h+'px';
+    div.innerHTML = `<span>${t.id}</span><small>${statusLabel(s.status)}</small>`;
+    if(salonEditMode){
+      div.onpointerdown = (e)=> startTableDrag(e, t.id);
+
+      const del = document.createElement('div');
+      del.className = 'table-del';
+      del.textContent = '✕';
+      del.title = 'Eliminar mesa';
+      del.onpointerdown = (e)=> e.stopPropagation();
+      del.onclick = (e)=>{ e.stopPropagation(); deleteTable(t.id); };
+      div.appendChild(del);
+
+      const sibling = siblingHalfId(t.id);
+      if(sibling){
+        const merge = document.createElement('div');
+        merge.className = 'table-split';
+        merge.textContent = '🔗';
+        merge.title = `Unificar ${t.id} y ${sibling} de nuevo`;
+        merge.onpointerdown = (e)=> e.stopPropagation();
+        merge.onclick = (e)=>{ e.stopPropagation(); mergeTable(baseIdOfHalf(t.id)); };
+        div.appendChild(merge);
+      } else if(baseIdOfHalf(t.id) === null){
+        const split = document.createElement('div');
+        split.className = 'table-split';
+        split.textContent = '⑃';
+        split.title = `Dividir en ${t.id}A / ${t.id}B`;
+        split.onpointerdown = (e)=> e.stopPropagation();
+        split.onclick = (e)=>{ e.stopPropagation(); splitTable(t.id); };
+        div.appendChild(split);
+      }
+    } else {
+      div.onclick = ()=> openTable(t.id);
+    }
+    salon.appendChild(div);
+  });
+  updateStats();
+}
+
+/* ---------------- EDITAR PLANO (mesas y salones: mover, agrandar/achicar, agregar, borrar) ---------------- */
+function toggleSalonEdit(){
+  salonEditMode = !salonEditMode;
+  document.getElementById('btn-edit-plano').textContent = salonEditMode ? '✅ Listo, terminar edición' : '✏️ Editar plano';
+  document.getElementById('edit-plano-hint').style.display = salonEditMode ? 'block' : 'none';
+  document.getElementById('salon').classList.toggle('edit-mode', salonEditMode);
+  document.getElementById('btn-add-mesa').style.display = salonEditMode ? 'inline-block' : 'none';
+  document.getElementById('btn-add-salon').style.display = salonEditMode ? 'inline-block' : 'none';
+  renderSalon();
+}
+
+function resetSalonLayout(){
+  if(!confirm('¿Volver el plano a la distribución original de ejemplo? Las mesas y salones que hayas agregado se eliminan, y las posiciones/tamaños vuelven al punto de partida.')) return;
+  TABLES = ORIGINAL_TABLES.map(t=>({...t}));
+  ROOMS = ORIGINAL_ROOMS.map(r=>({...r}));
+  const newState = {};
+  TABLES.forEach(t=> newState[t.id] = state[t.id] || {status:'libre', items:[], notes:'', cuenta:[], clienteSel:null});
+  state = newState;
+  tickets = tickets.filter(tk=> TABLES.some(t=>t.id===tk.table));
+  renderSalon();
+  renderTickets();
+}
+
+/* ---- Mesas: arrastrar / agregar / borrar ---- */
+function startTableDrag(e, tableId){
+  e.preventDefault();
+  const salonEl = document.getElementById('salon');
+  const salonRect = salonEl.getBoundingClientRect();
+  const tableDef = TABLES.find(x=>x.id===tableId);
+  const tableEl = e.currentTarget;
+  const offsetX = e.clientX - tableEl.getBoundingClientRect().left;
+  const offsetY = e.clientY - tableEl.getBoundingClientRect().top;
+  tableEl.setPointerCapture(e.pointerId);
+
+  function onMove(ev){
+    let newX = ev.clientX - salonRect.left - offsetX + salonEl.scrollLeft;
+    let newY = ev.clientY - salonRect.top - offsetY + salonEl.scrollTop;
+    newX = Math.max(0, Math.min(newX, salonEl.scrollWidth - tableDef.w));
+    newY = Math.max(0, Math.min(newY, salonEl.scrollHeight - tableDef.h));
+    tableDef.x = Math.round(newX);
+    tableDef.y = Math.round(newY);
+    tableEl.style.left = tableDef.x+'px';
+    tableEl.style.top = tableDef.y+'px';
+  }
+  function onUp(ev){
+    tableEl.releasePointerCapture(ev.pointerId);
+    tableEl.removeEventListener('pointermove', onMove);
+    tableEl.removeEventListener('pointerup', onUp);
+  }
+  tableEl.addEventListener('pointermove', onMove);
+  tableEl.addEventListener('pointerup', onUp);
+}
+
+function addTable(){
+  const salonEl = document.getElementById('salon');
+  const n = TABLES.length;
+  const x = 20 + (n % 6) * 65 + salonEl.scrollLeft;
+  const y = 20 + Math.floor(n / 6) * 65 + salonEl.scrollTop;
+  const id = tableSeq++;
+  TABLES.push({id, x, y, w:52, h:52, shape:'square'});
+  state[id] = {status:'libre', items:[], notes:'', cuenta:[], clienteSel:null};
+  renderSalon();
+}
+
+function deleteTable(id){
+  const s = state[id];
+  const enUso = s && (s.status!=='libre' || s.items.length || (s.cuenta && s.cuenta.length));
+  const msg = enUso
+    ? `La Mesa ${id} tiene un pedido en curso. Si la eliminás se pierde ese pedido (no cobrado). ¿Eliminar igual?`
+    : `¿Eliminar la Mesa ${id} del plano?`;
+  if(!confirm(msg)) return;
+  TABLES = TABLES.filter(t=>t.id!==id);
+  delete state[id];
+  tickets = tickets.filter(t=>t.table!==id);
+  renderSalon();
+  renderTickets();
+}
+
+/* ---- Mesas: dividir en A/B (para repartir una mesa grande entre dos grupos) / unificar ---- */
+function baseIdOfHalf(id){
+  const s = String(id);
+  return /[AB]$/.test(s) ? s.slice(0,-1) : null;
+}
+function siblingHalfId(id){
+  const s = String(id);
+  if(!/[AB]$/.test(s)) return null;
+  const other = s.slice(0,-1) + (s.endsWith('A') ? 'B' : 'A');
+  return TABLES.some(t=>String(t.id)===other) ? other : null;
+}
+function toOriginalIdType(baseStr){
+  const n = Number(baseStr);
+  return (!isNaN(n) && String(n)===baseStr) ? n : baseStr;
+}
+
+function splitTable(id){
+  const t = TABLES.find(x=>x.id===id);
+  if(!t) return;
+  const s = state[id];
+  const enUso = s && (s.status!=='libre' || (s.items&&s.items.length) || (s.cuenta&&s.cuenta.length));
+  const msg = enUso
+    ? `La Mesa ${id} tiene un pedido en curso. Si la dividís en ${id}A / ${id}B ese pedido se pierde (no cobrado). ¿Dividir igual?`
+    : `¿Dividir la Mesa ${id} en ${id}A y ${id}B, para atenderlas como dos cuentas independientes?`;
+  if(!confirm(msg)) return;
+
+  const idA = String(id)+'A', idB = String(id)+'B';
+  const halfW = Math.max(34, Math.round((t.w-6)/2));
+  TABLES = TABLES.filter(x=>x.id!==id);
+  TABLES.push({id:idA, x:t.x, y:t.y, w:halfW, h:t.h, shape:t.shape});
+  TABLES.push({id:idB, x:t.x+halfW+6, y:t.y, w:halfW, h:t.h, shape:t.shape});
+  delete state[id];
+  state[idA] = {status:'libre', items:[], notes:'', cuenta:[], clienteSel:null};
+  state[idB] = {status:'libre', items:[], notes:'', cuenta:[], clienteSel:null};
+  tickets = tickets.filter(tk=>tk.table!==id);
+  renderSalon();
+  renderTickets();
+}
+
+function mergeTable(baseIdStr){
+  const idA = baseIdStr+'A', idB = baseIdStr+'B';
+  const a = TABLES.find(x=>String(x.id)===idA), b = TABLES.find(x=>String(x.id)===idB);
+  if(!a || !b) return;
+  const sa = state[a.id], sb = state[b.id];
+  const enUso = (sa && (sa.status!=='libre' || sa.items.length || (sa.cuenta&&sa.cuenta.length))) ||
+                (sb && (sb.status!=='libre' || sb.items.length || (sb.cuenta&&sb.cuenta.length)));
+  const baseId = toOriginalIdType(baseIdStr);
+  const msg = enUso
+    ? `${idA} o ${idB} tienen un pedido en curso. Si las unificás en la Mesa ${baseId} de nuevo, esos pedidos se pierden (no cobrados). ¿Unificar igual?`
+    : `¿Unificar ${idA} y ${idB} de nuevo en la Mesa ${baseId}?`;
+  if(!confirm(msg)) return;
+
+  const w = a.w + b.w + 6;
+  TABLES = TABLES.filter(x=>x.id!==a.id && x.id!==b.id);
+  TABLES.push({id:baseId, x:a.x, y:a.y, w, h:a.h, shape:a.shape});
+  delete state[a.id];
+  delete state[b.id];
+  state[baseId] = {status:'libre', items:[], notes:'', cuenta:[], clienteSel:null};
+  tickets = tickets.filter(tk=>tk.table!==a.id && tk.table!==b.id);
+  renderSalon();
+  renderTickets();
+}
+
+/* ---- Salones (ambientes): arrastrar / agrandar-achicar / renombrar / agregar / borrar ---- */
+function startRoomDrag(e, roomId){
+  e.preventDefault();
+  const salonEl = document.getElementById('salon');
+  const salonRect = salonEl.getBoundingClientRect();
+  const roomDef = ROOMS.find(x=>x.id===roomId);
+  const roomEl = e.currentTarget;
+  const offsetX = e.clientX - roomEl.getBoundingClientRect().left;
+  const offsetY = e.clientY - roomEl.getBoundingClientRect().top;
+  roomEl.setPointerCapture(e.pointerId);
+
+  function onMove(ev){
+    let newX = ev.clientX - salonRect.left - offsetX + salonEl.scrollLeft;
+    let newY = ev.clientY - salonRect.top - offsetY + salonEl.scrollTop;
+    newX = Math.max(0, newX);
+    newY = Math.max(0, newY);
+    roomDef.x = Math.round(newX);
+    roomDef.y = Math.round(newY);
+    roomEl.style.left = roomDef.x+'px';
+    roomEl.style.top = roomDef.y+'px';
+  }
+  function onUp(ev){
+    roomEl.releasePointerCapture(ev.pointerId);
+    roomEl.removeEventListener('pointermove', onMove);
+    roomEl.removeEventListener('pointerup', onUp);
+  }
+  roomEl.addEventListener('pointermove', onMove);
+  roomEl.addEventListener('pointerup', onUp);
+}
+
+function startRoomResize(e, roomId){
+  e.preventDefault();
+  const roomDef = ROOMS.find(x=>x.id===roomId);
+  const roomEl = e.currentTarget.parentElement;
+  const handleEl = e.currentTarget;
+  const startX = e.clientX, startY = e.clientY;
+  const startW = roomDef.w, startH = roomDef.h;
+  handleEl.setPointerCapture(e.pointerId);
+
+  function onMove(ev){
+    const newW = Math.max(60, Math.round(startW + (ev.clientX - startX)));
+    const newH = Math.max(50, Math.round(startH + (ev.clientY - startY)));
+    roomDef.w = newW;
+    roomDef.h = newH;
+    roomEl.style.width = newW+'px';
+    roomEl.style.height = newH+'px';
+  }
+  function onUp(ev){
+    handleEl.releasePointerCapture(ev.pointerId);
+    handleEl.removeEventListener('pointermove', onMove);
+    handleEl.removeEventListener('pointerup', onUp);
+  }
+  handleEl.addEventListener('pointermove', onMove);
+  handleEl.addEventListener('pointerup', onUp);
+}
+
+function renameRoom(id){
+  const room = ROOMS.find(r=>r.id===id);
+  if(!room) return;
+  const nuevo = prompt('Nombre del salón:', room.label);
+  if(nuevo === null) return;
+  const trimmed = nuevo.trim();
+  if(trimmed) room.label = trimmed;
+  renderSalon();
+}
+
+function addRoom(){
+  const salonEl = document.getElementById('salon');
+  const nombre = prompt('Nombre del nuevo salón:', 'Nuevo salón');
+  if(nombre === null) return;
+  const id = roomSeq++;
+  ROOMS.push({
+    id, label: nombre.trim() || 'Nuevo salón',
+    x: 20 + salonEl.scrollLeft, y: 20 + salonEl.scrollTop, w:150, h:120
+  });
+  renderSalon();
+}
+
+function deleteRoom(id){
+  const room = ROOMS.find(r=>r.id===id);
+  if(!room) return;
+  if(!confirm(`¿Eliminar el salón "${room.label}"? Las mesas que estén dentro no se borran, solo el marco decorativo.`)) return;
+  ROOMS = ROOMS.filter(r=>r.id!==id);
+  renderSalon();
+}
+
+function statusLabel(s){
+  return {libre:"Libre", ocupada:"Ocupada", pedido:"Pedido enviado", entregado:"Pedido entregado", cuenta:"Cobrando"}[s];
+}
+
+function updateStats(){
+  const vals = Object.values(state);
+  document.getElementById('stat-libres').textContent = vals.filter(v=>v.status==='libre').length;
+  document.getElementById('stat-ocupadas').textContent = vals.filter(v=>v.status!=='libre').length;
+  document.getElementById('stat-pedidos').textContent = tickets.length;
+  // Ojo: esto muestra SOLO lo facturado en el turno activo, no el acumulado del día
+  // ni lo de otro turno — así cada responsable de turno arquea contra su propio número,
+  // sin verse "contaminado" por lo que facturó el turno anterior.
+  const totalCobrado = ventas.filter(v=>!v.deleted && v.turno===currentShift).reduce((sum,v)=> sum + v.total, 0);
+  document.getElementById('stat-total').textContent = '$'+totalCobrado.toLocaleString('es-AR');
+  document.getElementById('ticket-count').textContent = tickets.length;
+}
+
+/* ---------------- NAV ---------------- */
+function showView(v){
+  document.getElementById('view-salon').style.display = v==='salon' ? '' : 'none';
+  document.getElementById('view-comandera').style.display = v==='comandera' ? '' : 'none';
+  document.getElementById('view-admin').style.display = v==='admin' ? '' : 'none';
+  document.getElementById('nav-salon').classList.toggle('active', v==='salon');
+  document.getElementById('nav-comandera').classList.toggle('active', v==='comandera');
+  document.getElementById('nav-admin').classList.toggle('active', v==='admin');
+}
+
+/* ---------------- ORDER MODAL ---------------- */
+function openTable(id){
+  currentTable = id;
+  const s = state[id];
+  // La mesa NO se ocupa solo por abrirla a mirar — recién se marca "ocupada" cuando
+  // se carga el primer producto (ver addItem). Si se abre y se cierra sin cargar
+  // nada, closeModal() la vuelve a dejar "libre".
+  document.getElementById('modal-title').innerHTML = `Mesa ${id} <span class="status-tag" style="background:${statusColor(s.status)}">${statusLabel(s.status)}</span>`;
+  switchTab('bebidas');
+  renderOrderLines();
+  populateClienteSelect(s.clienteSel ? `${s.clienteSel.kind}-${s.clienteSel.id}` : '');
+  renderClienteInfo();
+  renderCuentaAcumulada();
+  document.getElementById('overlay').classList.add('show');
+  renderSalon();
+}
+
+/* ---------------- CLIENTE / EMPLEADO EN EL PEDIDO ---------------- */
+function populateClienteSelect(selectedValue){
+  const sel = document.getElementById('order-cliente');
+  const clientesActivos = clientes.filter(c=>!c.deleted);
+  const empleadosActivos = empleados.filter(e=>!e.deleted);
+  let html = '<option value="">Sin cliente asignado</option>';
+  if(clientesActivos.length){
+    html += `<optgroup label="Clientes">${clientesActivos.map(c=>`<option value="cliente-${c.id}">${fullName(c)}${c.descuentoPct?' ('+c.descuentoPct+'% desc.)':''}</option>`).join('')}</optgroup>`;
+  }
+  if(empleadosActivos.length){
+    html += `<optgroup label="Empleados">${empleadosActivos.map(e=>`<option value="empleado-${e.id}">${fullName(e)}${e.descuentoPct?' ('+e.descuentoPct+'% desc.)':''}</option>`).join('')}</optgroup>`;
+  }
+  sel.innerHTML = html;
+  sel.value = selectedValue || '';
+}
+
+function getSelectedDiscountRecordFor(sel){
+  if(!sel) return null;
+  if(sel.kind==='cliente') return clientes.find(c=>c.id===sel.id);
+  return empleados.find(e=>e.id===sel.id);
+}
+
+function onClienteChange(){
+  const val = document.getElementById('order-cliente').value;
+  const s = state[currentTable];
+  if(!val){ s.clienteSel = null; }
+  else{
+    const [kind, idStr] = val.split('-');
+    s.clienteSel = {kind, id: parseInt(idStr)};
+  }
+  renderClienteInfo();
+}
+
+function renderClienteInfo(){
+  const div = document.getElementById('cliente-info');
+  const s = state[currentTable];
+  const record = getSelectedDiscountRecordFor(s.clienteSel);
+  if(!record){ div.textContent = ''; return; }
+  if(s.clienteSel.kind==='cliente'){
+    if(record.tipo && record.tipo!=='Consumidor Final'){
+      div.innerHTML = `Se facturará a <b>${fullName(record)}</b> — ${record.tipo} · CUIT: ${record.cuit || 'sin CUIT cargado'}`;
+    } else {
+      div.innerHTML = `Cliente habitual: <b>${fullName(record)}</b> · Visitas previas: ${record.visitas}${record.descuentoPct?` · Descuento: ${record.descuentoPct}%`:''}`;
+    }
+  } else {
+    div.innerHTML = `Empleado: <b>${fullName(record)}</b>${record.puesto?' · '+record.puesto:''}${record.descuentoPct?` · Descuento: ${record.descuentoPct}%`:''}`;
+  }
+}
+
+// Resumen a un costado del modal: TODO lo que pidió la mesa hasta ahora, ya
+// mezclado en una sola lista por producto — lo que ya se mandó a cocina (s.cuenta)
+// más lo que se está cargando en esta ronda todavía sin enviar (s.items). Si el
+// cliente pidió 1 latte antes y después 2 más, acá aparece "3x Latte" ya sumado,
+// no como dos líneas separadas. Se refresca cada vez que se abre la mesa y cada
+// vez que cambia la ronda en curso (ver renderOrderLines).
+function renderCuentaAcumulada(){
+  const s = state[currentTable];
+  if(!s) return;
+  const combinado = {}; // nombre -> {qty, p}
+  (s.cuenta||[]).forEach(i=>{
+    const line = combinado[i.n] || (combinado[i.n] = {qty:0, p:i.p});
+    line.qty += i.qty;
+  });
+  (s.items||[]).forEach(i=>{
+    const line = combinado[i.n] || (combinado[i.n] = {qty:0, p:i.p});
+    line.qty += i.qty;
+  });
+  const entries = Object.entries(combinado);
+  const container = document.getElementById('mesa-summary-items');
+  if(!entries.length){
+    container.innerHTML = '<div class="empty-note">Todavía no se pidió nada en esta mesa.</div>';
+  } else {
+    container.innerHTML = entries.map(([nombre, d])=>
+      `<div class="mesa-summary-line"><span>${d.qty}x ${nombre}</span><span>$${(d.qty*d.p).toLocaleString('es-AR')}</span></div>`
+    ).join('');
+  }
+  const total = entries.reduce((sum,[,d])=>sum+d.qty*d.p, 0);
+  document.getElementById('side-gran-total').textContent = '$'+total.toLocaleString('es-AR');
+}
+
+function statusColor(s){
+  return {libre:"var(--green)", ocupada:"var(--terracota)", pedido:"var(--blue)", entregado:"var(--teal)", cuenta:"var(--amber)"}[s];
+}
+
+function closeModal(){
+  // Si se abrió la mesa, no se cargó ningún producto y no hay cuenta pendiente,
+  // no tiene sentido dejarla marcada como "ocupada" — vuelve a "libre".
+  const s = state[currentTable];
+  if(s && s.status === 'ocupada' && !s.items.length && !(s.cuenta && s.cuenta.length)){
+    s.status = 'libre';
+    renderSalon();
+  }
+  document.getElementById('overlay').classList.remove('show');
+  currentTable = null;
+}
+
+function refreshModalTitle(){
+  const s = state[currentTable];
+  if(!s) return;
+  document.getElementById('modal-title').innerHTML = `Mesa ${currentTable} <span class="status-tag" style="background:${statusColor(s.status)}">${statusLabel(s.status)}</span>`;
+}
+
+function switchTab(tab){
+  currentTab = tab;
+  document.getElementById('tab-bebidas').classList.toggle('active', tab==='bebidas');
+  document.getElementById('tab-comidas').classList.toggle('active', tab==='comidas');
+  document.getElementById('tab-pasteleria').classList.toggle('active', tab==='pasteleria');
+  const grid = document.getElementById('menu-grid');
+  grid.innerHTML = '';
+  MENU[tab].forEach(item=>{
+    const div = document.createElement('div');
+    div.className = 'menu-item';
+    div.innerHTML = `<div><div class="info">${item.n}</div><div class="price">$${item.p.toLocaleString('es-AR')}</div></div>
+      <button onclick="addItem('${item.n}', ${item.p})">+</button>`;
+    grid.appendChild(div);
+  });
+}
+
+function addItem(name, price){
+  const s = state[currentTable];
+  if(s.status === 'libre'){
+    s.status = 'ocupada'; // recién ahora hay algo cargado: se ocupa la mesa
+    refreshModalTitle();
+    renderSalon();
+  }
+  const existing = s.items.find(i=>i.n===name);
+  if(existing) existing.qty++;
+  else s.items.push({n:name, p:price, qty:1, note:''});
+  renderOrderLines();
+}
+
+function changeQty(name, delta){
+  const s = state[currentTable];
+  const item = s.items.find(i=>i.n===name);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty <= 0) s.items = s.items.filter(i=>i.n!==name);
+  renderOrderLines();
+}
+
+// Guarda la nota de un producto puntual de la ronda en curso. No vuelve a dibujar
+// la lista (perdería el foco del input mientras se escribe), solo actualiza el dato.
+function updateItemNote(name, value){
+  const s = state[currentTable];
+  const item = s.items.find(i=>i.n===name);
+  if(item) item.note = value;
+}
+
+function renderOrderLines(){
+  const s = state[currentTable];
+  const container = document.getElementById('order-lines');
+  if(!s.items.length){
+    container.innerHTML = '<div class="empty-note">Todavía no agregaste productos.</div>';
+  } else {
+    container.innerHTML = s.items.map(i=>`
+      <div class="order-line">
+        <div class="order-line-top">
+          <span>${i.n}</span>
+          <span class="qty-controls">
+            <button onclick="changeQty('${i.n}', -1)">−</button>
+            ${i.qty}
+            <button onclick="changeQty('${i.n}', 1)">+</button>
+            <span>$${(i.p*i.qty).toLocaleString('es-AR')}</span>
+          </span>
+        </div>
+        <input type="text" class="order-line-note" data-item="${i.n}" placeholder="+ nota para este producto (ej: sin azúcar, con jamón y queso...)" oninput="updateItemNote('${i.n}', this.value)">
+      </div>`).join('');
+    container.querySelectorAll('.order-line-note').forEach(inp=>{
+      const item = s.items.find(i=>i.n===inp.dataset.item);
+      inp.value = item && item.note ? item.note : '';
+    });
+  }
+  const total = s.items.reduce((sum,i)=>sum+i.p*i.qty,0);
+  document.getElementById('order-total').textContent = '$'+total.toLocaleString('es-AR');
+  renderCuentaAcumulada();
+}
+
+/* ---------------- ORDER ACTIONS ---------------- */
+function sendOrder(){
+  const s = state[currentTable];
+  if(!s.items.length){
+    alert('Agregá al menos un producto antes de enviar el pedido.');
+    return;
+  }
+  // Esto solo manda la comanda a cocina/barra — NO cobra ni descuenta stock todavía.
+  // Las notas viajan por producto (item.note), ya incluidas en el clon de s.items.
+  const ticket = {
+    id: ticketSeq++,
+    table: currentTable,
+    items: JSON.parse(JSON.stringify(s.items)),
+    time: new Date(),
+    ready: false,
+    edited: false
+  };
+  tickets.unshift(ticket);
+  s.status = 'pedido';
+  s.items = [];
+  recomputeCuenta(currentTable); // la "cuenta" abierta de la mesa se arma sumando todas sus comandas pendientes
+  renderTickets();
+  renderSalon();
+  closeModal();
+  showView('comandera');
+  showTicketPreview('Comanda enviada a cocina/barra', buildComandaHtml(ticket));
+}
+
+// Para pedidos que no necesitan pasar por cocina/barra (ej. take away de mostrador,
+// algo ya preparado). Suma la ronda actual directo a la cuenta de la mesa, SIN
+// generar comanda ni pasar por la Comandera, y abre el cobro. El stock se descuenta
+// igual al confirmar el pago (finalizePayment), como cualquier otra venta.
+function cobrarSinCocina(){
+  const s = state[currentTable];
+  if(!s.items.length){
+    alert('Agregá al menos un producto antes de cobrar.');
+    return;
+  }
+  if(!confirm('¿Cobrar este pedido directo, sin mandarlo a la comandera de cocina/barra?')) return;
+  s.items.forEach(item=>{
+    const existing = s.cuenta.find(i=>i.n===item.n);
+    if(existing) existing.qty += item.qty;
+    else s.cuenta.push({...item});
+  });
+  s.items = [];
+  openPaymentModal(currentTable);
+}
+
+// Reconstruye la cuenta acumulada de una mesa a partir de todas sus comandas
+// pendientes (no cobradas). Se llama después de enviar o editar una comanda,
+// así la mesa y las ediciones nunca se desincronizan.
+function recomputeCuenta(tableId){
+  const merged = [];
+  tickets.filter(t=>t.table===tableId).forEach(t=>{
+    t.items.forEach(item=>{
+      const existing = merged.find(m=>m.n===item.n);
+      if(existing) existing.qty += item.qty;
+      else merged.push({...item});
+    });
+  });
+  state[tableId].cuenta = merged;
+}
+
+function freeTable(){
+  if(!confirm('¿Liberar la mesa? Se perderá cualquier pedido o cuenta pendiente sin cobrar.')) return;
+  tickets = tickets.filter(t=>t.table!==currentTable);
+  state[currentTable] = {status:'libre', items:[], notes:'', cuenta:[], clienteSel:null};
+  renderTickets();
+  renderSalon();
+  closeModal();
+}
+
+/* ---------------- COMANDERA ---------------- */
+function renderTickets(){
+  const container = document.getElementById('tickets-container');
+  if(!tickets.length){
+    container.innerHTML = '<div class="empty-state">Todavía no se enviaron pedidos.</div>';
+    updateStats();
+    return;
+  }
+  container.innerHTML = '<div class="tickets-grid" id="tickets-grid"></div>';
+  const grid = document.getElementById('tickets-grid');
+  tickets.forEach(tk=>{
+    const total = tk.items.reduce((s,i)=>s+i.p*i.qty,0);
+    const card = document.createElement('div');
+    card.className = 'ticket-card';
+    card.innerHTML = `
+      <div class="t-head">
+        <b>MESA ${tk.table}</b> ${tk.ready ? '<span class="ready-tag">✅ Listo</span>' : ''} ${tk.edited ? '<span class="ready-tag" style="background:var(--blue);">✏️ Editado</span>' : ''}<br>
+        <span class="time">Ticket #${tk.id} · ${tk.time.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+      ${tk.items.map(i=>`<div class="ticket-line"><span>${i.qty}x ${i.n}</span><span>$${(i.p*i.qty).toLocaleString('es-AR')}</span></div>${i.note ? `<div class="ticket-notes">↳ ${i.note}</div>` : ''}`).join('')}
+      <div class="ticket-foot"><span>TOTAL</span><span>$${total.toLocaleString('es-AR')}</span></div>
+      <div class="card-actions">
+        <button class="mini-done" onclick="toggleReady(${tk.id})">✔ ${tk.ready ? 'Desmarcar' : 'Listo'}</button>
+        <button class="mini-edit" onclick="openEditTicket(${tk.id})">✏️ Editar</button>
+        <button class="mini-print" onclick="reprintComanda(${tk.id})">🖨️ Comanda</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  updateStats();
+}
+
+function toggleReady(id){
+  const tk = tickets.find(t=>t.id===id);
+  if(!tk) return;
+  tk.ready = !tk.ready;
+  updateTableStatusFromTickets(tk.table);
+  renderTickets();
+  renderSalon();
+}
+
+// Cuando todas las comandas pendientes de una mesa están marcadas "Listo", la mesa
+// pasa a "entregado" en el Salón (otro color) para que el mozo sepa que ya se sirvió.
+// Si se envía una nueva ronda o alguna comanda se desmarca, vuelve a "pedido".
+function updateTableStatusFromTickets(tableId){
+  const s = state[tableId];
+  if(!s || s.status === 'libre' || s.status === 'cuenta') return;
+  const ticketsMesa = tickets.filter(t=>t.table===tableId);
+  if(!ticketsMesa.length) return;
+  s.status = ticketsMesa.every(t=>t.ready) ? 'entregado' : 'pedido';
+}
+
+// Arma el HTML de la comanda de cocina (sin precios, sin cobrar, sin tocar stock)
+function buildComandaHtml(tk){
+  return `
+    <div class="p-center"><b>COMANDACAFÉ</b><br>Comanda de cocina/barra</div>
+    <hr>
+    <div>Mesa: <b>${tk.table}</b></div>
+    <div>Ticket #${tk.id}</div>
+    <div>${tk.time.toLocaleString('es-AR')}</div>
+    <hr>
+    ${tk.items.map(i=>`<div>${i.qty}x ${i.n}</div>${i.note ? `<div style="padding-left:10px;font-style:italic;">↳ ${i.note}</div>` : ''}`).join('')}
+  `;
+}
+
+function reprintComanda(id){
+  const tk = tickets.find(t=>t.id===id);
+  if(!tk) return;
+  showTicketPreview('Comanda de cocina/barra', buildComandaHtml(tk));
+}
+
+/* ---------------- EDITAR COMANDA ---------------- */
+let editingTicketId = null;
+
+function openEditTicket(id){
+  const tk = tickets.find(t=>t.id===id);
+  if(!tk) return;
+  editingTicketId = id;
+  document.getElementById('edit-ticket-title').textContent = `Editar comanda — Mesa ${tk.table} · Ticket #${tk.id}`;
+  switchEditTab('bebidas');
+  renderEditTicketLines();
+  document.getElementById('edit-ticket-overlay').classList.add('show');
+}
+
+function closeEditTicket(){
+  document.getElementById('edit-ticket-overlay').classList.remove('show');
+  editingTicketId = null;
+}
+
+function switchEditTab(tab){
+  document.getElementById('edit-tab-bebidas').classList.toggle('active', tab==='bebidas');
+  document.getElementById('edit-tab-comidas').classList.toggle('active', tab==='comidas');
+  document.getElementById('edit-tab-pasteleria').classList.toggle('active', tab==='pasteleria');
+  const grid = document.getElementById('edit-menu-grid');
+  grid.innerHTML = '';
+  MENU[tab].forEach(item=>{
+    const div = document.createElement('div');
+    div.className = 'menu-item';
+    div.innerHTML = `<div><div class="info">${item.n}</div><div class="price">$${item.p.toLocaleString('es-AR')}</div></div>
+      <button onclick="addEditItem('${item.n}', ${item.p})">+</button>`;
+    grid.appendChild(div);
+  });
+}
+
+function addEditItem(name, price){
+  const tk = tickets.find(t=>t.id===editingTicketId);
+  if(!tk) return;
+  const existing = tk.items.find(i=>i.n===name);
+  if(existing) existing.qty++;
+  else tk.items.push({n:name, p:price, qty:1, note:''});
+  renderEditTicketLines();
+}
+
+function changeEditQty(name, delta){
+  const tk = tickets.find(t=>t.id===editingTicketId);
+  if(!tk) return;
+  const item = tk.items.find(i=>i.n===name);
+  if(!item) return;
+  item.qty += delta;
+  if(item.qty <= 0) tk.items = tk.items.filter(i=>i.n!==name);
+  renderEditTicketLines();
+}
+
+function updateEditItemNote(name, value){
+  const tk = tickets.find(t=>t.id===editingTicketId);
+  if(!tk) return;
+  const item = tk.items.find(i=>i.n===name);
+  if(item) item.note = value;
+}
+
+function renderEditTicketLines(){
+  const tk = tickets.find(t=>t.id===editingTicketId);
+  if(!tk) return;
+  const container = document.getElementById('edit-order-lines');
+  if(!tk.items.length){
+    container.innerHTML = '<div class="empty-note">Esta comanda se quedó sin productos. Agregá al menos uno o guardá para eliminar el ticket.</div>';
+  } else {
+    container.innerHTML = tk.items.map(i=>`
+      <div class="order-line">
+        <div class="order-line-top">
+          <span>${i.n}</span>
+          <span class="qty-controls">
+            <button onclick="changeEditQty('${i.n}', -1)">−</button>
+            ${i.qty}
+            <button onclick="changeEditQty('${i.n}', 1)">+</button>
+            <span>$${(i.p*i.qty).toLocaleString('es-AR')}</span>
+          </span>
+        </div>
+        <input type="text" class="order-line-note" data-item="${i.n}" placeholder="+ nota para este producto" oninput="updateEditItemNote('${i.n}', this.value)">
+      </div>`).join('');
+    container.querySelectorAll('.order-line-note').forEach(inp=>{
+      const item = tk.items.find(i=>i.n===inp.dataset.item);
+      inp.value = item && item.note ? item.note : '';
+    });
+  }
+  const total = tk.items.reduce((s,i)=>s+i.p*i.qty,0);
+  document.getElementById('edit-order-total').textContent = '$'+total.toLocaleString('es-AR');
+}
+
+function saveEditTicket(reprint){
+  const tk = tickets.find(t=>t.id===editingTicketId);
+  if(!tk) return;
+
+  if(!tk.items.length){
+    if(!confirm('La comanda quedó sin productos. ¿Eliminar este ticket de la comandera?')) return;
+    const table = tk.table;
+    tickets = tickets.filter(t=>t.id!==tk.id);
+    recomputeCuenta(table);
+    renderTickets();
+    renderSalon();
+    closeEditTicket();
+    return;
+  }
+
+  tk.edited = true;
+  recomputeCuenta(tk.table);
+  renderTickets();
+  renderSalon();
+  closeEditTicket();
+
+  if(reprint){
+    showTicketPreview('Comanda editada — Mesa '+tk.table, buildComandaHtml(tk));
+  }
+}
+
+/* ---------------- VISTA PREVIA DE TICKET (pantalla) ---------------- */
+function showTicketPreview(title, html){
+  document.getElementById('ticket-preview-title').textContent = title;
+  document.getElementById('ticket-preview-content').innerHTML = html;
+  document.getElementById('print-area').innerHTML = html; // usado si se aprieta Imprimir de verdad
+  document.getElementById('ticket-preview-overlay').classList.add('show');
+}
+
+function closeTicketPreview(){
+  document.getElementById('ticket-preview-overlay').classList.remove('show');
+}
+
+function printFromPreview(){
+  window.print();
+}
+
+/* ---------------- COBRO (pantalla de pago) ---------------- */
+function openPaymentModal(tableId){
+  if(!tableId) return;
+  const s = state[tableId];
+  if(s.items && s.items.length){
+    alert('Tenés productos cargados en esta ronda que todavía no se enviaron a la comandera. Enviálos primero (o quitalos) antes de cobrar.');
+    return;
+  }
+  if(!s.cuenta || !s.cuenta.length){
+    alert('Esta mesa todavía no tiene productos pedidos para cobrar.');
+    return;
+  }
+  payingTable = tableId;
+  paymentLines = [];
+  s.status = 'cuenta';
+  document.getElementById('payment-title').textContent = `Cobrar Mesa ${tableId}`;
+  renderPaymentSummary();
+  closeModal();
+  document.getElementById('payment-overlay').classList.add('show');
+  renderSalon();
+}
+
+function closePaymentModal(){
+  document.getElementById('payment-overlay').classList.remove('show');
+  if(payingTable && state[payingTable] && state[payingTable].status==='cuenta'){
+    state[payingTable].status = 'pedido';
+    renderSalon();
+  }
+  payingTable = null;
+}
+
+function computeBillTotals(s){
+  const subtotal = s.cuenta.reduce((sum,i)=>sum+i.p*i.qty,0);
+  const record = getSelectedDiscountRecordFor(s.clienteSel);
+  const pct = record ? (record.descuentoPct||0) : 0;
+  const descuento = Math.round(subtotal*pct/100);
+  const total = subtotal-descuento;
+  return {subtotal, record, pct, descuento, total};
+}
+
+function renderPaymentSummary(){
+  const s = state[payingTable];
+  const lines = document.getElementById('payment-lines');
+  lines.innerHTML = s.cuenta.map(i=>`<div class="order-line"><span>${i.qty}x ${i.n}</span><span>$${(i.p*i.qty).toLocaleString('es-AR')}</span></div>`).join('');
+
+  const {subtotal, record, pct, descuento, total} = computeBillTotals(s);
+
+  if(pct>0){
+    document.getElementById('pay-subtotal-row').style.display='flex';
+    document.getElementById('pay-subtotal').textContent = '$'+subtotal.toLocaleString('es-AR');
+    document.getElementById('pay-discount-row').style.display='flex';
+    document.getElementById('pay-discount-label').textContent = `Descuento (${fullName(record)} · ${pct}%)`;
+    document.getElementById('pay-discount').textContent = '-$'+descuento.toLocaleString('es-AR',{maximumFractionDigits:0});
+  } else {
+    document.getElementById('pay-subtotal-row').style.display='none';
+    document.getElementById('pay-discount-row').style.display='none';
+  }
+  document.getElementById('pay-total').textContent = '$'+total.toLocaleString('es-AR',{maximumFractionDigits:0});
+
+  // Medios de pago cargados
+  const listDiv = document.getElementById('payment-lines-list');
+  listDiv.innerHTML = paymentLines.map((p,idx)=>`
+    <div class="pay-line">
+      <span>${p.metodo}</span>
+      <span class="pay-line-amt">$${p.monto.toLocaleString('es-AR')} <button onclick="removePaymentLine(${idx})">✕</button></span>
+    </div>`).join('');
+
+  const pagado = paymentLines.reduce((sum,p)=>sum+p.monto,0);
+  const restante = Math.round((total-pagado)*100)/100;
+  const resumen = document.getElementById('pay-pagado-restante');
+  if(pagado===0){
+    resumen.textContent = `Falta cobrar: $${total.toLocaleString('es-AR')}`;
+  } else if(restante>0){
+    resumen.innerHTML = `Pagado: $${pagado.toLocaleString('es-AR')} · <span style="color:var(--red);">Falta: $${restante.toLocaleString('es-AR')}</span>`;
+  } else {
+    const vuelto = -restante;
+    resumen.innerHTML = `Pagado: $${pagado.toLocaleString('es-AR')}` + (vuelto>0 ? ` · <span style="color:var(--green);">Vuelto: $${vuelto.toLocaleString('es-AR')}</span>` : ' · Cobro completo ✅');
+  }
+
+  const montoInput = document.getElementById('pay-monto-input');
+  if(document.activeElement !== montoInput){
+    montoInput.value = restante>0 ? restante : '';
+  }
+  document.getElementById('pay-confirm-btn').disabled = pagado < total;
+}
+
+function addPaymentLine(){
+  const metodo = document.getElementById('pay-metodo-select').value;
+  const monto = parseFloat(document.getElementById('pay-monto-input').value);
+  if(!monto || monto<=0){ alert('Ingresá un monto válido para este medio de pago.'); return; }
+  paymentLines.push({metodo, monto: Math.round(monto*100)/100});
+  renderPaymentSummary();
+}
+
+function removePaymentLine(idx){
+  paymentLines.splice(idx,1);
+  renderPaymentSummary();
+}
+
+function finalizePayment(){
+  const s = state[payingTable];
+  const table = payingTable;
+  const {subtotal, record, descuento, total} = computeBillTotals(s);
+  const pagado = paymentLines.reduce((sum,p)=>sum+p.monto,0);
+
+  if(pagado < total){
+    alert('Todavía falta cobrar $' + (total-pagado).toLocaleString('es-AR') + '.');
+    return;
+  }
+  const vuelto = Math.round((pagado-total)*100)/100;
+
+  // Descontar stock de TODA la cuenta — recién ahora que se cobra, no antes.
+  // Si el producto está vinculado a un Elaborado (ej. "Torta del día" horneada y
+  // freezada en el local), se descuentan PORCIONES de ese elaborado — los insumos
+  // crudos (harina, huevos, etc.) ya se descontaron al registrar la producción.
+  // Si no tiene elaborado vinculado, se usa la receta directa de insumos de siempre.
+  const warningsSet = new Set();
+  s.cuenta.forEach(item=>{
+    const elaborado = elaborados.find(e=>!e.deleted && e.menuItem===item.n);
+    if(elaborado){
+      const consumo = item.qty;
+      elaborado.stockPorciones = Math.round((elaborado.stockPorciones-consumo)*1000)/1000;
+      movimientos.unshift({
+        id: movSeq++, fecha: new Date(), elaboradoId: elaborado.id, tipo:'consumo',
+        cantidad: -consumo, stockResultante: elaborado.stockPorciones, ref: `Mesa ${table} · Cobro`
+      });
+      if(elaborado.stockPorciones < 0) warningsSet.add(elaborado.nombre+' (porciones)');
+      return;
+    }
+    const receta = recetas[item.n];
+    if(receta && receta.length){
+      receta.forEach(ing=>{
+        const insumo = insumos.find(i=>i.id===ing.insumoId);
+        if(!insumo) return;
+        const consumo = ing.cantidad*item.qty;
+        insumo.stock = Math.round((insumo.stock-consumo)*1000)/1000;
+        movimientos.unshift({
+          id: movSeq++, fecha: new Date(), insumoId: insumo.id, tipo:'consumo',
+          cantidad: -consumo, stockResultante: insumo.stock, ref: `Mesa ${table} · Cobro`
+        });
+        if(insumo.stock < 0) warningsSet.add(insumo.nombre);
+      });
+    }
+  });
+
+  const metodoDesc = paymentLines.map(p=>`${p.metodo} $${p.monto.toLocaleString('es-AR')}`).join(' + ');
+  const venta = {
+    id: ventaSeq++, table, items: JSON.parse(JSON.stringify(s.cuenta)),
+    subtotal, descuento, total, pagos:[...paymentLines], metodo: metodoDesc, vuelto,
+    cliente: record ? fullName(record) : null, time: new Date(), turno: currentShift, deleted:false
+  };
+  ventas.push(venta);
+
+  if(record){
+    record.visitas = (record.visitas||0)+1;
+    record.totalGastado = (record.totalGastado||0)+total;
+  }
+
+  printFinalTicket(venta, record, s.clienteSel);
+
+  // La mesa ya cobrada: sacar sus comandas pendientes y liberarla
+  tickets = tickets.filter(t=>t.table!==table);
+  state[table] = {status:'libre', items:[], notes:'', cuenta:[], clienteSel:null};
+  paymentLines = [];
+
+  document.getElementById('payment-overlay').classList.remove('show');
+  payingTable = null;
+
+  renderSalon();
+  renderTickets();
+  renderInsumos();
+  renderElaborados();
+  renderMovimientos();
+  renderRecetasSummary();
+  renderClientes();
+  renderEmpleados();
+  renderVentas();
+  updateLowStockBadge();
+  updateStockWarnBadge();
+  updateStats();
+
+  if(warningsSet.size){
+    alert('Atención: los siguientes quedaron en stock negativo: ' + [...warningsSet].join(', ') + '. Revisar carga de mercadería / producción en el panel de Administrador.');
+  }
+}
+
+function printFinalTicket(venta, record, clienteSel){
+  const isFactura = clienteSel && clienteSel.kind==='cliente' && record && record.tipo && record.tipo!=='Consumidor Final';
+  const header = isFactura
+    ? `<div class="p-center"><b>COMANDACAFÉ</b><br>FACTURA<br>${fullName(record)}<br>${record.tipo} · CUIT: ${record.cuit||'s/d'}</div>`
+    : `<div class="p-center"><b>COMANDACAFÉ</b><br>Ticket de consumo${record ? ' · '+fullName(record) : ''}</div>`;
+  const html = `
+    ${header}
+    <hr>
+    <div>Mesa: <b>${venta.table}</b></div>
+    <div>Venta #${venta.id}</div>
+    <div>${venta.time.toLocaleString('es-AR')}</div>
+    <hr>
+    ${venta.items.map(i=>`<div>${i.qty}x ${i.n} — $${(i.p*i.qty).toLocaleString('es-AR')}</div>`).join('')}
+    <hr>
+    ${venta.descuento>0 ? `<div>Subtotal: $${venta.subtotal.toLocaleString('es-AR')}</div><div>Descuento: -$${venta.descuento.toLocaleString('es-AR')}</div>` : ''}
+    <div><b>TOTAL: $${venta.total.toLocaleString('es-AR')}</b></div>
+    <hr>
+    ${venta.pagos.map(p=>`<div>${p.metodo}: $${p.monto.toLocaleString('es-AR')}</div>`).join('')}
+    ${venta.vuelto>0 ? `<div>Vuelto: $${venta.vuelto.toLocaleString('es-AR')}</div>` : ''}
+    <hr>
+    <div class="p-center" style="margin-top:8px;">¡Gracias por su visita!</div>
+  `;
+  showTicketPreview(`Ticket Mesa ${venta.table}`, html);
+}
+
+/* ---------------- CIERRE DE TURNO ---------------- */
+function buildShiftReportData(){
+  const ventasTurno = ventas.filter(v=>v.turno===currentShift && !v.deleted);
+  const totalTurno = ventasTurno.reduce((s,v)=>s+v.total,0);
+  const porMetodo = {};
+  ventasTurno.forEach(v=>{
+    (v.pagos||[]).forEach(p=>{
+      porMetodo[p.metodo] = (porMetodo[p.metodo]||0) + p.monto;
+    });
+  });
+  const mesasPendientes = TABLES
+    .map(t=>({id:t.id, ...state[t.id]}))
+    .filter(s=> s.status!=='libre' && (((s.cuenta||[]).length) || ((s.items||[]).length)));
+  const insumosBajos = insumos.filter(isLowStock20);
+
+  // Si el otro turno del día ya está cerrado, este cierre es el ÚLTIMO del día:
+  // se arma también el combinado de ambos turnos, desglosado turno por turno y
+  // medio de pago por medio de pago, para poder verificar que cada uno coincide
+  // con lo que efectivamente entró en ese turno (arqueo).
+  const otherShift = currentShift === 'manana' ? 'tarde' : 'manana';
+  let totalDia = null;
+  if(shiftClosed[otherShift]){
+    const ventasHoy = ventas.filter(v=>!v.deleted);
+    const totalHoy = ventasHoy.reduce((s,v)=>s+v.total,0);
+    const porTurno = {manana:{total:0, porMetodo:{}}, tarde:{total:0, porMetodo:{}}};
+    ventasHoy.forEach(v=>{
+      const t = porTurno[v.turno] || (porTurno[v.turno] = {total:0, porMetodo:{}});
+      t.total += v.total;
+      (v.pagos||[]).forEach(p=>{ t.porMetodo[p.metodo] = (t.porMetodo[p.metodo]||0) + p.monto; });
+    });
+    totalDia = {totalHoy, porTurno};
+  }
+
+  return {ventasTurno, totalTurno, porMetodo, mesasPendientes, insumosBajos, totalDia};
+}
+
+function buildShiftReportText(data){
+  const label = (SHIFT_LABELS[currentShift]||'').replace(/[☀️🌙]/g,'').trim();
+  let txt = `CIERRE DE TURNO — ${label}\n`;
+  txt += `Fecha: ${new Date().toLocaleString('es-AR')}\n\n`;
+  txt += `Mesas cobradas: ${data.ventasTurno.length}\n`;
+  txt += `Total facturado: $${data.totalTurno.toLocaleString('es-AR')}\n\n`;
+
+  txt += `DETALLE DE VENTAS:\n`;
+  if(!data.ventasTurno.length) txt += `  (sin ventas en este turno)\n`;
+  data.ventasTurno.forEach(v=>{
+    txt += `  Mesa ${v.table} · ${v.time.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})} · ${v.cliente||'Consumidor Final'} · $${v.total.toLocaleString('es-AR')} · ${v.metodo}\n`;
+  });
+
+  txt += `\nDESGLOSE POR MEDIO DE PAGO:\n`;
+  const entries = Object.entries(data.porMetodo);
+  if(!entries.length) txt += `  (sin pagos registrados)\n`;
+  entries.forEach(([m,monto])=>{ txt += `  ${m}: $${monto.toLocaleString('es-AR')}\n`; });
+
+  txt += `\nMESAS PENDIENTES PARA EL PRÓXIMO TURNO:\n`;
+  if(!data.mesasPendientes.length) txt += `  Ninguna — todas las mesas están libres o cobradas.\n`;
+  data.mesasPendientes.forEach(m=>{
+    const acumulado = (m.cuenta||[]).reduce((s,i)=>s+i.p*i.qty,0);
+    txt += `  Mesa ${m.id} · Estado: ${statusLabel(m.status)} · Cuenta acumulada sin cobrar: $${acumulado.toLocaleString('es-AR')}\n`;
+  });
+
+  txt += `\nINSUMOS CON STOCK BAJO (≤20% del stock inicial):\n`;
+  if(!data.insumosBajos.length) txt += `  Ninguno.\n`;
+  data.insumosBajos.forEach(i=>{ txt += `  ${i.nombre}: ${i.stock} ${i.unidad} (inicial ${i.stockInicial} ${i.unidad})\n`; });
+
+  if(data.totalDia){
+    txt += `\nTOTAL DEL DÍA (ambos turnos): $${data.totalDia.totalHoy.toLocaleString('es-AR')}\n`;
+    ['manana','tarde'].forEach(t=>{
+      const d = data.totalDia.porTurno[t] || {total:0, porMetodo:{}};
+      const label = (SHIFT_LABELS[t]||'').replace(/[☀️🌙]/g,'').trim();
+      txt += `  ${label}: $${d.total.toLocaleString('es-AR')}`;
+      const pm = Object.entries(d.porMetodo);
+      if(pm.length) txt += ` (${pm.map(([m,monto])=>`${m}: $${monto.toLocaleString('es-AR')}`).join(', ')})`;
+      txt += `\n`;
+    });
+  }
+
+  return txt;
+}
+
+function renderCierreTurnoModal(){
+  const data = buildShiftReportData();
+  const body = document.getElementById('cierre-turno-content');
+  body.innerHTML = `
+    <div class="section-title" style="margin-top:0;">${SHIFT_LABELS[currentShift]} · ${new Date().toLocaleDateString('es-AR')}</div>
+    <div class="stats" style="margin-bottom:10px;">
+      <div class="stat-card"><div class="num">${data.ventasTurno.length}</div><div class="label">Mesas cobradas</div></div>
+      <div class="stat-card"><div class="num">$${data.totalTurno.toLocaleString('es-AR')}</div><div class="label">Total facturado</div></div>
+      <div class="stat-card"><div class="num">${data.mesasPendientes.length}</div><div class="label">Mesas pendientes</div></div>
+    </div>
+
+    <div class="section-title">Detalle de ventas del turno</div>
+    <table class="data-table">
+      <thead><tr><th>Mesa</th><th>Hora</th><th>Cliente</th><th>Total</th><th>Pagos</th></tr></thead>
+      <tbody>
+        ${data.ventasTurno.map(v=>`<tr>
+          <td>${v.table}</td>
+          <td>${v.time.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})}</td>
+          <td>${v.cliente || '—'}</td>
+          <td>$${v.total.toLocaleString('es-AR')}</td>
+          <td>${v.metodo}</td>
+        </tr>`).join('') || '<tr><td colspan="5" class="empty-note">Todavía no se cobró ninguna mesa en este turno.</td></tr>'}
+      </tbody>
+    </table>
+
+    <div class="section-title">Desglose por medio de pago</div>
+    <div class="cost-box">
+      ${Object.entries(data.porMetodo).map(([m,monto])=>`<div><span style="color:var(--gray);font-size:12px;">${m}</span><b>$${monto.toLocaleString('es-AR')}</b></div>`).join('') || '<span class="empty-note">Sin pagos registrados.</span>'}
+    </div>
+
+    <div class="section-title">Mesas pendientes para el próximo turno</div>
+    ${data.mesasPendientes.length ? `<table class="data-table">
+      <thead><tr><th>Mesa</th><th>Estado</th><th>Cuenta sin cobrar</th></tr></thead>
+      <tbody>${data.mesasPendientes.map(m=>{
+        const acumulado = (m.cuenta||[]).reduce((s,i)=>s+i.p*i.qty,0);
+        return `<tr><td>${m.id}</td><td>${statusLabel(m.status)}</td><td>$${acumulado.toLocaleString('es-AR')}</td></tr>`;
+      }).join('')}</tbody>
+    </table>` : '<p class="helper-text">Ninguna — todas las mesas están libres o cobradas. ✅</p>'}
+
+    <div class="section-title">Insumos con stock bajo (≤20% del inicial)</div>
+    <p class="helper-text">${data.insumosBajos.length ? data.insumosBajos.map(i=>i.nombre).join(', ') : 'Ninguno por ahora.'}</p>
+
+    ${data.totalDia ? `
+    <div class="section-title">📊 Total del día (los dos turnos)</div>
+    <p class="helper-text">Este es el último cierre del día — acá está el combinado de mañana y tarde para verificar que cada medio de pago coincide con lo que corresponde a cada turno.</p>
+    <div class="cost-box" style="margin-bottom:10px;">
+      <div><span style="color:var(--gray);font-size:12px;">Total facturado hoy</span><b>$${data.totalDia.totalHoy.toLocaleString('es-AR')}</b></div>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Turno</th><th>Total</th><th>Efectivo</th><th>Débito</th><th>Crédito</th><th>Mercado Pago</th></tr></thead>
+      <tbody>
+        ${['manana','tarde'].map(t=>{
+          const d = data.totalDia.porTurno[t] || {total:0, porMetodo:{}};
+          return `<tr>
+            <td>${SHIFT_LABELS[t]}</td>
+            <td>$${d.total.toLocaleString('es-AR')}</td>
+            <td>$${(d.porMetodo['Efectivo']||0).toLocaleString('es-AR')}</td>
+            <td>$${(d.porMetodo['Débito']||0).toLocaleString('es-AR')}</td>
+            <td>$${(d.porMetodo['Crédito']||0).toLocaleString('es-AR')}</td>
+            <td>$${(d.porMetodo['Mercado Pago']||0).toLocaleString('es-AR')}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    ` : ''}
+
+    <div class="section-title">Enviar este resumen por mail</div>
+    <p class="helper-text">Esto arma el mail con todo el resumen y lo abre en tu programa de correo — solo falta definir a qué dirección se manda siempre y confirmarlo desde ahí.</p>
+    <div class="form-grid" style="grid-template-columns:1fr auto;">
+      <div><label>Enviar a</label><input type="email" id="cierre-email-destino" placeholder="dueño@cafeteria.com"></div>
+      <div><button class="btn btn-secondary" onclick="enviarResumenTurno()">📧 Generar mail</button></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="confirmarCierreTurno()">🔒 Confirmar cierre de turno</button>
+      <button class="btn btn-secondary" onclick="closeCierreTurnoModal()">Cancelar</button>
+    </div>
+  `;
+}
+
+function openCierreTurnoModal(){
+  renderCierreTurnoModal();
+  document.getElementById('cierre-turno-overlay').classList.add('show');
+}
+
+function closeCierreTurnoModal(){
+  document.getElementById('cierre-turno-overlay').classList.remove('show');
+}
+
+function enviarResumenTurno(){
+  const data = buildShiftReportData();
+  const texto = buildShiftReportText(data);
+  const destino = document.getElementById('cierre-email-destino').value.trim();
+  const label = (SHIFT_LABELS[currentShift]||'').replace(/[☀️🌙]/g,'').trim();
+  const asunto = encodeURIComponent(`Cierre de turno — ${label} — ${new Date().toLocaleDateString('es-AR')}`);
+  const cuerpo = encodeURIComponent(texto);
+  window.location.href = `mailto:${destino}?subject=${asunto}&body=${cuerpo}`;
+}
+
+function confirmarCierreTurno(){
+  if(!confirm('¿Confirmar el cierre de este turno? Vas a volver a la pantalla de ingreso y el siguiente turno va a tener que iniciar sesión.')) return;
+  const shiftJustClosed = currentShift;
+  shiftClosed[shiftJustClosed] = true;
+  closeCierreTurnoModal();
+  currentShift = null;
+  document.getElementById('app-root').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  refreshShiftCards();
+  const otherShift = shiftJustClosed === 'manana' ? 'tarde' : 'manana';
+  if(!shiftClosed[otherShift]){
+    alert(`Turno cerrado. Ahora tiene que ingresar el/la responsable del ${SHIFT_LABELS[otherShift]}.`);
+  } else {
+    alert('Turno cerrado. Los dos turnos del día ya están cerrados.');
+  }
+}
+
+/* ================= ADMINISTRADOR ================= */
+function switchAdminTab(tab){
+  ['insumos','recetas','elaborados','gastos','movimientos','clientes','empleados','ventas','papelera'].forEach(t=>{
+    document.getElementById('atab-'+t).classList.toggle('active', t===tab);
+    document.getElementById('admin-panel-'+t).classList.toggle('active', t===tab);
+  });
+  if(tab==='recetas') initRecetasTab();
+  if(tab==='elaborados') renderElaborados();
+  if(tab==='gastos') refreshGastoInsumoSelect();
+  if(tab==='clientes') renderClientes();
+  if(tab==='empleados') renderEmpleados();
+  if(tab==='ventas') renderVentas();
+  if(tab==='papelera') renderPapelera();
+}
+
+/* ---- CLIENTES / FACTURACIÓN ---- */
+let editingClienteId = null;
+
+function renderClientes(){
+  const tbody = document.getElementById('clientes-tbody');
+  if(!tbody) return;
+  const sorted = clientes.filter(c=>!c.deleted).sort((a,b)=> b.visitas - a.visitas);
+  tbody.innerHTML = sorted.map((c,idx)=>`
+    <tr>
+      <td title="${c.direccion || ''}">${idx===0 && c.visitas>0 ? '🏆 ' : ''}${fullName(c)}</td>
+      <td>${c.tipo}</td>
+      <td>${c.dni || '—'}</td>
+      <td>${c.cuit || '—'}</td>
+      <td>${c.descuentoPct ? c.descuentoPct+'%' : '—'}</td>
+      <td>${c.visitas}</td>
+      <td>$${c.totalGastado.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+      <td>
+        <button class="mini-edit" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="editCliente(${c.id})">✏️</button>
+        <button class="mini-print" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="deleteCliente(${c.id})">🗑</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="8" class="empty-note">Todavía no cargaste clientes.</td></tr>';
+}
+
+function openClienteModal(){
+  editingClienteId = null;
+  document.getElementById('cliente-modal-title').textContent = '🧾 Nuevo cliente';
+  document.getElementById('cli-submit-btn').textContent = '💾 Guardar cliente';
+  document.getElementById('cliente-overlay').classList.add('show');
+}
+
+function editCliente(id){
+  const c = clientes.find(x=>x.id===id);
+  if(!c) return;
+  editingClienteId = id;
+  document.getElementById('cli-nombre').value = c.nombre;
+  document.getElementById('cli-apellido').value = c.apellido;
+  document.getElementById('cli-dni').value = c.dni;
+  document.getElementById('cli-cuit').value = c.cuit;
+  document.getElementById('cli-direccion').value = c.direccion;
+  document.getElementById('cli-tipo').value = c.tipo;
+  document.getElementById('cli-email').value = c.email;
+  document.getElementById('cli-descuento').value = String(c.descuentoPct || 0);
+  document.getElementById('cliente-modal-title').textContent = '✏️ Editar cliente';
+  document.getElementById('cli-submit-btn').textContent = '💾 Guardar cambios';
+  document.getElementById('cliente-overlay').classList.add('show');
+}
+
+function closeClienteModal(){
+  document.getElementById('cliente-overlay').classList.remove('show');
+  ['cli-nombre','cli-apellido','cli-dni','cli-cuit','cli-direccion','cli-email'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cli-tipo').value = 'Consumidor Final';
+  document.getElementById('cli-descuento').value = '0';
+  editingClienteId = null;
+}
+
+function addCliente(){
+  const nombre = document.getElementById('cli-nombre').value.trim();
+  const apellido = document.getElementById('cli-apellido').value.trim();
+  if(!nombre){ alert('Ingresá al menos el nombre del cliente.'); return; }
+  const dni = document.getElementById('cli-dni').value.trim();
+  const cuit = document.getElementById('cli-cuit').value.trim();
+  const direccion = document.getElementById('cli-direccion').value.trim();
+  const tipo = document.getElementById('cli-tipo').value;
+  const email = document.getElementById('cli-email').value.trim();
+  const descuentoPct = parseFloat(document.getElementById('cli-descuento').value) || 0;
+  if(editingClienteId){
+    const c = clientes.find(x=>x.id===editingClienteId);
+    if(c) Object.assign(c, {nombre, apellido, dni, cuit, direccion, tipo, email, descuentoPct});
+  } else {
+    clientes.push({id: clienteSeq++, nombre, apellido, dni, cuit, direccion, tipo, email, descuentoPct, visitas:0, totalGastado:0, deleted:false});
+  }
+  closeClienteModal();
+  renderClientes();
+}
+
+function deleteCliente(id){
+  const c = clientes.find(x=>x.id===id);
+  if(!c) return;
+  if(!confirm(`¿Enviar a "${fullName(c)}" a la papelera?`)) return;
+  c.deleted = true;
+  if(editingClienteId===id) closeClienteModal();
+  enviarAPapelera('cliente', `Cliente: ${fullName(c)}`, id);
+  renderClientes();
+}
+
+/* ---- EMPLEADOS ---- */
+let editingEmpleadoId = null;
+
+function renderEmpleados(){
+  const tbody = document.getElementById('empleados-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = empleados.filter(e=>!e.deleted).map(e=>`
+    <tr>
+      <td title="${e.direccion || ''}">${fullName(e)}</td>
+      <td>${e.dni || '—'}</td>
+      <td>${e.cuit || '—'}</td>
+      <td>${e.puesto || '—'}</td>
+      <td>${e.ingreso || '—'}</td>
+      <td>${e.descuentoPct ? e.descuentoPct+'%' : '—'}</td>
+      <td>${e.visitas}</td>
+      <td>$${e.totalGastado.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+      <td>
+        <button class="mini-edit" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="editEmpleado(${e.id})">✏️</button>
+        <button class="mini-print" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="deleteEmpleado(${e.id})">🗑</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="9" class="empty-note">Todavía no cargaste empleados.</td></tr>';
+}
+
+function openEmpleadoModal(){
+  editingEmpleadoId = null;
+  document.getElementById('empleado-modal-title').textContent = '👥 Nuevo empleado';
+  document.getElementById('emp-submit-btn').textContent = '💾 Guardar empleado';
+  document.getElementById('empleado-overlay').classList.add('show');
+}
+
+function editEmpleado(id){
+  const e = empleados.find(x=>x.id===id);
+  if(!e) return;
+  editingEmpleadoId = id;
+  document.getElementById('emp-nombre').value = e.nombre;
+  document.getElementById('emp-apellido').value = e.apellido;
+  document.getElementById('emp-dni').value = e.dni;
+  document.getElementById('emp-cuit').value = e.cuit;
+  document.getElementById('emp-direccion').value = e.direccion;
+  document.getElementById('emp-puesto').value = e.puesto;
+  document.getElementById('emp-ingreso').value = e.ingreso;
+  document.getElementById('emp-descuento').value = String(e.descuentoPct || 0);
+  document.getElementById('empleado-modal-title').textContent = '✏️ Editar empleado';
+  document.getElementById('emp-submit-btn').textContent = '💾 Guardar cambios';
+  document.getElementById('empleado-overlay').classList.add('show');
+}
+
+function closeEmpleadoModal(){
+  document.getElementById('empleado-overlay').classList.remove('show');
+  ['emp-nombre','emp-apellido','emp-dni','emp-cuit','emp-direccion','emp-puesto','emp-ingreso'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('emp-descuento').value = '0';
+  editingEmpleadoId = null;
+}
+
+function addEmpleado(){
+  const nombre = document.getElementById('emp-nombre').value.trim();
+  const apellido = document.getElementById('emp-apellido').value.trim();
+  if(!nombre){ alert('Ingresá al menos el nombre del empleado.'); return; }
+  const dni = document.getElementById('emp-dni').value.trim();
+  const cuit = document.getElementById('emp-cuit').value.trim();
+  const direccion = document.getElementById('emp-direccion').value.trim();
+  const puesto = document.getElementById('emp-puesto').value.trim();
+  const ingreso = document.getElementById('emp-ingreso').value;
+  const descuentoPct = parseFloat(document.getElementById('emp-descuento').value) || 0;
+  if(editingEmpleadoId){
+    const e = empleados.find(x=>x.id===editingEmpleadoId);
+    if(e) Object.assign(e, {nombre, apellido, dni, cuit, direccion, puesto, ingreso, descuentoPct});
+  } else {
+    empleados.push({id: empleadoSeq++, nombre, apellido, dni, cuit, direccion, puesto, ingreso, descuentoPct, visitas:0, totalGastado:0, deleted:false});
+  }
+  closeEmpleadoModal();
+  renderEmpleados();
+}
+
+function deleteEmpleado(id){
+  const e = empleados.find(x=>x.id===id);
+  if(!e) return;
+  if(!confirm(`¿Enviar a "${fullName(e)}" a la papelera?`)) return;
+  e.deleted = true;
+  if(editingEmpleadoId===id) closeEmpleadoModal();
+  enviarAPapelera('empleado', `Empleado: ${fullName(e)}`, id);
+  renderEmpleados();
+}
+
+/* ---- INSUMOS ---- */
+function renderInsumos(){
+  const tbody = document.getElementById('insumos-tbody');
+  tbody.innerHTML = '';
+  let totalValorizado = 0;
+  insumos.filter(ins=>!ins.deleted).forEach(ins=>{
+    const valor = ins.stock * ins.costoUnit;
+    totalValorizado += valor;
+    const low = ins.stock < ins.stockMin;
+    const tr = document.createElement('tr');
+    if(low) tr.className = 'low-stock';
+    tr.innerHTML = `
+      <td>${low ? '<span class="warn-icon">⚠️</span>' : ''}${ins.nombre}</td>
+      <td>${ins.unidad}</td>
+      <td>${ins.stock.toLocaleString('es-AR',{maximumFractionDigits:2})}</td>
+      <td>${ins.stockMin.toLocaleString('es-AR',{maximumFractionDigits:2})}</td>
+      <td>$${ins.costoUnit.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+      <td>$${valor.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+      <td>
+        <button class="mini-edit" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="editInsumo(${ins.id})">✏️</button>
+        <button class="mini-print" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="deleteInsumo(${ins.id})">🗑</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('insumos-total-valorizado').textContent = 'Valorizado total de inventario: $' + totalValorizado.toLocaleString('es-AR',{maximumFractionDigits:0});
+  refreshGastoInsumoSelect();
+  updateLowStockBadge();
+  updateStockWarnBadge();
+}
+
+let editingInsumoId = null;
+
+// Un solo formulario sirve para alta y edición: si editingInsumoId tiene valor,
+// actualiza ese insumo en vez de crear uno nuevo.
+function saveInsumoForm(){
+  const nombre = document.getElementById('ins-nombre').value.trim();
+  const unidad = document.getElementById('ins-unidad').value;
+  const stock = parseFloat(document.getElementById('ins-stock').value) || 0;
+  const costo = parseFloat(document.getElementById('ins-costo').value) || 0;
+  const min = parseFloat(document.getElementById('ins-min').value) || 0;
+  if(!nombre){ alert('Ingresá un nombre para el insumo.'); return; }
+
+  if(editingInsumoId){
+    const ins = insumos.find(i=>i.id===editingInsumoId);
+    if(ins){ Object.assign(ins, {nombre, unidad, stock, costoUnit: costo, stockMin: min}); }
+    cancelEditInsumo();
+  } else {
+    insumos.push({id: insumoSeq++, nombre, unidad, stock, stockInicial: stock, costoUnit: costo, stockMin: min, deleted:false});
+    ['ins-nombre','ins-stock','ins-costo','ins-min'].forEach(id=>document.getElementById(id).value='');
+  }
+  renderInsumos();
+  initRecetasTab();
+}
+
+function editInsumo(id){
+  const ins = insumos.find(i=>i.id===id);
+  if(!ins) return;
+  editingInsumoId = id;
+  document.getElementById('ins-nombre').value = ins.nombre;
+  document.getElementById('ins-unidad').value = ins.unidad;
+  document.getElementById('ins-stock').value = ins.stock;
+  document.getElementById('ins-costo').value = ins.costoUnit;
+  document.getElementById('ins-min').value = ins.stockMin;
+  document.getElementById('ins-submit-btn').textContent = '💾 Guardar cambios';
+  document.getElementById('ins-cancel-btn').style.display = 'inline-block';
+  document.getElementById('admin-panel-insumos').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function cancelEditInsumo(){
+  editingInsumoId = null;
+  ['ins-nombre','ins-stock','ins-costo','ins-min'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('ins-submit-btn').textContent = '+ Agregar insumo';
+  document.getElementById('ins-cancel-btn').style.display = 'none';
+}
+
+function deleteInsumo(id){
+  const ins = insumos.find(i=>i.id===id);
+  if(!ins) return;
+  const usado = Object.values(recetas).some(r => r.some(ing=>ing.insumoId===id));
+  if(!confirm(`¿Enviar "${ins.nombre}" a la papelera?${usado ? ' Se usa en alguna receta; podés restaurarlo cuando quieras.' : ''}`)) return;
+  ins.deleted = true;
+  if(editingInsumoId===id) cancelEditInsumo();
+  enviarAPapelera('insumo', `Insumo: ${ins.nombre}`, id);
+  renderInsumos();
+  initRecetasTab();
+}
+
+function updateLowStockBadge(){
+  const count = insumos.filter(i=>!i.deleted && i.stock < i.stockMin).length
+    + elaborados.filter(e=>!e.deleted && e.stockPorciones < e.porcionesMin).length;
+  const badge = document.getElementById('low-stock-badge');
+  if(count>0){ badge.style.display='inline-block'; badge.textContent = count; }
+  else{ badge.style.display='none'; }
+}
+
+// Alerta general (arriba de todo, junto a "Salón"): stock actual cayó al 20% o menos
+// del stock inicial cargado para ese insumo — es un aviso para reponer mercadería,
+// independiente del "stock mínimo" configurable de cada insumo.
+function isLowStock20(insumo){
+  return !insumo.deleted && insumo.stockInicial > 0 && insumo.stock <= insumo.stockInicial * 0.2;
+}
+
+// Mismo criterio para un Elaborado (ej. tortas horneadas): acá no hay "stock inicial"
+// fijo porque se repone de a lotes irregulares (cada vez que se hornea), así que la
+// alerta usa directamente las "porciones mínimas" configuradas en el elaborado.
+function isLowStockElaborado(elaborado){
+  return !elaborado.deleted && elaborado.stockPorciones <= elaborado.porcionesMin;
+}
+
+// El ícono de notificaciones (🔔) queda siempre visible junto a "Salón". El número
+// y el color cambian según haya o no insumos/elaborados bajos, y el panel desplegable
+// siempre muestra algo: la lista de avisos, o "Sin notificaciones" si está todo bien.
+function updateStockWarnBadge(){
+  const bajos = insumos.filter(isLowStock20).length + elaborados.filter(isLowStockElaborado).length;
+  const badge = document.getElementById('stock-warn-badge');
+  badge.textContent = bajos;
+  badge.classList.toggle('has-alerts', bajos>0);
+  renderNotifPanel();
+}
+
+function renderNotifPanel(){
+  const bajosInsumos = insumos.filter(isLowStock20);
+  const bajosElaborados = elaborados.filter(isLowStockElaborado);
+  const content = document.getElementById('notif-panel-content');
+  if(!content) return;
+  if(!bajosInsumos.length && !bajosElaborados.length){
+    content.innerHTML = '<div class="notif-empty">✅ Sin notificaciones</div>';
+  } else {
+    content.innerHTML =
+      bajosInsumos.map(i=>`
+        <div class="notif-item">⚠️ <b>${i.nombre}</b><br>
+          <span style="color:var(--gray);">Quedan ${i.stock} ${i.unidad} de ${i.stockInicial} ${i.unidad} iniciales</span>
+        </div>`).join('') +
+      bajosElaborados.map(e=>`
+        <div class="notif-item">🎂 <b>${e.nombre}</b><br>
+          <span style="color:var(--gray);">Quedan ${e.stockPorciones} porciones (mínimo ${e.porcionesMin})</span>
+        </div>`).join('');
+  }
+}
+
+function toggleNotifPanel(evt){
+  if(evt) evt.stopPropagation();
+  const panel = document.getElementById('notif-panel');
+  const opening = panel.style.display === 'none';
+  if(opening) renderNotifPanel();
+  panel.style.display = opening ? 'block' : 'none';
+}
+
+document.addEventListener('click', function(evt){
+  const panel = document.getElementById('notif-panel');
+  const wrap = document.querySelector('.notif-wrap');
+  if(panel && panel.style.display !== 'none' && wrap && !wrap.contains(evt.target)){
+    panel.style.display = 'none';
+  }
+});
+
+/* ---- RECETAS ---- */
+let currentRecipeProduct = null;
+let recipeDraft = [];
+
+// Da de alta un producto nuevo en el MENU (bebida o comida) que todavía no existe.
+// A partir de acá ya se puede elegir en "Producto" para armarle la receta, y
+// también va a aparecer directo en la carta del pedido de mesa (switchTab lo lee
+// de MENU en cada render, así que no hace falta tocar nada más).
+function agregarProductoMenu(){
+  const nombre = document.getElementById('menu-nuevo-nombre').value.trim();
+  const categoria = document.getElementById('menu-nuevo-categoria').value;
+  const precio = parseFloat(document.getElementById('menu-nuevo-precio').value);
+  if(!nombre){ alert('Ingresá un nombre para el producto.'); return; }
+  if(!precio || precio<=0){ alert('Ingresá un precio válido.'); return; }
+  if(getMenuItem(nombre)){ alert(`"${nombre}" ya existe en el menú.`); return; }
+  MENU[categoria].push({n: nombre, p: precio});
+  ['menu-nuevo-nombre','menu-nuevo-precio'].forEach(id=>document.getElementById(id).value='');
+  initRecetasTab();
+  document.getElementById('receta-producto').value = nombre;
+  loadRecipeProduct(nombre);
+  alert(`"${nombre}" se agregó al menú. Ya podés armarle la receta acá abajo.`);
+}
+
+function initRecetasTab(){
+  const sel = document.getElementById('receta-producto');
+  const prevValue = sel.value;
+  sel.innerHTML = `
+    <optgroup label="Bebidas">${MENU.bebidas.map(i=>`<option value="${i.n}">${i.n}</option>`).join('')}</optgroup>
+    <optgroup label="Comidas">${MENU.comidas.map(i=>`<option value="${i.n}">${i.n}</option>`).join('')}</optgroup>
+    <optgroup label="Pastelería">${MENU.pasteleria.map(i=>`<option value="${i.n}">${i.n}</option>`).join('')}</optgroup>
+  `;
+  sel.value = prevValue && getMenuItem(prevValue) ? prevValue : MENU.bebidas[0].n;
+  loadRecipeProduct(sel.value);
+  renderRecetasSummary();
+}
+
+function loadRecipeProduct(name){
+  currentRecipeProduct = name;
+  recipeDraft = (recetas[name] || []).map(r=>({...r}));
+  renderRecipeRows();
+}
+
+// Si el producto elegido se vende por porción desde un Elaborado (ej. "Torta del
+// día" -> "Torta de chocolate"), esta es la misma receta que usa "Registrar
+// producción" en la solapa Elaborados — está pensada para UNA unidad completa,
+// no para una porción individual.
+function getElaboradoForMenuItem(name){
+  return elaborados.find(e=>!e.deleted && e.menuItem===name);
+}
+
+function renderRecipeRows(){
+  const container = document.getElementById('receta-rows');
+  const elaborado = getElaboradoForMenuItem(currentRecipeProduct);
+  const notaElaborado = elaborado ? `<div class="helper-text" style="margin-top:0;">🎂 "${currentRecipeProduct}" se vende por porción desde el elaborado <b>"${elaborado.nombre}"</b>. Esta receta es para <b>1 unidad completa</b> (rinde ${elaborado.porcionesPorUnidad} porciones) — cargá acá todo lo que lleva armar la torta entera, no una porción sola.</div>` : '';
+  if(!insumos.length){
+    container.innerHTML = notaElaborado + '<div class="empty-note">Primero cargá insumos en la solapa Insumos.</div>';
+    updateRecipeCost();
+    return;
+  }
+  if(!recipeDraft.length){
+    container.innerHTML = notaElaborado + '<div class="empty-note">Esta receta todavía no tiene insumos cargados.</div>';
+  } else {
+    container.innerHTML = notaElaborado + recipeDraft.map((row,idx)=>{
+      const insumo = insumos.find(i=>i.id===row.insumoId) || insumos[0];
+      return `
+      <div class="recipe-row">
+        <select onchange="updateRecipeRow(${idx}, 'insumoId', this.value)">
+          ${insumos.map(i=>`<option value="${i.id}" ${i.id===insumo.id?'selected':''}>${i.nombre}</option>`).join('')}
+        </select>
+        <input type="number" step="0.001" value="${row.cantidad}" onchange="updateRecipeRow(${idx}, 'cantidad', this.value)">
+        <span class="unit-tag">${insumo.unidad}</span>
+        <button onclick="removeRecipeRow(${idx})">✕</button>
+      </div>`;
+    }).join('');
+  }
+  updateRecipeCost();
+}
+
+function addRecipeRow(){
+  if(!insumos.length){ alert('Primero cargá al menos un insumo.'); return; }
+  recipeDraft.push({insumoId: insumos[0].id, cantidad: 0});
+  renderRecipeRows();
+}
+
+function updateRecipeRow(idx, field, value){
+  if(field==='insumoId') recipeDraft[idx].insumoId = parseInt(value);
+  else recipeDraft[idx].cantidad = parseFloat(value) || 0;
+  renderRecipeRows();
+}
+
+function removeRecipeRow(idx){
+  recipeDraft.splice(idx,1);
+  renderRecipeRows();
+}
+
+function computeRecipeCost(rows){
+  return rows.reduce((sum,row)=>{
+    const insumo = insumos.find(i=>i.id===row.insumoId);
+    return sum + (insumo ? insumo.costoUnit * row.cantidad : 0);
+  }, 0);
+}
+
+function updateRecipeCost(){
+  const box = document.getElementById('receta-cost-info');
+  const item = getMenuItem(currentRecipeProduct);
+  const costo = computeRecipeCost(recipeDraft);
+  const precio = item ? item.p : 0;
+  const elaborado = getElaboradoForMenuItem(currentRecipeProduct);
+  if(elaborado){
+    const porciones = elaborado.porcionesPorUnidad || 1;
+    const costoPorcion = porciones>0 ? costo/porciones : 0;
+    const margen = precio - costoPorcion;
+    const margenPct = precio ? (margen/precio*100) : 0;
+    box.innerHTML = `
+      <div><span style="color:var(--gray);font-size:12px;">Costo insumos (unidad completa)</span><b>$${costo.toLocaleString('es-AR',{maximumFractionDigits:0})}</b></div>
+      <div><span style="color:var(--gray);font-size:12px;">Costo por porción (÷${porciones})</span><b>$${costoPorcion.toLocaleString('es-AR',{maximumFractionDigits:0})}</b></div>
+      <div><span style="color:var(--gray);font-size:12px;">Precio de venta (por porción)</span><b>$${precio.toLocaleString('es-AR')}</b></div>
+      <div><span style="color:var(--gray);font-size:12px;">Margen por porción</span><b style="color:${margen>=0?'var(--green)':'var(--red)'}">$${margen.toLocaleString('es-AR',{maximumFractionDigits:0})} (${margenPct.toFixed(0)}%)</b></div>
+    `;
+    return;
+  }
+  const margen = precio - costo;
+  const margenPct = precio ? (margen/precio*100) : 0;
+  box.innerHTML = `
+    <div><span style="color:var(--gray);font-size:12px;">Costo insumos</span><b>$${costo.toLocaleString('es-AR',{maximumFractionDigits:0})}</b></div>
+    <div><span style="color:var(--gray);font-size:12px;">Precio de venta</span><b>$${precio.toLocaleString('es-AR')}</b></div>
+    <div><span style="color:var(--gray);font-size:12px;">Margen</span><b style="color:${margen>=0?'var(--green)':'var(--red)'}">$${margen.toLocaleString('es-AR',{maximumFractionDigits:0})} (${margenPct.toFixed(0)}%)</b></div>
+  `;
+}
+
+function saveRecipe(){
+  recetas[currentRecipeProduct] = recipeDraft.filter(r=>r.cantidad>0);
+  renderRecetasSummary();
+  alert(`Receta de "${currentRecipeProduct}" guardada.`);
+}
+
+// "Vaciar" una receta no la borra del todo: guarda sus ingredientes en la papelera
+// para poder restaurarla con un clic si fue un error, y deja el producto sin receta.
+function vaciarReceta(){
+  const rows = recetas[currentRecipeProduct] || [];
+  if(!rows.length){ alert('Esta receta ya está vacía.'); return; }
+  if(!confirm(`¿Vaciar la receta de "${currentRecipeProduct}"? Podés restaurarla desde la Papelera.`)) return;
+  enviarAPapelera('receta', `Receta: ${currentRecipeProduct}`, currentRecipeProduct);
+  papelera[0].ingredientes = rows.map(r=>({...r})); // guardamos una copia para poder restaurar
+  recetas[currentRecipeProduct] = [];
+  recipeDraft = [];
+  renderRecipeRows();
+  renderRecetasSummary();
+}
+
+function renderRecetasSummary(){
+  const tbody = document.getElementById('recetas-summary-tbody');
+  const all = [...MENU.bebidas, ...MENU.comidas, ...MENU.pasteleria];
+  tbody.innerHTML = all.map(item=>{
+    const rows = recetas[item.n] || [];
+    const elaborado = getElaboradoForMenuItem(item.n);
+    const costoUnidad = computeRecipeCost(rows);
+    const costo = (elaborado && elaborado.porcionesPorUnidad>0) ? costoUnidad/elaborado.porcionesPorUnidad : costoUnidad;
+    const margen = item.p - costo;
+    return `<tr>
+      <td>${item.n}${elaborado ? ' <span class="empty-note">(costo por porción)</span>' : ''}</td>
+      <td>${rows.length ? '$'+costo.toLocaleString('es-AR',{maximumFractionDigits:0}) : '<span class="empty-note">sin receta</span>'}</td>
+      <td>$${item.p.toLocaleString('es-AR')}</td>
+      <td style="color:${rows.length ? (margen>=0?'var(--green)':'var(--red)') : 'inherit'}">${rows.length ? '$'+margen.toLocaleString('es-AR',{maximumFractionDigits:0}) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ---- ELABORADOS (producción propia: tortas horneadas, etc.) ---- */
+let editingElaboradoId = null;
+
+function refreshElabMenuItemSelect(){
+  const sel = document.getElementById('elab-menu-item');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = `<option value="">— Ninguno —</option>
+    <optgroup label="Bebidas">${MENU.bebidas.map(i=>`<option value="${i.n}">${i.n}</option>`).join('')}</optgroup>
+    <optgroup label="Comidas">${MENU.comidas.map(i=>`<option value="${i.n}">${i.n}</option>`).join('')}</optgroup>
+    <optgroup label="Pastelería">${MENU.pasteleria.map(i=>`<option value="${i.n}">${i.n}</option>`).join('')}</optgroup>`;
+  sel.value = prev || '';
+}
+
+function renderElaborados(){
+  const tbody = document.getElementById('elaborados-tbody');
+  if(!tbody) return;
+  const activos = elaborados.filter(e=>!e.deleted);
+  tbody.innerHTML = activos.map(e=>{
+    const low = isLowStockElaborado(e);
+    return `<tr class="${low?'low-stock':''}">
+      <td>${low ? '<span class="warn-icon">⚠️</span>' : ''}${e.nombre}</td>
+      <td>${e.porcionesPorUnidad}</td>
+      <td>${e.stockPorciones.toLocaleString('es-AR',{maximumFractionDigits:1})}</td>
+      <td>${e.porcionesMin}</td>
+      <td>$${e.costoUnitPorcion.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+      <td>${e.menuItem || '<span class="empty-note">sin vincular</span>'}</td>
+      <td>
+        <button class="mini-edit" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="editElaborado(${e.id})">✏️</button>
+        <button class="mini-print" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="irARecetaDeElaborado(${e.id})" title="Editar receta en la solapa Recetas">📝</button>
+        <button class="mini-print" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="deleteElaborado(${e.id})">🗑</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="empty-note">Todavía no cargaste elaborados.</td></tr>';
+  refreshElabMenuItemSelect();
+  refreshProdElaboradoSelect();
+}
+
+// Atajo: desde la fila de un elaborado, saltar directo a su receta en la solapa Recetas.
+function irARecetaDeElaborado(id){
+  const e = elaborados.find(x=>x.id===id);
+  if(!e) return;
+  if(!e.menuItem){
+    alert(`Primero vinculá "${e.nombre}" a un producto del menú (columna "Se vende como") para poder cargarle la receta.`);
+    return;
+  }
+  switchAdminTab('recetas');
+  const sel = document.getElementById('receta-producto');
+  if(sel){ sel.value = e.menuItem; }
+  loadRecipeProduct(e.menuItem);
+  document.getElementById('admin-panel-recetas').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function saveElaboradoForm(){
+  const nombre = document.getElementById('elab-nombre').value.trim();
+  const porcionesPorUnidad = parseFloat(document.getElementById('elab-porciones-unidad').value) || 1;
+  const porcionesMin = parseFloat(document.getElementById('elab-min').value) || 0;
+  const menuItem = document.getElementById('elab-menu-item').value || null;
+  if(!nombre){ alert('Ingresá un nombre para el elaborado.'); return; }
+  if(editingElaboradoId){
+    const e = elaborados.find(x=>x.id===editingElaboradoId);
+    if(e) Object.assign(e, {nombre, porcionesPorUnidad, porcionesMin, menuItem});
+    if(menuItem && !recetas[menuItem]) recetas[menuItem] = [];
+    cancelEditElaborado();
+  } else {
+    const id = elaboradoSeq++;
+    elaborados.push({id, nombre, porcionesPorUnidad, stockPorciones:0, costoUnitPorcion:0, porcionesMin, menuItem, deleted:false});
+    if(menuItem && !recetas[menuItem]) recetas[menuItem] = [];
+    ['elab-nombre','elab-porciones-unidad','elab-min'].forEach(fid=>document.getElementById(fid).value='');
+    document.getElementById('elab-menu-item').value = '';
+  }
+  renderElaborados();
+}
+
+function editElaborado(id){
+  const e = elaborados.find(x=>x.id===id);
+  if(!e) return;
+  editingElaboradoId = id;
+  document.getElementById('elab-nombre').value = e.nombre;
+  document.getElementById('elab-porciones-unidad').value = e.porcionesPorUnidad;
+  document.getElementById('elab-min').value = e.porcionesMin;
+  document.getElementById('elab-menu-item').value = e.menuItem || '';
+  document.getElementById('elab-submit-btn').textContent = '💾 Guardar cambios';
+  document.getElementById('elab-cancel-btn').style.display = 'inline-block';
+  document.getElementById('admin-panel-elaborados').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function cancelEditElaborado(){
+  editingElaboradoId = null;
+  ['elab-nombre','elab-porciones-unidad','elab-min'].forEach(fid=>document.getElementById(fid).value='');
+  document.getElementById('elab-menu-item').value = '';
+  document.getElementById('elab-submit-btn').textContent = '+ Agregar elaborado';
+  document.getElementById('elab-cancel-btn').style.display = 'none';
+}
+
+function deleteElaborado(id){
+  const e = elaborados.find(x=>x.id===id);
+  if(!e) return;
+  if(!confirm(`¿Enviar "${e.nombre}" a la papelera? Se deja de descontar automáticamente al vender "${e.menuItem||'—'}" (esa venta va a quedar sin stock vinculado hasta que lo restaures o cargues otro elaborado).`)) return;
+  e.deleted = true;
+  if(editingElaboradoId===id) cancelEditElaborado();
+  enviarAPapelera('elaborado', `Elaborado: ${e.nombre}`, id);
+  renderElaborados();
+}
+
+/* ---- Registrar producción (hornear) ---- */
+function refreshProdElaboradoSelect(){
+  const sel = document.getElementById('prod-elaborado');
+  if(!sel) return;
+  const prev = sel.value;
+  const activos = elaborados.filter(e=>!e.deleted);
+  sel.innerHTML = activos.map(e=>`<option value="${e.id}">${e.nombre} (${e.porcionesPorUnidad} porciones/unidad)</option>`).join('') || '<option value="">— Cargá un elaborado primero —</option>';
+  if(prev && activos.some(e=>String(e.id)===prev)) sel.value = prev;
+}
+
+function producirElaborado(){
+  const elaboradoId = parseInt(document.getElementById('prod-elaborado').value);
+  const cantidadUnidades = parseFloat(document.getElementById('prod-cantidad').value);
+  if(!elaboradoId || !cantidadUnidades || cantidadUnidades<=0){
+    alert('Elegí un elaborado y una cantidad de unidades producidas (ej: 2 tortas).');
+    return;
+  }
+  const elaborado = elaborados.find(e=>e.id===elaboradoId);
+  if(!elaborado) return;
+  if(!elaborado.menuItem){
+    alert(`"${elaborado.nombre}" todavía no está vinculado a un producto del menú. Editalo arriba ("Se vende como") antes de registrar producción.`);
+    return;
+  }
+  const receta = recetas[elaborado.menuItem] || [];
+  if(!receta.length){
+    alert(`"${elaborado.nombre}" todavía no tiene una receta cargada. Andá a la solapa Recetas, elegí "${elaborado.menuItem}" y cargale los insumos que lleva UNA unidad completa (o usá el botón 📝 de la fila del elaborado).`);
+    return;
+  }
+
+  let costoTotal = 0;
+  const warningsSet = new Set();
+  receta.forEach(ing=>{
+    const insumo = insumos.find(i=>i.id===ing.insumoId);
+    if(!insumo) return;
+    const consumo = ing.cantidad * cantidadUnidades;
+    costoTotal += insumo.costoUnit * consumo;
+    insumo.stock = Math.round((insumo.stock - consumo)*1000)/1000;
+    movimientos.unshift({
+      id: movSeq++, fecha: new Date(), insumoId: insumo.id, tipo:'consumo',
+      cantidad: -consumo, stockResultante: insumo.stock, ref: `Producción de ${cantidadUnidades}x ${elaborado.nombre}`
+    });
+    if(insumo.stock < 0) warningsSet.add(insumo.nombre);
+  });
+
+  // Igual que con una compra de insumo: promedio ponderado del costo por porción.
+  const porcionesNuevas = cantidadUnidades * elaborado.porcionesPorUnidad;
+  const valorAntes = elaborado.stockPorciones * elaborado.costoUnitPorcion;
+  const valorNuevo = valorAntes + costoTotal;
+  elaborado.stockPorciones = Math.round((elaborado.stockPorciones + porcionesNuevas)*1000)/1000;
+  elaborado.costoUnitPorcion = elaborado.stockPorciones>0 ? Math.round((valorNuevo/elaborado.stockPorciones)*100)/100 : elaborado.costoUnitPorcion;
+
+  const prod = {id: prodSeq++, fecha: new Date(), elaboradoId, cantidadUnidades, costoTotal, deleted:false};
+  producciones.unshift(prod);
+  movimientos.unshift({
+    id: movSeq++, fecha: new Date(), elaboradoId, tipo:'produccion',
+    cantidad: porcionesNuevas, stockResultante: elaborado.stockPorciones, ref: `Producción #${prod.id} · ${cantidadUnidades}x ${elaborado.nombre}`
+  });
+
+  document.getElementById('prod-cantidad').value = '';
+  renderElaborados();
+  renderInsumos();
+  renderProducciones();
+  renderMovimientos();
+  updateStockWarnBadge();
+  updateLowStockBadge();
+
+  if(warningsSet.size){
+    alert('Producción registrada. Atención: los siguientes insumos quedaron en stock negativo: ' + [...warningsSet].join(', ') + '.');
+  } else {
+    alert(`Producción registrada: ${cantidadUnidades}x ${elaborado.nombre} = ${porcionesNuevas} porciones sumadas al stock.`);
+  }
+}
+
+function renderProducciones(){
+  const tbody = document.getElementById('producciones-tbody');
+  if(!tbody) return;
+  const activas = producciones.filter(p=>!p.deleted);
+  tbody.innerHTML = activas.map(p=>{
+    const e = elaborados.find(x=>x.id===p.elaboradoId);
+    return `<tr>
+      <td>${p.fecha.toLocaleDateString('es-AR')}</td>
+      <td>${e ? e.nombre : '—'}</td>
+      <td>${p.cantidadUnidades}</td>
+      <td>${e ? p.cantidadUnidades*e.porcionesPorUnidad : '—'}</td>
+      <td>$${p.costoTotal.toLocaleString('es-AR',{maximumFractionDigits:0})}</td>
+      <td><button class="mini-print" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="deleteProduccion(${p.id})">🗑</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty-note">Todavía no se registró producción.</td></tr>';
+}
+
+function deleteProduccion(id){
+  const prod = producciones.find(p=>p.id===id);
+  if(!prod) return;
+  const elaborado = elaborados.find(e=>e.id===prod.elaboradoId);
+  if(!confirm(`¿Enviar esta producción a la papelera? Se revierten tanto los insumos consumidos como las porciones generadas de "${elaborado?elaborado.nombre:'?'}".`)) return;
+
+  if(elaborado){
+    const receta = (elaborado.menuItem ? recetas[elaborado.menuItem] : null) || [];
+    receta.forEach(ing=>{
+      const insumo = insumos.find(i=>i.id===ing.insumoId);
+      if(!insumo) return;
+      const consumo = ing.cantidad * prod.cantidadUnidades;
+      insumo.stock = Math.round((insumo.stock + consumo)*1000)/1000;
+      movimientos.unshift({id:movSeq++, fecha:new Date(), insumoId:insumo.id, tipo:'compra', cantidad:consumo, stockResultante:insumo.stock, ref:`Anulado: Producción #${prod.id}`});
+    });
+    const porcionesQuitar = prod.cantidadUnidades * elaborado.porcionesPorUnidad;
+    const valorActual = elaborado.stockPorciones * elaborado.costoUnitPorcion;
+    const valorSinEsta = valorActual - prod.costoTotal;
+    elaborado.stockPorciones = Math.round((elaborado.stockPorciones - porcionesQuitar)*1000)/1000;
+    elaborado.costoUnitPorcion = elaborado.stockPorciones>0 ? Math.round((valorSinEsta/elaborado.stockPorciones)*100)/100 : elaborado.costoUnitPorcion;
+    movimientos.unshift({id:movSeq++, fecha:new Date(), elaboradoId:elaborado.id, tipo:'consumo', cantidad:-porcionesQuitar, stockResultante:elaborado.stockPorciones, ref:`Anulado: Producción #${prod.id}`});
+  }
+
+  const resumen = `Producción: ${prod.cantidadUnidades}x ${elaborado?elaborado.nombre:'?'}`;
+  prod.deleted = true;
+  enviarAPapelera('produccion', resumen, id);
+  renderProducciones();
+  renderElaborados();
+  renderInsumos();
+  renderMovimientos();
+  updateStockWarnBadge();
+  updateLowStockBadge();
+}
+
+/* ---- GASTOS (compras de mercadería) ---- */
+function refreshGastoInsumoSelect(){
+  const sel = document.getElementById('gasto-insumo');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = insumos.filter(i=>!i.deleted).map(i=>`<option value="${i.id}">${i.nombre} (${i.unidad})</option>`).join('');
+  if(prev && insumos.some(i=>i.id==prev)) sel.value = prev;
+}
+
+// Aplica el efecto de una compra sobre un insumo (suma stock, recalcula costo
+// promedio ponderado). reversarCompra() hace exactamente lo inverso — así editar
+// un gasto es "revertir el viejo valor" + "aplicar el nuevo", sin duplicar lógica.
+function applyCompra(insumo, cantidad, costoTotal){
+  const valorAntes = insumo.stock * insumo.costoUnit;
+  const valorNuevo = valorAntes + costoTotal;
+  insumo.stock = Math.round((insumo.stock + cantidad) * 1000) / 1000;
+  insumo.costoUnit = insumo.stock > 0 ? Math.round((valorNuevo / insumo.stock) * 100) / 100 : insumo.costoUnit;
+}
+
+function reversarCompra(insumo, cantidad, costoTotal){
+  const valorActual = insumo.stock * insumo.costoUnit;
+  const valorSinEsta = valorActual - costoTotal;
+  insumo.stock = Math.round((insumo.stock - cantidad) * 1000) / 1000;
+  insumo.costoUnit = insumo.stock > 0 ? Math.round((valorSinEsta / insumo.stock) * 100) / 100 : insumo.costoUnit;
+}
+
+let editingGastoId = null;
+
+function saveGastoForm(){
+  const insumoId = parseInt(document.getElementById('gasto-insumo').value);
+  const cantidad = parseFloat(document.getElementById('gasto-cantidad').value);
+  const costoTotal = parseFloat(document.getElementById('gasto-costo').value);
+  const proveedor = document.getElementById('gasto-proveedor').value.trim();
+
+  if(!insumoId || !cantidad || cantidad<=0 || !costoTotal || costoTotal<=0){
+    alert('Completá insumo, cantidad y costo total para cargar el gasto.');
+    return;
+  }
+  const insumo = insumos.find(i=>i.id===insumoId);
+  if(!insumo) return;
+
+  if(editingGastoId){
+    const gasto = gastos.find(g=>g.id===editingGastoId);
+    if(gasto){
+      // Revierte el efecto de la compra vieja (posiblemente sobre OTRO insumo) y aplica la nueva
+      const insumoViejo = insumos.find(i=>i.id===gasto.insumoId);
+      if(insumoViejo) reversarCompra(insumoViejo, gasto.cantidad, gasto.costoTotal);
+      applyCompra(insumo, cantidad, costoTotal);
+      Object.assign(gasto, {insumoId, cantidad, costoTotal, proveedor});
+      movimientos.unshift({
+        id: movSeq++, fecha: new Date(), insumoId: insumo.id, tipo:'compra',
+        cantidad, stockResultante: insumo.stock, ref: `Edición de Gasto #${gasto.id}` + (proveedor ? ' · '+proveedor : '')
+      });
+    }
+    cancelEditGasto();
+  } else {
+    applyCompra(insumo, cantidad, costoTotal);
+    const gasto = {id: gastoSeq++, fecha: new Date(), insumoId, cantidad, costoTotal, proveedor, deleted:false};
+    gastos.unshift(gasto);
+    movimientos.unshift({
+      id: movSeq++, fecha: new Date(), insumoId: insumo.id, tipo:'compra',
+      cantidad, stockResultante: insumo.stock, ref: `Gasto #${gasto.id}` + (proveedor ? ' · ' + proveedor : '')
+    });
+    ['gasto-cantidad','gasto-costo','gasto-proveedor'].forEach(id=>document.getElementById(id).value='');
+  }
+
+  renderGastos();
+  renderInsumos();
+  renderMovimientos();
+  renderRecetasSummary();
+}
+
+function editGasto(id){
+  const g = gastos.find(x=>x.id===id);
+  if(!g) return;
+  editingGastoId = id;
+  document.getElementById('gasto-insumo').value = g.insumoId;
+  document.getElementById('gasto-cantidad').value = g.cantidad;
+  document.getElementById('gasto-costo').value = g.costoTotal;
+  document.getElementById('gasto-proveedor').value = g.proveedor;
+  document.getElementById('gasto-submit-btn').textContent = '💾 Guardar cambios';
+  document.getElementById('gasto-cancel-btn').style.display = 'inline-block';
+}
+
+function cancelEditGasto(){
+  editingGastoId = null;
+  ['gasto-cantidad','gasto-costo','gasto-proveedor'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('gasto-submit-btn').textContent = '+ Cargar gasto';
+  document.getElementById('gasto-cancel-btn').style.display = 'none';
+}
+
+function deleteGasto(id){
+  const gasto = gastos.find(g=>g.id===id);
+  if(!gasto) return;
+  if(!confirm('¿Enviar esta compra a la papelera? Se va a descontar del stock lo que había sumado (se puede restaurar después).')) return;
+  const insumo = insumos.find(i=>i.id===gasto.insumoId);
+  if(insumo){
+    reversarCompra(insumo, gasto.cantidad, gasto.costoTotal);
+    movimientos.unshift({id:movSeq++, fecha:new Date(), insumoId:insumo.id, tipo:'consumo', cantidad:-gasto.cantidad, stockResultante:insumo.stock, ref:`Anulado: Gasto #${gasto.id}`});
+  }
+  gasto.deleted = true;
+  if(editingGastoId===id) cancelEditGasto();
+  enviarAPapelera('gasto', `Compra: ${insumo ? insumo.nombre : '?'} x${gasto.cantidad}`, id);
+  renderGastos();
+  renderInsumos();
+  renderMovimientos();
+}
+
+function renderGastos(){
+  const tbody = document.getElementById('gastos-tbody');
+  if(!tbody) return;
+  const activos = gastos.filter(g=>!g.deleted);
+  tbody.innerHTML = activos.map(g=>{
+    const insumo = insumos.find(i=>i.id===g.insumoId);
+    return `<tr>
+      <td>${g.fecha.toLocaleDateString('es-AR')}</td>
+      <td>${insumo ? insumo.nombre : '—'}</td>
+      <td>${g.cantidad} ${insumo ? insumo.unidad : ''}</td>
+      <td>$${g.costoTotal.toLocaleString('es-AR')}</td>
+      <td>${g.proveedor || '—'}</td>
+      <td>
+        <button class="mini-edit" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="editGasto(${g.id})">✏️</button>
+        <button class="mini-print" style="padding:5px 9px;border-radius:6px;border:none;color:#fff;cursor:pointer;font-size:11px;" onclick="deleteGasto(${g.id})">🗑</button>
+      </td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty-note">Todavía no se cargaron gastos.</td></tr>';
+  const total = activos.reduce((s,g)=>s+g.costoTotal,0);
+  document.getElementById('gastos-total').textContent = 'Total gastado en mercadería: $' + total.toLocaleString('es-AR');
+}
+
+/* ---- MOVIMIENTOS ---- */
+const MOV_TIPO_LABELS = {compra:'▲ Compra', produccion:'▲ Producción', consumo:'▼ Consumo'};
+
+function renderMovimientos(){
+  const tbody = document.getElementById('movimientos-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = movimientos.map(m=>{
+    // Un movimiento es de un insumo (kg/L/unid comprados) O de un elaborado
+    // (porciones de algo producido en el local, ej. torta horneada) — nunca ambos.
+    const insumo = m.insumoId ? insumos.find(i=>i.id===m.insumoId) : null;
+    const elaborado = m.elaboradoId ? elaborados.find(e=>e.id===m.elaboradoId) : null;
+    const nombre = elaborado ? `🎂 ${elaborado.nombre}` : (insumo ? insumo.nombre : '—');
+    const unidad = elaborado ? 'porciones' : (insumo ? insumo.unidad : '');
+    return `<tr>
+      <td>${m.fecha.toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td>
+      <td>${nombre}</td>
+      <td class="${m.tipo==='consumo'?'tag-consumo':'tag-compra'}">${MOV_TIPO_LABELS[m.tipo] || m.tipo}</td>
+      <td>${m.cantidad>0?'+':''}${m.cantidad.toLocaleString('es-AR',{maximumFractionDigits:2})} ${unidad}</td>
+      <td>${m.stockResultante.toLocaleString('es-AR',{maximumFractionDigits:2})}</td>
+      <td>${m.ref}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty-note">Todavía no hay movimientos.</td></tr>';
+}
+
+/* ---------------- INIT ---------------- */
+renderSalon();
+renderTickets();
+switchTab('bebidas');
+renderInsumos();
+initRecetasTab();
+renderElaborados();
+renderProducciones();
+renderGastos();
+renderMovimientos();
+renderClientes();
+renderEmpleados();
+renderVentas();
+renderPapelera();
+refreshShiftCards();
+</script>
+</body>
+</html>
