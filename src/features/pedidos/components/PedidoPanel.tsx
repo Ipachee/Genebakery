@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
 import { usePedidoDeMesa, usePedidoMutations, useProductos } from '../hooks';
+import { useClientes } from '../../clientes/hooks';
 import type { Database } from '../../../lib/supabase/types';
 
 type Mesa = Database['public']['Tables']['mesas']['Row'];
@@ -22,16 +23,21 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const { turno } = useTurnoActual();
   const { data: productos } = useProductos();
   const { data: pedido, isLoading } = usePedidoDeMesa(mesa.id);
+  const { data: clientes } = useClientes();
   const mutations = usePedidoMutations(mesa.id);
 
   const [categoria, setCategoria] = useState<Producto['categoria']>('bebida');
   const [cobrando, setCobrando] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [clienteId, setClienteId] = useState<number | ''>('');
 
   const mozoId = session?.user.id;
   const items = pedido?.pedido_items ?? [];
   const subtotal = items.reduce((s, it) => s + Number(it.precio_unitario) * Number(it.cantidad), 0);
   const hayPendientesDeCocina = items.some((it) => !it.enviado_cocina);
+  const clienteSeleccionado = clientes?.find((c) => c.id === clienteId);
+  const descuento = clienteSeleccionado ? Math.round(subtotal * (Number(clienteSeleccionado.descuento_pct) / 100)) : 0;
+  const total = subtotal - descuento;
 
   async function agregarProducto(producto: Producto) {
     if (!turno || !mozoId) return;
@@ -57,10 +63,10 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
       turnoId: turno.id,
       mesaId: mesa.id,
       mozoId,
-      clienteId: null,
+      clienteId: clienteId || null,
       subtotal,
-      descuento: 0,
-      total: subtotal,
+      descuento,
+      total,
       metodoPago: metodo,
     });
     setCobrando(false);
@@ -171,29 +177,51 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
               )}
 
               <div style={{ marginTop: 'auto', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: 10 }}>
-                  <span>Total</span>
-                  <span>{fmt.format(subtotal)}</span>
-                </div>
                 {!cobrando ? (
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                      disabled={!pedido || !hayPendientesDeCocina || enviando}
-                      onClick={handleEnviarCocina}
-                      style={{ flex: 1, padding: 9, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)' }}
-                    >
-                      🍳 Enviar a cocina
-                    </button>
-                    <button
-                      disabled={!pedido || items.length === 0}
-                      onClick={() => setCobrando(true)}
-                      style={{ flex: 1, padding: 9, borderRadius: 5, border: 'none', background: 'var(--green)', color: '#fff', fontWeight: 600 }}
-                    >
-                      💰 Cobrar
-                    </button>
-                  </div>
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, marginBottom: 10 }}>
+                      <span>Total</span>
+                      <span>{fmt.format(subtotal)}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        disabled={!pedido || !hayPendientesDeCocina || enviando}
+                        onClick={handleEnviarCocina}
+                        style={{ flex: 1, padding: 9, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)' }}
+                      >
+                        🍳 Enviar a cocina
+                      </button>
+                      <button
+                        disabled={!pedido || items.length === 0}
+                        onClick={() => setCobrando(true)}
+                        style={{ flex: 1, padding: 9, borderRadius: 5, border: 'none', background: 'var(--green)', color: '#fff', fontWeight: 600 }}
+                      >
+                        💰 Cobrar
+                      </button>
+                    </div>
+                  </>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <select
+                      value={clienteId}
+                      onChange={(e) => setClienteId(e.target.value ? Number(e.target.value) : '')}
+                      style={{ padding: 6, borderRadius: 4, border: '1px solid var(--border)', fontSize: 12 }}
+                    >
+                      <option value="">Sin cliente</option>
+                      {clientes?.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.nombre} {c.apellido} {Number(c.descuento_pct) > 0 ? `(-${c.descuento_pct}%)` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>
+                      Subtotal {fmt.format(subtotal)}
+                      {descuento > 0 && ` · Descuento −${fmt.format(descuento)}`}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+                      <span>Total</span>
+                      <span>{fmt.format(total)}</span>
+                    </div>
                     <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>Método de pago:</span>
                     <div style={{ display: 'flex', gap: 6 }}>
                       {METODOS.map((m) => (
