@@ -87,30 +87,16 @@ export async function cobrarPedido(params: {
   total: number;
   metodoPago: string;
 }) {
-  const { error: e1 } = await supabase
-    .from('pedidos')
-    .update({
-      estado: 'cobrado',
-      cobrado_at: new Date().toISOString(),
-      subtotal: params.subtotal,
-      descuento: params.descuento,
-      total: params.total,
-      metodo_pago: params.metodoPago,
-      cliente_id: params.clienteId,
-    })
-    .eq('id', params.pedidoId);
-  if (e1) throw e1;
-
-  const { error: e2 } = await supabase.from('ventas').insert({
-    pedido_id: params.pedidoId,
-    turno_id: params.turnoId,
-    mesa_id: params.mesaId,
-    mozo_id: params.mozoId,
-    cliente_id: params.clienteId,
-    subtotal: params.subtotal,
-    descuento: params.descuento,
-    total: params.total,
-    metodo_pago: params.metodoPago,
+  const { error } = await supabase.rpc('fn_cobrar_pedido', {
+    p_pedido_id: params.pedidoId,
+    p_turno_id: params.turnoId,
+    p_mesa_id: params.mesaId,
+    p_mozo_id: params.mozoId,
+    p_cliente_id: params.clienteId ?? undefined,
+    p_subtotal: params.subtotal,
+    p_descuento: params.descuento,
+    p_total: params.total,
+    p_metodo_pago: params.metodoPago,
   });
-  if (e2) throw e2;
+  if (error) throw error;
 }

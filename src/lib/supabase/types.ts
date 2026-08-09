@@ -783,7 +783,40 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      fn_cobrar_pedido: {
+        Args: {
+          p_cliente_id?: number
+          p_descuento?: number
+          p_mesa_id: number
+          p_metodo_pago?: string
+          p_mozo_id: string
+          p_pedido_id: number
+          p_subtotal?: number
+          p_total?: number
+          p_turno_id: number
+        }
+        Returns: undefined
+      }
+      fn_registrar_gasto: {
+        Args: {
+          p_cantidad: number
+          p_costo_total: number
+          p_insumo_id: number
+          p_proveedor?: string
+          p_usuario_id?: string
+        }
+        Returns: undefined
+      }
+      fn_registrar_produccion: {
+        Args: {
+          p_cantidad_unidades: number
+          p_elaborado_id: number
+          p_usuario_id: string
+        }
+        Returns: undefined
+      }
+      is_active_staff: { Args: never; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

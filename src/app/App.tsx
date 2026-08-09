@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { RequireRole } from '../auth/RequireRole';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { SalonView } from '../features/salon/components/SalonView';
+import { AdminPanel } from '../features/admin/AdminPanel';
 import { TurnoProvider } from '../features/turnos/TurnoContext';
 import { TurnoBadge } from '../features/turnos/components/TurnoBadge';
 
@@ -25,6 +27,7 @@ export function App() {
 
 function Shell() {
   const { session, profile, signOut } = useAuth();
+  const [vista, setVista] = useState<'salon' | 'admin'>('salon');
 
   return (
     <div>
@@ -46,7 +49,14 @@ function Shell() {
             {profile?.nombre ?? session?.user.email} · {profile?.rol ?? '…'}
           </span>
           <RequireRole rol="admin">
-            <span style={{ opacity: 0.7 }}>panel admin (próximamente)</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button onClick={() => setVista('salon')} style={tabBtn(vista === 'salon')}>
+                Salón
+              </button>
+              <button onClick={() => setVista('admin')} style={tabBtn(vista === 'admin')}>
+                Administración
+              </button>
+            </div>
           </RequireRole>
           <TurnoBadge />
           <button
@@ -64,8 +74,19 @@ function Shell() {
         </div>
       </header>
       <main style={{ padding: 20 }}>
-        <SalonView />
+        {vista === 'admin' && profile?.rol === 'admin' ? <AdminPanel /> : <SalonView />}
       </main>
     </div>
   );
+}
+
+function tabBtn(activo: boolean): React.CSSProperties {
+  return {
+    padding: '5px 10px',
+    borderRadius: 4,
+    border: '1px solid rgba(255,255,255,0.35)',
+    background: activo ? 'rgba(255,255,255,0.18)' : 'transparent',
+    color: '#fff',
+    fontSize: 12,
+  };
 }
