@@ -1,0 +1,87 @@
+.login-screen {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px;
+}
+
+.login-title {
+  margin: 0;
+  font-size: 26px;
+  color: var(--brown-dark);
+}
+
+.login-subtitle {
+  margin: -18px 0 0;
+  color: var(--text-dim);
+  font-size: 13.5px;
+}
+
+.shift-cards {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.shift-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 22px 20px;
+  width: 168px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.shift-card:focus-within {
+  border-color: var(--terracota);
+  transform: translateY(-2px);
+}
+
+.shift-icon {
+  font-size: 32px;
+}
+
+.shift-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--brown-dark);
+  text-align: center;
+}
+
+.shift-card input {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.shift-card button {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 5px;
+  border: none;
+  background: var(--terracota);
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.shift-card button:disabled {
+  opacity: 0.6;
+}
+
+.login-error {
+  margin: -10px 0 0;
+  color: var(--red);
+  font-size: 12.5px;
+  text-align: center;
+}
