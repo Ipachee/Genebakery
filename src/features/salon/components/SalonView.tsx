@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useAuth } from '../../../auth/useAuth';
 import { useMesas, useSalonMutations, useSalones } from '../hooks';
+import { PedidoPanel } from '../../pedidos/components/PedidoPanel';
 import type { Database } from '../../../lib/supabase/types';
 
 type Mesa = Database['public']['Tables']['mesas']['Row'];
@@ -31,6 +32,7 @@ export function SalonView() {
   const [seleccion, setSeleccion] = useState<Seleccion>(null);
   const [drag, setDrag] = useState<Drag>(null);
   const [posOverride, setPosOverride] = useState<Record<string, { x: number; y: number }>>({});
+  const [mesaParaPedido, setMesaParaPedido] = useState<Mesa | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const esAdmin = profile?.rol === 'admin';
@@ -211,7 +213,15 @@ export function SalonView() {
             const p = posDe('mesa', mesa);
             const seleccionada = seleccion?.tipo === 'mesa' && seleccion.id === mesa.id;
             return (
-              <g key={mesa.id} onPointerDown={(e) => iniciarDrag(e, 'mesa', mesa)}>
+              <g
+                key={mesa.id}
+                onPointerDown={(e) => iniciarDrag(e, 'mesa', mesa)}
+                onClick={(e) => {
+                  if (editando) return;
+                  e.stopPropagation();
+                  setMesaParaPedido(mesa);
+                }}
+              >
                 {mesa.shape === 'round' ? (
                   <circle
                     cx={p.x + mesa.w / 2}
@@ -259,6 +269,10 @@ export function SalonView() {
           />
         )}
       </div>
+
+      {mesaParaPedido && (
+        <PedidoPanel mesa={mesaParaPedido} onClose={() => setMesaParaPedido(null)} />
+      )}
     </div>
   );
 }
