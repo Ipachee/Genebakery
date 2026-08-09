@@ -2,9 +2,11 @@ import { useAuth } from '../auth/useAuth';
 import { RequireRole } from '../auth/RequireRole';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { SalonView } from '../features/salon/components/SalonView';
+import { TurnoProvider } from '../features/turnos/TurnoContext';
+import { TurnoBadge } from '../features/turnos/components/TurnoBadge';
 
 export function App() {
-  const { session, profile, loading, signOut } = useAuth();
+  const { session, loading } = useAuth();
 
   if (loading) {
     return <p style={{ padding: 24 }}>Cargando…</p>;
@@ -13,6 +15,16 @@ export function App() {
   if (!session) {
     return <LoginScreen />;
   }
+
+  return (
+    <TurnoProvider>
+      <Shell />
+    </TurnoProvider>
+  );
+}
+
+function Shell() {
+  const { session, profile, signOut } = useAuth();
 
   return (
     <div>
@@ -24,16 +36,19 @@ export function App() {
           padding: '14px 20px',
           background: 'var(--brown-dark)',
           color: '#fff',
+          flexWrap: 'wrap',
+          gap: 10,
         }}
       >
         <strong>☕ ComandaCafé</strong>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 13 }}>
           <span>
-            {profile?.nombre ?? session.user.email} · {profile?.rol ?? '…'}
+            {profile?.nombre ?? session?.user.email} · {profile?.rol ?? '…'}
           </span>
           <RequireRole rol="admin">
             <span style={{ opacity: 0.7 }}>panel admin (próximamente)</span>
           </RequireRole>
+          <TurnoBadge />
           <button
             onClick={signOut}
             style={{

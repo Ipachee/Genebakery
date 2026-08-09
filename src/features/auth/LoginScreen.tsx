@@ -1,12 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../../auth/useAuth';
+import { CUENTAS as OPCIONES } from './accounts';
 import './LoginScreen.css';
-
-const OPCIONES = [
-  { id: 'admin', icon: '🔑', label: 'Admin', email: 'admin@comandacafe.local' },
-  { id: 'manana', icon: '☀️', label: 'Turno Mañana', email: 'manana@comandacafe.local' },
-  { id: 'tarde', icon: '🌙', label: 'Turno Tarde', email: 'tarde@comandacafe.local' },
-] as const;
 
 export function LoginScreen() {
   const { signIn } = useAuth();
