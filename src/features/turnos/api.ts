@@ -59,3 +59,33 @@ export async function fetchFacturadoTurno(turnoId: number) {
   if (error) throw error;
   return (data ?? []).reduce((sum, v) => sum + Number(v.total), 0);
 }
+
+export async function fetchVentasDelTurno(turnoId: number) {
+  const { data, error } = await supabase
+    .from('ventas')
+    .select('*, mesas(label), clientes(nombre, apellido)')
+    .eq('turno_id', turnoId)
+    .is('deleted_at', null)
+    .order('created_at');
+  if (error) throw error;
+  return data;
+}
+
+// Mesas sin cobrar en este momento, sin importar en que turno se abrio el
+// pedido -- si mañana dejo una mesa pendiente, sigue pendiente para el
+// cierre de tarde aunque el pedido no sea "de" ese turno.
+export async function fetchMesasPendientesDelTurno(_turnoId: number) {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select('mesa_id, estado, mesas(label)')
+    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
+    .is('deleted_at', null);
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchInsumosStockBajo() {
+  const { data, error } = await supabase.from('insumos').select('*').is('deleted_at', null);
+  if (error) throw error;
+  return (data ?? []).filter((i) => Number(i.stock) <= Number(i.stock_min));
+}

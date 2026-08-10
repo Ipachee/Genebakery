@@ -6,6 +6,16 @@ export async function fetchProductos() {
   return data;
 }
 
+export async function crearProducto(v: { nombre: string; categoria: 'bebida' | 'comida' | 'pasteleria'; precio: number }) {
+  const { data, error } = await supabase
+    .from('productos')
+    .insert({ nombre: v.nombre, categoria: v.categoria, precio: v.precio })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchInsumos() {
   const { data, error } = await supabase.from('insumos').select('*').is('deleted_at', null).order('nombre');
   if (error) throw error;

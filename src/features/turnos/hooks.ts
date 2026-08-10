@@ -4,8 +4,11 @@ import {
   abrirTurno,
   cerrarTurno,
   fetchFacturadoTurno,
+  fetchInsumosStockBajo,
+  fetchMesasPendientesDelTurno,
   fetchTurnoPorId,
   fetchUltimoTurno,
+  fetchVentasDelTurno,
   reabrirTurno,
 } from './api';
 
@@ -85,4 +88,24 @@ export function useReabrirTurno(turnoId: number | null) {
     mutationFn: () => reabrirTurno(turnoId!),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['turno', turnoId] }),
   });
+}
+
+export function useVentasDelTurno(turnoId: number | null) {
+  return useQuery({
+    queryKey: ['ventas-turno', turnoId],
+    queryFn: () => fetchVentasDelTurno(turnoId!),
+    enabled: turnoId != null,
+  });
+}
+
+export function useMesasPendientesDelTurno(turnoId: number | null) {
+  return useQuery({
+    queryKey: ['mesas-pendientes-turno', turnoId],
+    queryFn: () => fetchMesasPendientesDelTurno(turnoId!),
+    enabled: turnoId != null,
+  });
+}
+
+export function useInsumosStockBajo() {
+  return useQuery({ queryKey: ['insumos-stock-bajo'], queryFn: fetchInsumosStockBajo });
 }

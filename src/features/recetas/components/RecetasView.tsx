@@ -1,10 +1,16 @@
 import { useState } from 'react';
-import { useInsumos, useProductos, useRecetaDeProducto, useRecetaMutations } from '../hooks';
+import { useCrearProducto, useInsumos, useProductos, useRecetaDeProducto, useRecetaMutations } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '../../../components/Button';
-import { Select, TextInput } from '../../../components/Field';
+import { Field, Select, TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
 import { Card } from '../../../components/Card';
+
+const CATEGORIAS: { id: 'bebida' | 'comida' | 'pasteleria'; label: string }[] = [
+  { id: 'bebida', label: 'Bebida' },
+  { id: 'comida', label: 'Cocina' },
+  { id: 'pasteleria', label: 'Pastelería' },
+];
 
 export function RecetasView() {
   const { data: productos } = useProductos();
@@ -12,24 +18,82 @@ export function RecetasView() {
   const [productoId, setProductoId] = useState<number | null>(null);
   const { data: receta } = useRecetaDeProducto(productoId);
   const mutations = useRecetaMutations(productoId);
+  const crearProducto = useCrearProducto();
 
   const [insumoId, setInsumoId] = useState<number | ''>('');
   const [cantidad, setCantidad] = useState('');
 
+  const [creandoProducto, setCreandoProducto] = useState(false);
+  const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', categoria: 'comida' as 'bebida' | 'comida' | 'pasteleria', precio: '' });
+
   const insumosUsados = new Set(receta?.map((r) => r.insumo_id));
+
+  async function crearYSeleccionar() {
+    if (!nuevoProducto.nombre || !nuevoProducto.precio) return;
+    const creado = await crearProducto.mutateAsync({
+      nombre: nuevoProducto.nombre,
+      categoria: nuevoProducto.categoria,
+      precio: Number(nuevoProducto.precio),
+    });
+    setProductoId(creado.id);
+    setNuevoProducto({ nombre: '', categoria: 'comida', precio: '' });
+    setCreandoProducto(false);
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', maxWidth: 520 }}>
       <PageHeader title="Recetas" subtitle="Qué insumos y en qué cantidad lleva cada producto. Para un elaborado, es la receta de UNA unidad completa." />
 
-      <Select value={productoId ?? ''} onChange={(e) => setProductoId(e.target.value ? Number(e.target.value) : null)}>
-        <option value="">Elegí un producto…</option>
-        {productos?.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.nombre} ({p.categoria})
-          </option>
-        ))}
-      </Select>
+      <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+        <Select value={productoId ?? ''} onChange={(e) => setProductoId(e.target.value ? Number(e.target.value) : null)} style={{ flex: 1 }}>
+          <option value="">Elegí un producto…</option>
+          {productos?.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nombre} ({p.categoria})
+            </option>
+          ))}
+        </Select>
+        <Button variant="secondary" onClick={() => setCreandoProducto((v) => !v)}>
+          {creandoProducto ? 'cancelar' : '+ Nuevo producto'}
+        </Button>
+      </div>
+
+      {creandoProducto && (
+        <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <Field label="Nombre del plato/producto">
+            <TextInput
+              placeholder="Ej: Tarta de jamón y queso"
+              value={nuevoProducto.nombre}
+              onChange={(e) => setNuevoProducto({ ...nuevoProducto, nombre: e.target.value })}
+            />
+          </Field>
+          <Field label="Categoría">
+            <div style={{ display: 'flex', gap: 6 }}>
+              {CATEGORIAS.map((c) => (
+                <Button
+                  key={c.id}
+                  size="sm"
+                  variant={nuevoProducto.categoria === c.id ? 'primary' : 'secondary'}
+                  onClick={() => setNuevoProducto({ ...nuevoProducto, categoria: c.id })}
+                >
+                  {c.label}
+                </Button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Precio de venta">
+            <TextInput
+              type="number"
+              placeholder="0"
+              value={nuevoProducto.precio}
+              onChange={(e) => setNuevoProducto({ ...nuevoProducto, precio: e.target.value })}
+            />
+          </Field>
+          <Button variant="primary" onClick={crearYSeleccionar}>
+            Crear y cargar receta
+          </Button>
+        </Card>
+      )}
 
       {productoId && (
         <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>

@@ -5,6 +5,18 @@ export function useProductos() {
   return useQuery({ queryKey: ['productos-recetas'], queryFn: api.fetchProductos });
 }
 
+export function useCrearProducto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.crearProducto,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['productos-recetas'] });
+      qc.invalidateQueries({ queryKey: ['productos'] });
+      qc.invalidateQueries({ queryKey: ['productos-sin-elaborado'] });
+    },
+  });
+}
+
 export function useInsumos() {
   return useQuery({ queryKey: ['insumos-recetas'], queryFn: api.fetchInsumos });
 }
