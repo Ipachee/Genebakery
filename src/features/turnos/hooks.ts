@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   abrirTurno,
   cerrarTurno,
+  enviarResumenPorMail,
   fetchFacturadoTurno,
   fetchInsumosStockBajo,
   fetchMesasPendientesDelTurno,
@@ -108,4 +109,8 @@ export function useMesasPendientesDelTurno(turnoId: number | null) {
 
 export function useInsumosStockBajo() {
   return useQuery({ queryKey: ['insumos-stock-bajo'], queryFn: fetchInsumosStockBajo });
+}
+
+export function useEnviarResumenPorMail() {
+  return useMutation({ mutationFn: enviarResumenPorMail });
 }

@@ -1,7 +1,10 @@
 import { supabase } from '../../lib/supabase/client';
 import type { Database } from '../../lib/supabase/types';
 
-type TablaSoftDelete = Exclude<keyof Database['public']['Tables'], 'movimientos' | 'recetas' | 'pedido_items' | 'turnos' | 'profiles'>;
+type TablaSoftDelete = Exclude<
+  keyof Database['public']['Tables'],
+  'movimientos' | 'recetas' | 'pedido_items' | 'turnos' | 'profiles' | 'perfil_negocio'
+>;
 
 const TABLA_POR_TIPO: Record<string, TablaSoftDelete> = {
   insumo: 'insumos',

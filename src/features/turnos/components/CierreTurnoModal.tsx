@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import {
   useCerrarTurno,
+  useEnviarResumenPorMail,
   useFacturadoTurno,
   useInsumosStockBajo,
   useMesasPendientesDelTurno,
   useVentasDelTurno,
 } from '../hooks';
+import { usePerfilNegocio } from '../../negocio/hooks';
+import { generarPdfCierre } from '../cierrePdf';
 import { Button } from '../../../components/Button';
 import { TextInput } from '../../../components/Field';
 import type { Database } from '../../../lib/supabase/types';
@@ -13,67 +16,71 @@ import type { Database } from '../../../lib/supabase/types';
 type Turno = Database['public']['Tables']['turnos']['Row'];
 
 const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: () => void }) {
   const { data: ventas } = useVentasDelTurno(turno.id);
   const { data: facturado = 0 } = useFacturadoTurno(turno.id);
   const { data: mesasPendientes } = useMesasPendientesDelTurno(turno.id);
   const { data: insumosBajo } = useInsumosStockBajo();
+  const { data: perfil } = usePerfilNegocio();
   const cerrar = useCerrarTurno(turno.id);
+  const enviarMail = useEnviarResumenPorMail();
   const [email, setEmail] = useState('');
+  const [envioOk, setEnvioOk] = useState(false);
+  const [envioError, setEnvioError] = useState<string | null>(null);
 
   const esUltimoTurnoDelDia = turno.etiqueta === 'Tarde';
   const hayPendientes = (mesasPendientes?.length ?? 0) > 0;
   const bloqueaCierre = esUltimoTurnoDelDia && hayPendientes;
+  const emailValido = EMAIL_VALIDO.test(email.trim());
 
   const porMetodo = new Map<string, number>();
   for (const v of ventas ?? []) {
     porMetodo.set(v.metodo_pago, (porMetodo.get(v.metodo_pago) ?? 0) + Number(v.total));
   }
 
-  function generarResumenTexto() {
-    const lineas: string[] = [];
-    lineas.push(`Cierre de turno — ${turno.etiqueta} — ${new Date().toLocaleDateString('es-AR')}`);
-    lineas.push('');
-    lineas.push(`Mesas cobradas: ${ventas?.length ?? 0}`);
-    lineas.push(`Total facturado: ${fmt.format(facturado)}`);
-    lineas.push(`Mesas pendientes: ${mesasPendientes?.length ?? 0}`);
-    lineas.push('');
-    lineas.push('Detalle de ventas:');
-    for (const v of ventas ?? []) {
-      lineas.push(
-        `- Mesa ${v.mesas?.label ?? v.mesa_id ?? 'take away'} · ${new Date(v.created_at).toLocaleTimeString('es-AR')} · ${
-          v.clientes ? `${v.clientes.nombre} ${v.clientes.apellido}` : 'sin cliente'
-        } · ${fmt.format(Number(v.total))} · ${v.metodo_pago}`
-      );
-    }
-    lineas.push('');
-    lineas.push('Desglose por método de pago:');
-    for (const [metodo, total] of porMetodo) {
-      lineas.push(`- ${metodo}: ${fmt.format(total)}`);
-    }
-    if (hayPendientes) {
-      lineas.push('');
-      lineas.push('Mesas pendientes para el próximo turno:');
-      for (const p of mesasPendientes ?? []) {
-        lineas.push(`- Mesa ${p.mesas?.label ?? p.mesa_id} (${p.estado})`);
-      }
-    }
-    if (insumosBajo?.length) {
-      lineas.push('');
-      lineas.push('Insumos con stock bajo:');
-      for (const i of insumosBajo) {
-        lineas.push(`- ${i.nombre}: ${i.stock} ${i.unidad} (mínimo ${i.stock_min})`);
-      }
-    }
-    return lineas.join('\n');
+  function nombreArchivo() {
+    return `cierre-turno-${turno.etiqueta.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
   }
 
-  function generarMail() {
-    const asunto = `Cierre de turno ${turno.etiqueta} — ${new Date().toLocaleDateString('es-AR')}`;
-    const cuerpo = generarResumenTexto();
-    const destino = email.trim();
-    window.location.href = `mailto:${destino}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`;
+  function construirPdf() {
+    return generarPdfCierre({
+      turno,
+      perfil: perfil ?? null,
+      ventas: ventas ?? [],
+      facturado,
+      mesasPendientes: mesasPendientes ?? [],
+      insumosBajo: insumosBajo ?? [],
+    });
+  }
+
+  function descargarPdf() {
+    const blob = construirPdf();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombreArchivo();
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function enviarPorMail() {
+    if (!emailValido) return;
+    setEnvioError(null);
+    setEnvioOk(false);
+    try {
+      const pdf = construirPdf();
+      await enviarMail.mutateAsync({
+        to: email.trim(),
+        subject: `Cierre de turno ${turno.etiqueta} — ${new Date().toLocaleDateString('es-AR')}`,
+        pdf,
+        filename: nombreArchivo(),
+      });
+      setEnvioOk(true);
+    } catch (e) {
+      setEnvioError(e instanceof Error ? e.message : 'No se pudo enviar el mail');
+    }
   }
 
   return (
@@ -192,17 +199,38 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
 
           <div>
             <div className="field-label" style={{ marginBottom: 8 }}>
-              Enviar este resumen por mail
+              Resumen en PDF
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 8px' }}>
-              Esto arma el mail con todo el resumen y lo abre en tu programa de correo — solo falta confirmarlo desde ahí.
+              Incluye membrete del negocio, gráfico de ventas por medio de pago y el detalle completo. Se manda de
+              verdad por mail (no abre tu programa de correo).
             </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <TextInput placeholder="dueño@cafeteria.com" type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={{ flex: 1 }} />
-              <Button variant="secondary" onClick={generarMail} disabled={!email.trim()}>
-                ✉️ Generar mail
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              <Button variant="secondary" onClick={descargarPdf}>
+                📄 Descargar PDF
               </Button>
             </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <TextInput
+                placeholder="dueño@cafeteria.com"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEnvioOk(false);
+                  setEnvioError(null);
+                }}
+                style={{ flex: 1 }}
+              />
+              <Button variant="secondary" onClick={enviarPorMail} disabled={!emailValido || enviarMail.isPending}>
+                {enviarMail.isPending ? 'Enviando…' : '✉️ Enviar por mail'}
+              </Button>
+            </div>
+            {email.trim() && !emailValido && (
+              <p style={{ fontSize: 11.5, color: 'var(--red)', margin: '6px 0 0' }}>Ingresá un email válido (con @ y dominio).</p>
+            )}
+            {envioOk && <p style={{ fontSize: 12, color: 'var(--green)', margin: '6px 0 0' }}>✓ Mail enviado.</p>}
+            {envioError && <p style={{ fontSize: 12, color: 'var(--red)', margin: '6px 0 0' }}>{envioError}</p>}
           </div>
 
           {bloqueaCierre && (

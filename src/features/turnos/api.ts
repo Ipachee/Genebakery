@@ -89,3 +89,21 @@ export async function fetchInsumosStockBajo() {
   if (error) throw error;
   return (data ?? []).filter((i) => Number(i.stock) <= Number(i.stock_min));
 }
+
+function blobABase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+export async function enviarResumenPorMail(v: { to: string; subject: string; pdf: Blob; filename: string }) {
+  const pdfBase64 = await blobABase64(v.pdf);
+  const { data, error } = await supabase.functions.invoke('send-cierre-email', {
+    body: { to: v.to, subject: v.subject, pdfBase64, filename: v.filename },
+  });
+  if (error) throw error;
+  return data;
+}

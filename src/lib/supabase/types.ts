@@ -486,6 +486,39 @@ export type Database = {
           },
         ]
       }
+      perfil_negocio: {
+        Row: {
+          condicion_iva: string | null
+          cuit: string | null
+          direccion: string | null
+          email: string | null
+          id: number
+          nombre_fiscal: string
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          condicion_iva?: string | null
+          cuit?: string | null
+          direccion?: string | null
+          email?: string | null
+          id?: number
+          nombre_fiscal?: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condicion_iva?: string | null
+          cuit?: string | null
+          direccion?: string | null
+          email?: string | null
+          id?: number
+          nombre_fiscal?: string
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       producciones: {
         Row: {
           cantidad_unidades: number
