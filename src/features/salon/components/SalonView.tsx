@@ -437,7 +437,7 @@ function PanelEdicion({
 function StatCard({ valor, label }: { valor: number | string; label: string }) {
   return (
     <div className="card card-pad" style={{ borderLeft: '3px solid var(--terracota)' }}>
-      <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>{valor}</div>
+      <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1, color: 'var(--terracota-dark)' }}>{valor}</div>
       <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>{label}</div>
     </div>
   );

@@ -72,7 +72,17 @@ export function usePedidoMutations(mesaId: number) {
     quitarItem: useMutation({
       mutationFn: (itemId: number) => api.quitarItem(itemId),
       onSuccess: (_data, itemId) => {
-        patch((prev) => (prev ? { ...prev, pedido_items: prev.pedido_items.filter((it) => it.id !== itemId) } : prev));
+        const prev = qc.getQueryData<PedidoConItems | null>(key);
+        const restantes = prev ? prev.pedido_items.filter((it) => it.id !== itemId) : [];
+        // Si era el último item y todavía no se mandó nada a cocina, el
+        // pedido queda vacío -- se cancela para que la mesa vuelva a libre
+        // en vez de quedar "ocupada" sin nada adentro.
+        if (prev && restantes.length === 0 && prev.estado === 'abierto') {
+          patch(() => null);
+          api.cancelarPedido(prev.id).then(invalidarSecundarios);
+        } else {
+          patch((p) => (p ? { ...p, pedido_items: restantes } : p));
+        }
       },
     }),
     enviarACocina: useMutation({
@@ -83,7 +93,7 @@ export function usePedidoMutations(mesaId: number) {
             ? {
                 ...prev,
                 estado: 'enviado_cocina',
-                enviado_at: prev.enviado_at ?? new Date().toISOString(),
+                enviado_at: new Date().toISOString(),
                 pedido_items: prev.pedido_items.map((it) => ({ ...it, enviado_cocina: true })),
               }
             : prev

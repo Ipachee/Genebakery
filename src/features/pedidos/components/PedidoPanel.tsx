@@ -76,7 +76,16 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     const conPedido = qc.getQueryData<PedidoConItems | null>(pedidoMesaKey(mesa.id));
     const existente = conPedido?.pedido_items.find((it) => it.producto_id === producto.id && !it.enviado_cocina);
     if (existente) {
-      await mutations.actualizarCantidad.mutateAsync({ itemId: existente.id, cantidad: Number(existente.cantidad) + 1 });
+      const cantidadNueva = Number(existente.cantidad) + 1;
+      // Optimista: se ve la cantidad nueva en el mismo instante del click,
+      // sin esperar el viaje al servidor (era la "pérdida de microsegundos"
+      // que se sentía al tocar rápido el mismo producto).
+      qc.setQueryData<PedidoConItems | null>(pedidoMesaKey(mesa.id), (prev) =>
+        prev
+          ? { ...prev, pedido_items: prev.pedido_items.map((it) => (it.id === existente.id ? { ...it, cantidad: cantidadNueva } : it)) }
+          : prev
+      );
+      await mutations.actualizarCantidad.mutateAsync({ itemId: existente.id, cantidad: cantidadNueva });
     } else {
       await mutations.agregarItem.mutateAsync({ pedidoId, productoId: producto.id, precio: producto.precio, nota: '' });
     }

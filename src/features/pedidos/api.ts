@@ -68,6 +68,15 @@ export async function quitarItem(itemId: number) {
   if (error) throw error;
 }
 
+// Si al mozo se le va la mano y agrega-y-saca un producto sin llegar a
+// enviarlo a cocina, el pedido queda "abierto" con 0 items -- eso dejaba la
+// mesa marcada como ocupada para siempre sin nada adentro. Se cancela ese
+// pedido vacío (soft delete) para que la mesa vuelva a libre.
+export async function cancelarPedido(pedidoId: number) {
+  const { error } = await supabase.from('pedidos').update({ deleted_at: new Date().toISOString() }).eq('id', pedidoId);
+  if (error) throw error;
+}
+
 export async function enviarACocina(pedidoId: number) {
   const { error: e1 } = await supabase
     .from('pedido_items')
@@ -75,11 +84,16 @@ export async function enviarACocina(pedidoId: number) {
     .eq('pedido_id', pedidoId)
     .eq('enviado_cocina', false);
   if (e1) throw e1;
+  // Sin el filtro por estado 'abierto': una segunda tanda de la misma mesa
+  // (agregada después de que cocina ya marcó "Entregado" la primera) tiene
+  // que poder volver a "enviado_cocina" -- si no, el pedido quedaba
+  // "entregado" en la base aunque la comandera mostrara otra cosa en el
+  // momento, y al refrescar volvía a verse verde en vez de azul.
   const { error: e2 } = await supabase
     .from('pedidos')
     .update({ estado: 'enviado_cocina', enviado_at: new Date().toISOString() })
     .eq('id', pedidoId)
-    .eq('estado', 'abierto');
+    .neq('estado', 'cobrado');
   if (e2) throw e2;
 }
 

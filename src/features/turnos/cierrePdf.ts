@@ -13,6 +13,90 @@ type Insumo = Database['public']['Tables']['insumos']['Row'];
 
 const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
+type RGB = [number, number, number];
+
+// Misma paleta que la app (src/styles/tokens.css), pasada a RGB porque jsPDF
+// no entiende variables CSS.
+const COLOR = {
+  terracota: [193, 102, 59] as RGB,
+  terracotaDark: [163, 78, 40] as RGB,
+  brownDark: [59, 36, 24] as RGB,
+  cream: [247, 236, 217] as RGB,
+  creamDeep: [239, 223, 194] as RGB,
+  amber: [217, 154, 61] as RGB,
+  redSoft: [251, 232, 229] as RGB,
+  red: [192, 57, 43] as RGB,
+  gray: [141, 131, 117] as RGB,
+  white: [255, 255, 255] as RGB,
+};
+const COLORES_METODO = ['#c1663b', '#2f8f7f', '#d99a3d', '#3f6b8a', '#4a7c59', '#8d8375'];
+
+function hexRgb(hex: string): RGB {
+  const n = parseInt(hex.replace('#', ''), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+const MARGIN = 14;
+const PAGE_W = 210;
+const PAGE_H = 297;
+const CONTENT_W = PAGE_W - MARGIN * 2;
+
+function ensureSpace(doc: jsPDF, y: number, necesario: number): number {
+  if (y + necesario <= PAGE_H - 16) return y;
+  doc.addPage();
+  return 20;
+}
+
+function seccionHeader(doc: jsPDF, texto: string, y: number, color: RGB = COLOR.terracotaDark): number {
+  doc.setFillColor(...color);
+  doc.roundedRect(MARGIN, y, CONTENT_W, 7.5, 1.5, 1.5, 'F');
+  doc.setTextColor(...COLOR.white);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.text(texto, MARGIN + 4, y + 5.3);
+  doc.setTextColor(...COLOR.brownDark);
+  return y + 7.5 + 5;
+}
+
+function statCard(doc: jsPDF, x: number, y: number, w: number, valor: string, label: string) {
+  const h = 20;
+  doc.setFillColor(...COLOR.creamDeep);
+  doc.roundedRect(x, y, w, h, 2, 2, 'F');
+  doc.setFillColor(...COLOR.terracota);
+  doc.rect(x, y, 1.6, h, 'F');
+  doc.setTextColor(...COLOR.terracotaDark);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.text(valor, x + 6, y + 10.5, { maxWidth: w - 10 });
+  doc.setTextColor(...COLOR.gray);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.text(label, x + 6, y + 16.5);
+  doc.setTextColor(...COLOR.brownDark);
+}
+
+function chipsRow(doc: jsPDF, items: string[], yInicial: number, fill: RGB, texto: RGB): number {
+  let x = MARGIN;
+  let y = yInicial;
+  const maxX = MARGIN + CONTENT_W;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  for (const item of items) {
+    const w = doc.getTextWidth(item) + 7;
+    if (x + w > maxX) {
+      x = MARGIN;
+      y += 9;
+    }
+    doc.setFillColor(...fill);
+    doc.roundedRect(x, y, w, 6.2, 1.5, 1.5, 'F');
+    doc.setTextColor(...texto);
+    doc.text(item, x + 3.5, y + 4.3);
+    x += w + 3;
+  }
+  doc.setTextColor(...COLOR.brownDark);
+  return y + 10;
+}
+
 export function generarPdfCierre(params: {
   turno: Turno;
   perfil: PerfilNegocio;
@@ -23,61 +107,82 @@ export function generarPdfCierre(params: {
 }): Blob {
   const { turno, perfil, ventas, facturado, mesasPendientes, insumosBajo } = params;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  let y = 18;
+  const nombreNegocio = perfil?.nombre_fiscal || 'ComandaCafé';
 
-  doc.setFontSize(16);
+  // --- Membrete: banda de color con el nombre del negocio ---
+  doc.setFillColor(...COLOR.terracota);
+  doc.rect(0, 0, PAGE_W, 30, 'F');
+  doc.setFillColor(...COLOR.terracotaDark);
+  doc.rect(0, 28.5, PAGE_W, 1.5, 'F');
+  doc.setTextColor(...COLOR.white);
   doc.setFont('helvetica', 'bold');
-  doc.text(perfil?.nombre_fiscal || 'ComandaCafé', 14, y);
+  doc.setFontSize(18);
+  doc.text(nombreNegocio, MARGIN, 13);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  y += 6;
+  doc.setFontSize(11);
+  doc.text(`Cierre de turno — ${turno.etiqueta} · ${new Date().toLocaleDateString('es-AR')}`, MARGIN, 21);
   const datosNegocio = [perfil?.cuit && `CUIT ${perfil.cuit}`, perfil?.direccion, perfil?.telefono, perfil?.email]
     .filter(Boolean)
-    .join(' · ');
+    .join('   ·   ');
   if (datosNegocio) {
-    doc.text(datosNegocio, 14, y);
-    y += 6;
+    doc.setFontSize(8);
+    doc.text(datosNegocio, MARGIN, 26.5);
   }
+  doc.setTextColor(...COLOR.brownDark);
 
-  doc.setFontSize(13);
-  doc.setFont('helvetica', 'bold');
-  y += 4;
-  doc.text(`Cierre de turno — ${turno.etiqueta}`, 14, y);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-  y += 6;
-  doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, 14, y);
-  y += 10;
+  let y = 40;
 
-  doc.setFontSize(11);
-  doc.text(`Mesas cobradas: ${ventas.length}`, 14, y);
-  doc.text(`Total facturado: ${fmt.format(facturado)}`, 90, y);
-  y += 7;
-  doc.text(`Mesas pendientes: ${mesasPendientes.length}`, 14, y);
-  y += 10;
+  // --- Cuadros de resumen ---
+  const gap = 6;
+  const cardW = (CONTENT_W - gap * 2) / 3;
+  statCard(doc, MARGIN, y, cardW, String(ventas.length), 'Mesas cobradas');
+  statCard(doc, MARGIN + cardW + gap, y, cardW, fmt.format(facturado), 'Total facturado');
+  statCard(doc, MARGIN + (cardW + gap) * 2, y, cardW, String(mesasPendientes.length), 'Mesas pendientes');
+  y += 20 + 10;
 
-  // Gráfico de torta por método de pago
+  // --- Gráfico de torta por método de pago + lista en cuadro ---
   const porMetodo = new Map<string, number>();
   for (const v of ventas) porMetodo.set(v.metodo_pago, (porMetodo.get(v.metodo_pago) ?? 0) + Number(v.total));
   if (porMetodo.size > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.text('Ventas por método de pago', 14, y);
-    doc.setFont('helvetica', 'normal');
-    y += 4;
+    y = ensureSpace(doc, y, 80);
+    y = seccionHeader(doc, 'Ventas por método de pago', y, COLOR.amber);
     const dataUrl = generarGraficoTorta([...porMetodo.entries()].map(([label, valor]) => ({ label, valor })));
-    doc.addImage(dataUrl, 'PNG', 14, y, 76, 76);
-    y += 82;
+    doc.addImage(dataUrl, 'PNG', MARGIN, y, 60, 60);
+
+    const listaX = MARGIN + 68;
+    const listaW = CONTENT_W - 68;
+    doc.setFillColor(...COLOR.cream);
+    doc.roundedRect(listaX, y, listaW, 60, 2, 2, 'F');
+    let ly = y + 10;
+    [...porMetodo.entries()].forEach(([metodo, total], i) => {
+      const rgb = hexRgb(COLORES_METODO[i % COLORES_METODO.length]);
+      doc.setFillColor(...rgb);
+      doc.roundedRect(listaX + 5, ly - 3.4, 4, 4, 1, 1, 'F');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...COLOR.brownDark);
+      doc.text(metodo, listaX + 12, ly);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COLOR.terracotaDark);
+      doc.text(fmt.format(total), listaX + listaW - 5, ly, { align: 'right' });
+      ly += 10;
+    });
+    doc.setTextColor(...COLOR.brownDark);
+    y += 60 + 10;
   }
 
-  // Detalle de ventas
-  doc.setFont('helvetica', 'bold');
-  doc.text('Detalle de ventas del turno', 14, y);
-  y += 4;
+  // --- Detalle de ventas ---
+  y = ensureSpace(doc, y, 30);
+  y = seccionHeader(doc, 'Detalle de ventas del turno', y);
   if (ventas.length === 0) {
+    doc.setFillColor(...COLOR.cream);
+    doc.roundedRect(MARGIN, y, CONTENT_W, 12, 2, 2, 'F');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10);
-    doc.text('Todavía no se cobró ninguna mesa en este turno.', 14, y + 4);
-    y += 10;
+    doc.setTextColor(...COLOR.gray);
+    doc.text('Todavía no se cobró ninguna mesa en este turno.', MARGIN + 5, y + 7.5);
+    doc.setTextColor(...COLOR.brownDark);
+    y += 12 + 8;
   } else {
     autoTable(doc, {
       startY: y,
@@ -89,37 +194,52 @@ export function generarPdfCierre(params: {
         fmt.format(Number(v.total)),
         v.metodo_pago,
       ]),
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [193, 102, 59] },
-      margin: { left: 14, right: 14 },
+      theme: 'striped',
+      styles: { fontSize: 9, textColor: COLOR.brownDark, lineColor: COLOR.creamDeep },
+      headStyles: { fillColor: COLOR.terracota, textColor: COLOR.white, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: COLOR.cream },
+      margin: { left: MARGIN, right: MARGIN },
     });
     // @ts-expect-error jspdf-autotable adjunta lastAutoTable al doc en runtime
     y = doc.lastAutoTable.finalY + 10;
   }
 
+  // --- Mesas pendientes ---
   if (mesasPendientes.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text('Mesas pendientes', 14, y);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    y += 6;
-    doc.text(mesasPendientes.map((p) => `Mesa ${p.mesas?.label ?? p.mesa_id}`).join(' · '), 14, y);
-    y += 10;
+    y = ensureSpace(doc, y, 24);
+    y = seccionHeader(doc, 'Mesas pendientes', y, COLOR.amber);
+    y = chipsRow(
+      doc,
+      mesasPendientes.map((p) => `Mesa ${p.mesas?.label ?? p.mesa_id}`),
+      y,
+      COLOR.creamDeep,
+      COLOR.terracotaDark
+    );
+    y += 4;
   }
 
+  // --- Insumos con stock bajo ---
   if (insumosBajo.length > 0) {
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.text('Insumos con stock bajo', 14, y);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    y += 6;
-    for (const i of insumosBajo) {
-      doc.text(`- ${i.nombre}: ${i.stock} ${i.unidad} (mínimo ${i.stock_min})`, 14, y);
-      y += 5;
-    }
+    y = ensureSpace(doc, y, 24);
+    y = seccionHeader(doc, 'Insumos con stock bajo', y, COLOR.red);
+    y = chipsRow(
+      doc,
+      insumosBajo.map((i) => `${i.nombre} — ${i.stock} ${i.unidad}`),
+      y,
+      COLOR.redSoft,
+      COLOR.red
+    );
+    y += 4;
   }
+
+  // --- Pie de página ---
+  y = ensureSpace(doc, y, 10);
+  doc.setDrawColor(...COLOR.creamDeep);
+  doc.line(MARGIN, y, MARGIN + CONTENT_W, y);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...COLOR.gray);
+  doc.text(`Generado automáticamente por ComandaCafé el ${new Date().toLocaleString('es-AR')}`, MARGIN, y + 5);
 
   return doc.output('blob');
 }

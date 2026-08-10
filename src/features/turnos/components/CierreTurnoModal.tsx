@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '../../../auth/useAuth';
 import {
   useCerrarTurno,
   useEnviarResumenPorMail,
@@ -19,6 +20,7 @@ const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS',
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: () => void }) {
+  const { signOut } = useAuth();
   const { data: ventas } = useVentasDelTurno(turno.id);
   const { data: facturado = 0 } = useFacturadoTurno(turno.id);
   const { data: mesasPendientes } = useMesasPendientesDelTurno(turno.id);
@@ -106,15 +108,15 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-3)' }}>
             <div className="card card-pad" style={{ borderLeft: '3px solid var(--terracota)' }}>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>{ventas?.length ?? 0}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--terracota-dark)' }}>{ventas?.length ?? 0}</div>
               <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>Mesas cobradas</div>
             </div>
             <div className="card card-pad" style={{ borderLeft: '3px solid var(--terracota)' }}>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>{fmt.format(facturado)}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--terracota-dark)' }}>{fmt.format(facturado)}</div>
               <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>Total facturado</div>
             </div>
             <div className="card card-pad" style={{ borderLeft: '3px solid var(--terracota)' }}>
-              <div style={{ fontSize: 20, fontWeight: 700 }}>{mesasPendientes?.length ?? 0}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--terracota-dark)' }}>{mesasPendientes?.length ?? 0}</div>
               <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>Mesas pendientes</div>
             </div>
           </div>
@@ -161,8 +163,8 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
               <div className="card card-pad">
                 {[...porMetodo.entries()].map(([metodo, total]) => (
                   <div key={metodo} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                    <span>{metodo}</span>
-                    <strong>{fmt.format(total)}</strong>
+                    <span style={{ color: 'var(--text)' }}>{metodo}</span>
+                    <strong style={{ color: 'var(--terracota-dark)' }}>{fmt.format(total)}</strong>
                   </div>
                 ))}
               </div>
@@ -252,6 +254,9 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
               onClick={async () => {
                 await cerrar.mutateAsync();
                 onClose();
+                // Termina la sesión de este turno y vuelve a la pantalla de
+                // login para que se pueda elegir el turno siguiente.
+                await signOut();
               }}
             >
               🔒 Confirmar cierre de turno
