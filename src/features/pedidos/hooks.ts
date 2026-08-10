@@ -81,10 +81,11 @@ export function usePedidoMutations(mesaId: number) {
       onSuccess: (_data, itemId) => {
         const prev = qc.getQueryData<PedidoConItems | null>(key);
         const restantes = prev ? prev.pedido_items.filter((it) => it.id !== itemId) : [];
-        // Si era el último item y todavía no se mandó nada a cocina, el
-        // pedido queda vacío -- se cancela para que la mesa vuelva a libre
-        // en vez de quedar "ocupada" sin nada adentro.
-        if (prev && restantes.length === 0 && prev.estado === 'abierto') {
+        // Si era el último item, el pedido queda vacío -- se cancela para
+        // que la mesa vuelva a libre, sin importar si ya se había mandado
+        // algo a cocina (borrar item por item hasta vaciar la mesa tiene que
+        // liberarla igual que "Cancelar pedido").
+        if (prev && restantes.length === 0) {
           patch(() => null);
           api.cancelarPedido(prev.id).then(invalidarSecundarios);
         } else {
@@ -119,6 +120,22 @@ export function usePedidoMutations(mesaId: number) {
       mutationFn: api.cobrarPedido,
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: key });
+        invalidarSecundarios();
+      },
+    }),
+    transferirMesa: useMutation({
+      mutationFn: (v: { pedidoId: number; mesaDestinoId: number }) => api.transferirPedido(v.pedidoId, v.mesaDestinoId),
+      onSuccess: () => {
+        patch(() => null);
+        qc.invalidateQueries({ queryKey: ['pedido-mesa'] });
+        invalidarSecundarios();
+      },
+    }),
+    transferirItems: useMutation({
+      mutationFn: (v: { itemIds: number[]; origenPedidoId: number; mesaDestinoId: number; turnoId: number; mozoId: string }) =>
+        api.transferirItems(v.itemIds, v.origenPedidoId, v.mesaDestinoId, v.turnoId, v.mozoId),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ['pedido-mesa'] });
         invalidarSecundarios();
       },
     }),

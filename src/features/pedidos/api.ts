@@ -93,6 +93,66 @@ export async function marcarPedidoEntregado(pedidoId: number) {
   if (error) throw error;
 }
 
+// Mueve el pedido activo ENTERO a otra mesa (el cliente se cambió de
+// lugar). No deja transferir a una mesa que ya tenga su propio pedido
+// activo -- para eso está transferirItems, que sí permite sumarse a otro.
+export async function transferirPedido(pedidoId: number, mesaDestinoId: number) {
+  const { data: ocupada, error: e1 } = await supabase
+    .from('pedidos')
+    .select('id')
+    .eq('mesa_id', mesaDestinoId)
+    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
+    .is('deleted_at', null)
+    .limit(1);
+  if (e1) throw e1;
+  if ((ocupada ?? []).length > 0) {
+    throw new Error('Esa mesa ya tiene un pedido activo.');
+  }
+  const { error: e2 } = await supabase.from('pedidos').update({ mesa_id: mesaDestinoId }).eq('id', pedidoId);
+  if (e2) throw e2;
+}
+
+// Mueve solo ALGUNOS items a otra mesa (una persona de la mesa se cambia de
+// lugar). Si la mesa destino ya tiene un pedido activo, se suman ahí; si
+// está libre, se crea uno nuevo. Si al origen no le queda nada, se cancela
+// solo (misma regla que sacar el último item a mano).
+export async function transferirItems(
+  itemIds: number[],
+  origenPedidoId: number,
+  mesaDestinoId: number,
+  turnoId: number,
+  mozoId: string
+) {
+  const { data: existente, error: e1 } = await supabase
+    .from('pedidos')
+    .select('id')
+    .eq('mesa_id', mesaDestinoId)
+    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
+    .is('deleted_at', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (e1) throw e1;
+  let destinoPedidoId = existente?.id;
+  if (!destinoPedidoId) {
+    const { data: nuevo, error: e2 } = await supabase
+      .from('pedidos')
+      .insert({ mesa_id: mesaDestinoId, turno_id: turnoId, mozo_id: mozoId, estado: 'abierto' })
+      .select('id')
+      .single();
+    if (e2) throw e2;
+    destinoPedidoId = nuevo.id;
+  }
+  const { error: e3 } = await supabase.from('pedido_items').update({ pedido_id: destinoPedidoId }).in('id', itemIds);
+  if (e3) throw e3;
+
+  const { data: quedan, error: e4 } = await supabase.from('pedido_items').select('id').eq('pedido_id', origenPedidoId).limit(1);
+  if (e4) throw e4;
+  if ((quedan ?? []).length === 0) {
+    await cancelarPedido(origenPedidoId);
+  }
+}
+
 export async function cobrarPedido(params: {
   pedidoId: number;
   turnoId: number;
