@@ -112,12 +112,17 @@ export async function transferirPedido(pedidoId: number, mesaDestinoId: number) 
   if (e2) throw e2;
 }
 
-// Mueve solo ALGUNOS items a otra mesa (una persona de la mesa se cambia de
-// lugar). Si la mesa destino ya tiene un pedido activo, se suman ahí; si
-// está libre, se crea uno nuevo. Si al origen no le queda nada, se cancela
-// solo (misma regla que sacar el último item a mano).
+// Mueve solo ALGUNAS unidades a otra mesa (una persona de la mesa se
+// cambia de lugar, y a veces se lleva solo parte de lo pedido -- ej. 1 de
+// los 2 budines). Si la fila de origen tiene más cantidad de la que se
+// pide transferir, se parte: se le resta la cantidad a la fila original y
+// se crea una fila nueva en el destino con lo transferido (copiando si ya
+// estaba enviado a cocina / entregado, para no perder ese estado). Si la
+// fila entera se transfiere, simplemente cambia de pedido. Si la mesa
+// destino ya tiene un pedido activo, se suma ahí; si está libre, se crea
+// uno nuevo. Si al origen no le queda nada, se cancela solo.
 export async function transferirItems(
-  itemIds: number[],
+  seleccion: { itemId: number; cantidad: number }[],
   origenPedidoId: number,
   mesaDestinoId: number,
   turnoId: number,
@@ -143,8 +148,33 @@ export async function transferirItems(
     if (e2) throw e2;
     destinoPedidoId = nuevo.id;
   }
-  const { error: e3 } = await supabase.from('pedido_items').update({ pedido_id: destinoPedidoId }).in('id', itemIds);
-  if (e3) throw e3;
+
+  for (const { itemId, cantidad } of seleccion) {
+    const { data: item, error: eItem } = await supabase.from('pedido_items').select('*').eq('id', itemId).single();
+    if (eItem) throw eItem;
+    if (Number(item.cantidad) <= cantidad) {
+      const { error } = await supabase.from('pedido_items').update({ pedido_id: destinoPedidoId }).eq('id', itemId);
+      if (error) throw error;
+    } else {
+      const { error: eBaja } = await supabase
+        .from('pedido_items')
+        .update({ cantidad: Number(item.cantidad) - cantidad })
+        .eq('id', itemId);
+      if (eBaja) throw eBaja;
+      const { error: eNueva } = await supabase.from('pedido_items').insert({
+        pedido_id: destinoPedidoId,
+        producto_id: item.producto_id,
+        precio_unitario: item.precio_unitario,
+        cantidad,
+        nota: item.nota,
+        enviado_cocina: item.enviado_cocina,
+        entregado: item.entregado,
+        ronda: item.ronda,
+        enviado_cocina_at: item.enviado_cocina_at,
+      });
+      if (eNueva) throw eNueva;
+    }
+  }
 
   const { data: quedan, error: e4 } = await supabase.from('pedido_items').select('id').eq('pedido_id', origenPedidoId).limit(1);
   if (e4) throw e4;

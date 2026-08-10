@@ -132,8 +132,13 @@ export function usePedidoMutations(mesaId: number) {
       },
     }),
     transferirItems: useMutation({
-      mutationFn: (v: { itemIds: number[]; origenPedidoId: number; mesaDestinoId: number; turnoId: number; mozoId: string }) =>
-        api.transferirItems(v.itemIds, v.origenPedidoId, v.mesaDestinoId, v.turnoId, v.mozoId),
+      mutationFn: (v: {
+        seleccion: { itemId: number; cantidad: number }[];
+        origenPedidoId: number;
+        mesaDestinoId: number;
+        turnoId: number;
+        mozoId: string;
+      }) => api.transferirItems(v.seleccion, v.origenPedidoId, v.mesaDestinoId, v.turnoId, v.mozoId),
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: ['pedido-mesa'] });
         invalidarSecundarios();

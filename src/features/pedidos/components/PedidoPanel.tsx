@@ -51,7 +51,10 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const [clienteId, setClienteId] = useState<number | ''>('');
   const [transfiriendo, setTransfiriendo] = useState(false);
   const [mesaDestino, setMesaDestino] = useState<number | ''>('');
-  const [itemsSeleccionados, setItemsSeleccionados] = useState<Set<number>>(new Set());
+  // Cuántas unidades de cada fila se van a transferir (0 = no seleccionada).
+  // No alcanza con un Set de ids: si hay 2 budines en la misma fila y solo
+  // se quiere transferir 1, hay que partir esa fila en dos.
+  const [cantidadesTransferir, setCantidadesTransferir] = useState<Map<string, number>>(new Map());
   const ultimaFilaRef = useRef<number | null>(null);
 
   const mozoId = session?.user.id;
@@ -72,28 +75,37 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
       nombre: it.productos?.nombre ?? `Producto #${it.producto_id}`,
       cantidad: Number(it.cantidad),
       entregado: false,
-      itemIds: [it.id],
+      lineas: [{ id: it.id, cantidad: Number(it.cantidad) }],
     })),
   ];
+  const totalUnidadesSeleccionadas = [...cantidadesTransferir.values()].reduce((s, n) => s + n, 0);
 
   function toggleSeleccionFila(fila: GrupoEnviado, index: number, shiftKey: boolean) {
-    setItemsSeleccionados((prev) => {
-      const next = new Set(prev);
+    setCantidadesTransferir((prev) => {
+      const next = new Map(prev);
       if (shiftKey && ultimaFilaRef.current != null) {
         const [ini, fin] = [Math.min(ultimaFilaRef.current, index), Math.max(ultimaFilaRef.current, index)];
         for (let i = ini; i <= fin; i++) {
-          for (const id of filasTransferibles[i].itemIds) next.add(id);
+          const f = filasTransferibles[i];
+          next.set(f.key, f.cantidad);
         }
       } else {
-        const yaSeleccionada = fila.itemIds.every((id) => prev.has(id));
-        for (const id of fila.itemIds) {
-          if (yaSeleccionada) next.delete(id);
-          else next.add(id);
-        }
+        const yaSeleccionada = (prev.get(fila.key) ?? 0) > 0;
+        if (yaSeleccionada) next.delete(fila.key);
+        else next.set(fila.key, fila.cantidad);
       }
       return next;
     });
     ultimaFilaRef.current = index;
+  }
+
+  function cambiarCantidadFila(fila: GrupoEnviado, nueva: number) {
+    setCantidadesTransferir((prev) => {
+      const next = new Map(prev);
+      if (nueva <= 0) next.delete(fila.key);
+      else next.set(fila.key, Math.min(nueva, fila.cantidad));
+      return next;
+    });
   }
 
   // Si hay items seleccionados, el destino puede ser cualquier otra mesa
@@ -101,27 +113,46 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   // entera y ahí sí tiene que estar libre.
   const mesasDestinoOpciones = (todasMesas ?? []).filter((m) => {
     if (m.id === mesa.id) return false;
-    if (itemsSeleccionados.size > 0) return true;
+    if (cantidadesTransferir.size > 0) return true;
     return !estadoDeMesas?.has(m.id);
   });
 
   function cerrarTransferencia() {
     setTransfiriendo(false);
     setMesaDestino('');
-    setItemsSeleccionados(new Set());
+    setCantidadesTransferir(new Map());
     ultimaFilaRef.current = null;
+  }
+
+  // Si una fila tiene más cantidad de la elegida, hay que decidir de cuáles
+  // líneas (rondas) sacar las unidades -- se toma en orden hasta completar
+  // lo pedido; transferirItems del lado del servidor parte la última línea
+  // tocada si hace falta.
+  function partirLineas(lineas: { id: number; cantidad: number }[], cantidad: number) {
+    const resultado: { itemId: number; cantidad: number }[] = [];
+    let restante = cantidad;
+    for (const linea of lineas) {
+      if (restante <= 0) break;
+      const tomar = Math.min(restante, linea.cantidad);
+      resultado.push({ itemId: linea.id, cantidad: tomar });
+      restante -= tomar;
+    }
+    return resultado;
   }
 
   async function handleTransferir() {
     if (!pedido || !mesaDestino) return;
-    if (itemsSeleccionados.size === 0) {
+    if (cantidadesTransferir.size === 0) {
       await mutations.transferirMesa.mutateAsync({ pedidoId: pedido.id, mesaDestinoId: mesaDestino });
       onClose();
       return;
     }
     if (!turno || !mozoId) return;
+    const seleccion = filasTransferibles
+      .filter((f) => (cantidadesTransferir.get(f.key) ?? 0) > 0)
+      .flatMap((f) => partirLineas(f.lineas, cantidadesTransferir.get(f.key)!));
     await mutations.transferirItems.mutateAsync({
-      itemIds: [...itemsSeleccionados],
+      seleccion,
       origenPedidoId: pedido.id,
       mesaDestinoId: mesaDestino,
       turnoId: turno.id,
@@ -255,8 +286,9 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                     <FilaSeleccionable
                       key={fila.key}
                       fila={fila}
-                      seleccionada={fila.itemIds.every((id) => itemsSeleccionados.has(id))}
-                      onClick={(shiftKey) => toggleSeleccionFila(fila, i, shiftKey)}
+                      cantidadElegida={cantidadesTransferir.get(fila.key) ?? 0}
+                      onToggle={(shiftKey) => toggleSeleccionFila(fila, i, shiftKey)}
+                      onCambiarCantidad={(nueva) => cambiarCantidadFila(fila, nueva)}
                     />
                   ))
                 ) : (
@@ -277,8 +309,8 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                 {transfiriendo ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <p style={{ fontSize: 11.5, color: 'var(--text-dim)', margin: 0 }}>
-                      {itemsSeleccionados.size > 0
-                        ? `Se transfieren ${itemsSeleccionados.size} item(s) seleccionados.`
+                      {totalUnidadesSeleccionadas > 0
+                        ? `Se transfieren ${totalUnidadesSeleccionadas} unidad(es). Si un producto tiene más de 1, podés bajarle la cantidad con −/+.`
                         : 'Sin elegir nada se transfiere la mesa entera. Tocá los items para elegir solo algunos (shift+click para un rango).'}
                     </p>
                     <Select
@@ -304,7 +336,7 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                         disabled={!mesaDestino || mutations.transferirMesa.isPending || mutations.transferirItems.isPending}
                         onClick={handleTransferir}
                       >
-                        {itemsSeleccionados.size > 0 ? `🔀 Transferir ${itemsSeleccionados.size} item(s)` : '🔀 Transferir mesa completa'}
+                        {totalUnidadesSeleccionadas > 0 ? `🔀 Transferir ${totalUnidadesSeleccionadas} unidad(es)` : '🔀 Transferir mesa completa'}
                       </Button>
                     </div>
                     <Button variant="ghost" size="sm" onClick={cerrarTransferencia}>
@@ -396,7 +428,13 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
 // confuso. Ya no son editables desde acá (para eso está "Cancelar pedido" o
 // pedirle a cocina); lo nuevo que se agrega sigue siendo una fila aparte
 // hasta que se envía.
-type GrupoEnviado = { key: string; nombre: string; cantidad: number; entregado: boolean; itemIds: number[] };
+type GrupoEnviado = {
+  key: string;
+  nombre: string;
+  cantidad: number;
+  entregado: boolean;
+  lineas: { id: number; cantidad: number }[];
+};
 
 function agruparEnviados(items: ItemConProducto[]): GrupoEnviado[] {
   const grupos = new Map<string, GrupoEnviado>();
@@ -407,14 +445,14 @@ function agruparEnviados(items: ItemConProducto[]): GrupoEnviado[] {
     if (prev) {
       prev.cantidad += Number(it.cantidad);
       prev.entregado = prev.entregado && it.entregado;
-      prev.itemIds.push(it.id);
+      prev.lineas.push({ id: it.id, cantidad: Number(it.cantidad) });
     } else {
       grupos.set(key, {
         key,
         nombre: it.productos?.nombre ?? `Producto #${it.producto_id}`,
         cantidad: Number(it.cantidad),
         entregado: it.entregado,
-        itemIds: [it.id],
+        lineas: [{ id: it.id, cantidad: Number(it.cantidad) }],
       });
     }
   }
@@ -439,32 +477,53 @@ function ItemGrupoFila({ grupo }: { grupo: GrupoEnviado }) {
 
 function FilaSeleccionable({
   fila,
-  seleccionada,
-  onClick,
+  cantidadElegida,
+  onToggle,
+  onCambiarCantidad,
 }: {
   fila: GrupoEnviado;
-  seleccionada: boolean;
-  onClick: (shiftKey: boolean) => void;
+  cantidadElegida: number;
+  onToggle: (shiftKey: boolean) => void;
+  onCambiarCantidad: (nueva: number) => void;
 }) {
+  const seleccionada = cantidadElegida > 0;
   return (
     <div
       className="pedido-item"
-      role="checkbox"
-      aria-checked={seleccionada}
-      onClick={(e) => onClick(e.shiftKey)}
       style={{
-        cursor: 'pointer',
         borderColor: seleccionada ? 'var(--terracota)' : undefined,
         background: seleccionada ? 'var(--cream-deep)' : undefined,
       }}
     >
-      <div className="pedido-item-top">
+      <div
+        className="pedido-item-top"
+        role="checkbox"
+        aria-checked={seleccionada}
+        onClick={(e) => onToggle(e.shiftKey)}
+        style={{ cursor: 'pointer' }}
+      >
         <span className="pedido-item-nombre">
           <span style={{ marginRight: 8 }}>{seleccionada ? '☑️' : '⬜'}</span>
           {fila.nombre}
         </span>
         <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>x{fila.cantidad}</span>
       </div>
+      {seleccionada && fila.cantidad > 1 && (
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Transferir:</span>
+          <button className="pedido-qty-btn" onClick={() => onCambiarCantidad(cantidadElegida - 1)}>
+            −
+          </button>
+          <span style={{ minWidth: 14, textAlign: 'center' }}>{cantidadElegida}</span>
+          <button className="pedido-qty-btn" onClick={() => onCambiarCantidad(cantidadElegida + 1)}>
+            +
+          </button>
+          <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>de {fila.cantidad}</span>
+        </div>
+      )}
     </div>
   );
 }

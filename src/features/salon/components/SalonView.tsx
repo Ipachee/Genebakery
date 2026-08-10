@@ -13,17 +13,21 @@ type Salon = Database['public']['Tables']['salones']['Row'];
 
 const fmtMoney = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
+// Antes "abierto" (armando el pedido) era rojo y "entregado" (esperando
+// cobro) era verde con etiquetas distintas -- para el que mira el plano de
+// arriba, las dos son básicamente "la mesa está ocupada, no hace falta
+// prestarle atención". Se unifican en un solo verde "Mesa ocupada"; el azul
+// (enviado a cocina, sí necesita seguimiento) se mantiene aparte.
 const ESTADO_INFO: Record<EstadoMesa, { label: string; fill: string; strokeStrong: string }> = {
-  abierto: { label: 'Ocupada', fill: 'var(--red)', strokeStrong: '#8f271c' },
+  abierto: { label: 'Mesa ocupada', fill: 'var(--green)', strokeStrong: '#2f5b3b' },
   enviado_cocina: { label: 'Pedido enviado', fill: 'var(--blue)', strokeStrong: '#28495f' },
-  entregado: { label: 'Pedido entregado', fill: 'var(--green)', strokeStrong: '#2f5b3b' },
+  entregado: { label: 'Mesa ocupada', fill: 'var(--green)', strokeStrong: '#2f5b3b' },
 };
 
 const LEYENDA: { label: string; color: string }[] = [
   { label: 'Libre', color: 'var(--surface)' },
-  { label: 'Ocupada', color: 'var(--red)' },
+  { label: 'Mesa ocupada', color: 'var(--green)' },
   { label: 'Pedido enviado', color: 'var(--blue)' },
-  { label: 'Pedido entregado', color: 'var(--green)' },
   { label: 'Cobrando', color: 'var(--amber)' },
 ];
 
