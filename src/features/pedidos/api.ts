@@ -17,7 +17,7 @@ export async function fetchPedidoAbiertoDeMesa(mesaId: number) {
     .from('pedidos')
     .select('*, pedido_items(*, productos(*))')
     .eq('mesa_id', mesaId)
-    .in('estado', ['abierto', 'enviado_cocina'])
+    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -77,10 +77,15 @@ export async function enviarACocina(pedidoId: number) {
   if (e1) throw e1;
   const { error: e2 } = await supabase
     .from('pedidos')
-    .update({ estado: 'enviado_cocina' })
+    .update({ estado: 'enviado_cocina', enviado_at: new Date().toISOString() })
     .eq('id', pedidoId)
     .eq('estado', 'abierto');
   if (e2) throw e2;
+}
+
+export async function marcarEntregado(pedidoId: number) {
+  const { error } = await supabase.from('pedidos').update({ estado: 'entregado' }).eq('id', pedidoId);
+  if (error) throw error;
 }
 
 export async function cobrarPedido(params: {

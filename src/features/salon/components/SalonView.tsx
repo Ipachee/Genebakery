@@ -1,6 +1,7 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useAuth } from '../../../auth/useAuth';
-import { useMesas, useMesasOcupadas, useSalonMutations, useSalones } from '../hooks';
+import { useMesas, useEstadoDeMesas, useSalonMutations, useSalones, type EstadoMesa } from '../hooks';
+import { useTurnoActual } from '../../turnos/useTurnoActual';
 import { PedidoPanel } from '../../pedidos/components/PedidoPanel';
 import { Button } from '../../../components/Button';
 import { TextInput } from '../../../components/Field';
@@ -9,6 +10,22 @@ import type { Database } from '../../../lib/supabase/types';
 
 type Mesa = Database['public']['Tables']['mesas']['Row'];
 type Salon = Database['public']['Tables']['salones']['Row'];
+
+const fmtMoney = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+
+const ESTADO_INFO: Record<EstadoMesa, { label: string; fill: string; strokeStrong: string }> = {
+  abierto: { label: 'Ocupada', fill: 'var(--red)', strokeStrong: '#8f271c' },
+  enviado_cocina: { label: 'Pedido enviado', fill: 'var(--blue)', strokeStrong: '#28495f' },
+  entregado: { label: 'Pedido entregado', fill: 'var(--green)', strokeStrong: '#2f5b3b' },
+};
+
+const LEYENDA: { label: string; color: string }[] = [
+  { label: 'Libre', color: 'var(--surface)' },
+  { label: 'Ocupada', color: 'var(--red)' },
+  { label: 'Pedido enviado', color: 'var(--blue)' },
+  { label: 'Pedido entregado', color: 'var(--green)' },
+  { label: 'Cobrando', color: 'var(--amber)' },
+];
 
 // Elementos puramente decorativos del plano real del local: marcas de puertas
 // entre ambientes y la barra de Salón 1. No son editables (igual que en el
@@ -29,7 +46,8 @@ export function SalonView() {
   const { profile } = useAuth();
   const { data: salones, isLoading: loadingSalones, error: errorSalones } = useSalones();
   const { data: mesas, isLoading: loadingMesas, error: errorMesas } = useMesas();
-  const { data: ocupadas } = useMesasOcupadas();
+  const { data: estadoDeMesas } = useEstadoDeMesas();
+  const { turno, facturado } = useTurnoActual();
   const mutations = useSalonMutations();
 
   const [editando, setEditando] = useState(false);
@@ -56,6 +74,9 @@ export function SalonView() {
   const mesasVisibles = todasLasMesas.filter((m) =>
     m.mesa_padre_id != null ? true : !padresConHijos.has(m.id)
   );
+
+  const mesasOcupadasCount = mesasVisibles.filter((m) => estadoDeMesas?.has(m.id)).length;
+  const mesasLibresCount = mesasVisibles.length - mesasOcupadasCount;
 
   const maxX = Math.max(...salones.map((s) => s.x + s.w), BARRA.x + BARRA.w) + 20;
   const maxY = Math.max(...salones.map((s) => s.y + s.h)) + 20;
@@ -114,16 +135,30 @@ export function SalonView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--space-3)' }}>
+        <StatCard valor={mesasLibresCount} label="Mesas libres" />
+        <StatCard valor={mesasOcupadasCount} label="Mesas ocupadas" />
+        <StatCard valor={mesasOcupadasCount} label="Pedidos en curso" />
+        <StatCard valor={turno ? fmtMoney.format(facturado) : '—'} label="Facturado en este turno" />
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
-        <div style={{ display: 'flex', gap: 'var(--space-4)', fontSize: 12.5, color: 'var(--text-dim)' }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 11, height: 11, borderRadius: 3, background: 'var(--surface)', border: '1.5px solid var(--brown)', display: 'inline-block' }} />
-            Libre
-          </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 11, height: 11, borderRadius: 3, background: 'var(--terracota)', display: 'inline-block' }} />
-            Ocupada
-          </span>
+        <div style={{ display: 'flex', gap: 'var(--space-4)', fontSize: 12, color: 'var(--text-dim)', flexWrap: 'wrap' }}>
+          {LEYENDA.map((l) => (
+            <span key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 3,
+                  background: l.color,
+                  border: l.color === 'var(--surface)' ? '1.5px solid var(--brown)' : 'none',
+                  display: 'inline-block',
+                }}
+              />
+              {l.label}
+            </span>
+          ))}
         </div>
         {esAdmin && (
           <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
@@ -138,9 +173,22 @@ export function SalonView() {
               ✏️ {editando ? 'Terminar edición' : 'Editar plano'}
             </Button>
             {editando && (
-              <Button variant="secondary" size="sm" onClick={() => mutations.crearSalon.mutate('Nuevo salón')}>
-                + Salón
-              </Button>
+              <>
+                <Button variant="secondary" size="sm" onClick={() => mutations.crearSalon.mutate('Nuevo salón')}>
+                  + Salón
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    if (confirm('¿Restablecer el plano a la disposición original? Esto no borra mesas ni salones agregados.')) {
+                      mutations.restablecerPlano.mutate();
+                    }
+                  }}
+                >
+                  ↺ Restablecer
+                </Button>
+              </>
             )}
           </div>
         )}
@@ -216,10 +264,11 @@ export function SalonView() {
           {mesasVisibles.map((mesa) => {
             const p = posDe('mesa', mesa);
             const seleccionada = seleccion?.tipo === 'mesa' && seleccion.id === mesa.id;
-            const ocupada = ocupadas?.has(mesa.id) ?? false;
-            const fill = ocupada ? 'var(--terracota)' : 'var(--surface)';
-            const textColor = ocupada ? '#fff' : 'var(--brown-dark)';
-            const stroke = seleccionada ? 'var(--brown-dark)' : ocupada ? 'var(--terracota-dark)' : 'var(--brown)';
+            const estado = estadoDeMesas?.get(mesa.id);
+            const info = estado ? ESTADO_INFO[estado] : null;
+            const fill = info?.fill ?? 'var(--surface)';
+            const textColor = info ? '#fff' : 'var(--brown-dark)';
+            const stroke = seleccionada ? 'var(--brown-dark)' : (info?.strokeStrong ?? 'var(--brown)');
             return (
               <g
                 key={mesa.id}
@@ -383,4 +432,13 @@ function PanelEdicion({
   }
 
   return null;
+}
+
+function StatCard({ valor, label }: { valor: number | string; label: string }) {
+  return (
+    <div className="card card-pad" style={{ borderLeft: '3px solid var(--terracota)' }}>
+      <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1 }}>{valor}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>{label}</div>
+    </div>
+  );
 }

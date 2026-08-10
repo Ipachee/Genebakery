@@ -1,8 +1,15 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/useAuth';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
-import { pedidoMesaKey, usePedidoDeMesa, usePedidoMutations, useProductos, type PedidoConItems } from '../hooks';
+import {
+  pedidoMesaKey,
+  usePedidoDeMesa,
+  usePedidoMutations,
+  useProductos,
+  type ItemConProducto,
+  type PedidoConItems,
+} from '../hooks';
 import { useClientes } from '../../clientes/hooks';
 import { Button } from '../../../components/Button';
 import { Select } from '../../../components/Field';
@@ -102,7 +109,10 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     <div className="pedido-overlay" onClick={onClose}>
       <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
         <div className="pedido-modal-header">
-          <h3>Mesa {mesa.label ?? mesa.id}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h3>Mesa {mesa.label ?? mesa.id}</h3>
+            {pedido?.enviado_at && pedido.estado !== 'cobrado' && <Cronometro desde={pedido.enviado_at} />}
+          </div>
           <button className="pedido-close" onClick={onClose}>
             ✕
           </button>
@@ -152,6 +162,11 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                       <Button block disabled={!pedido || !hayPendientesDeCocina || enviando} onClick={handleEnviarCocina}>
                         🍳 Enviar a cocina
                       </Button>
+                      {pedido?.estado === 'enviado_cocina' && !hayPendientesDeCocina && (
+                        <Button block onClick={() => mutations.marcarEntregado.mutate(pedido.id)}>
+                          ✅ Entregado
+                        </Button>
+                      )}
                       <Button variant="success" block disabled={!pedido || items.length === 0} onClick={() => setCobrando(true)}>
                         💰 Cobrar
                       </Button>
@@ -197,9 +212,21 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   );
 }
 
-type ItemConProducto = Database['public']['Tables']['pedido_items']['Row'] & {
-  productos: Producto | null;
-};
+function Cronometro({ desde }: { desde: string }) {
+  const [ahora, setAhora] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setAhora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const segundos = Math.max(0, Math.floor((ahora - new Date(desde).getTime()) / 1000));
+  const mm = String(Math.floor(segundos / 60)).padStart(2, '0');
+  const ss = String(segundos % 60).padStart(2, '0');
+  return (
+    <span className="badge badge-accent" style={{ fontVariantNumeric: 'tabular-nums' }}>
+      ⏱ {mm}:{ss}
+    </span>
+  );
+}
 
 function ItemFila({
   item,

@@ -9,10 +9,19 @@ export function useMesas() {
   return useQuery({ queryKey: ['mesas'], queryFn: api.fetchMesas });
 }
 
-export function useMesasOcupadas() {
+export type EstadoMesa = 'abierto' | 'enviado_cocina' | 'entregado';
+
+export function useEstadoDeMesas() {
   return useQuery({
     queryKey: ['mesas-ocupadas'],
-    queryFn: async () => new Set((await api.fetchMesasOcupadas()).map((p) => p.mesa_id)),
+    queryFn: async () => {
+      const filas = await api.fetchEstadoDeMesas();
+      const map = new Map<number, EstadoMesa>();
+      for (const f of filas) {
+        if (f.mesa_id != null) map.set(f.mesa_id, f.estado as EstadoMesa);
+      }
+      return map;
+    },
     refetchInterval: 15000,
   });
 }
@@ -36,5 +45,6 @@ export function useSalonMutations() {
     borrarMesa: useMutation({ mutationFn: (id: number) => api.borrarMesa(id), onSuccess: invalidar }),
     dividirMesa: useMutation({ mutationFn: api.dividirMesa, onSuccess: invalidar }),
     unirMesa: useMutation({ mutationFn: (mesaPadreId: number) => api.unirMesa(mesaPadreId), onSuccess: invalidar }),
+    restablecerPlano: useMutation({ mutationFn: api.restablecerPlano, onSuccess: invalidar }),
   };
 }

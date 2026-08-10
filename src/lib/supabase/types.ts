@@ -413,6 +413,7 @@ export type Database = {
           created_at: string
           deleted_at: string | null
           descuento: number
+          enviado_at: string | null
           estado: string
           id: number
           mesa_id: number | null
@@ -428,6 +429,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           descuento?: number
+          enviado_at?: string | null
           estado?: string
           id?: never
           mesa_id?: number | null
@@ -443,6 +445,7 @@ export type Database = {
           created_at?: string
           deleted_at?: string | null
           descuento?: number
+          enviado_at?: string | null
           estado?: string
           id?: never
           mesa_id?: number | null

@@ -80,9 +80,21 @@ export function usePedidoMutations(mesaId: number) {
       onSuccess: () => {
         patch((prev) =>
           prev
-            ? { ...prev, estado: 'enviado_cocina', pedido_items: prev.pedido_items.map((it) => ({ ...it, enviado_cocina: true })) }
+            ? {
+                ...prev,
+                estado: 'enviado_cocina',
+                enviado_at: prev.enviado_at ?? new Date().toISOString(),
+                pedido_items: prev.pedido_items.map((it) => ({ ...it, enviado_cocina: true })),
+              }
             : prev
         );
+        invalidarSecundarios();
+      },
+    }),
+    marcarEntregado: useMutation({
+      mutationFn: (pedidoId: number) => api.marcarEntregado(pedidoId),
+      onSuccess: () => {
+        patch((prev) => (prev ? { ...prev, estado: 'entregado' } : prev));
         invalidarSecundarios();
       },
     }),

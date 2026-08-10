@@ -19,11 +19,11 @@ export async function fetchMesas() {
   return data;
 }
 
-export async function fetchMesasOcupadas() {
+export async function fetchEstadoDeMesas() {
   const { data, error } = await supabase
     .from('pedidos')
-    .select('mesa_id')
-    .in('estado', ['abierto', 'enviado_cocina'])
+    .select('mesa_id, estado')
+    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
     .is('deleted_at', null)
     .not('mesa_id', 'is', null);
   if (error) throw error;
@@ -90,7 +90,7 @@ async function mesasConPedidoActivo(mesaIds: number[]) {
     .from('pedidos')
     .select('mesa_id')
     .in('mesa_id', mesaIds)
-    .in('estado', ['abierto', 'enviado_cocina'])
+    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
     .is('deleted_at', null);
   if (error) throw error;
   return (data ?? []).length > 0;
@@ -123,6 +123,44 @@ export async function dividirMesa(mesa: { id: number; salon_id: number; x: numbe
     },
   ]);
   if (error) throw error;
+}
+
+// Layout real del local tal como se cargo en el seed inicial (supabase/seeds/01-plano.sql).
+// "Restablecer" vuelve las posiciones/tamaños originales sin borrar nada
+// agregado despues (mesas nuevas, salones nuevos).
+const SALONES_ORIGINALES: Record<number, { x: number; y: number; w: number; h: number }> = {
+  1: { x: 10, y: 10, w: 290, h: 195 },
+  2: { x: 305, y: 10, w: 345, h: 280 },
+  3: { x: 655, y: 10, w: 460, h: 280 },
+  4: { x: 10, y: 210, w: 290, h: 110 },
+  5: { x: 120, y: 325, w: 95, h: 105 },
+  6: { x: 10, y: 410, w: 105, h: 75 },
+  7: { x: 655, y: 195, w: 65, h: 95 },
+};
+const MESAS_ORIGINALES: Record<number, { x: number; y: number; w: number; h: number }> = {
+  1: { x: 1030, y: 100, w: 55, h: 55 },
+  2: { x: 900, y: 20, w: 55, h: 55 },
+  3: { x: 712, y: 95, w: 55, h: 55 },
+  4: { x: 555, y: 40, w: 68, h: 46 },
+  5: { x: 310, y: 35, w: 55, h: 55 },
+  6: { x: 310, y: 105, w: 68, h: 46 },
+  7: { x: 505, y: 215, w: 55, h: 55 },
+  8: { x: 370, y: 215, w: 55, h: 55 },
+  9: { x: 215, y: 78, w: 68, h: 46 },
+  10: { x: 25, y: 45, w: 68, h: 46 },
+  11: { x: 30, y: 128, w: 68, h: 46 },
+  12: { x: 165, y: 240, w: 55, h: 55 },
+};
+
+export async function restablecerPlano() {
+  await Promise.all([
+    ...Object.entries(SALONES_ORIGINALES).map(([id, pos]) =>
+      supabase.from('salones').update(pos).eq('id', Number(id))
+    ),
+    ...Object.entries(MESAS_ORIGINALES).map(([id, pos]) =>
+      supabase.from('mesas').update(pos).eq('id', Number(id))
+    ),
+  ]);
 }
 
 export async function unirMesa(mesaPadreId: number) {
