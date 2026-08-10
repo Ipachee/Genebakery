@@ -154,14 +154,16 @@ export function generarPdfCierre(params: {
     doc.setFillColor(...COLOR.cream);
     doc.roundedRect(listaX, y, listaW, 60, 2, 2, 'F');
     let ly = y + 10;
+    const totalMetodos = [...porMetodo.values()].reduce((s, v) => s + v, 0) || 1;
     [...porMetodo.entries()].forEach(([metodo, total], i) => {
       const rgb = hexRgb(COLORES_METODO[i % COLORES_METODO.length]);
+      const pct = Math.round((total / totalMetodos) * 100);
       doc.setFillColor(...rgb);
       doc.roundedRect(listaX + 5, ly - 3.4, 4, 4, 1, 1, 'F');
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9.5);
       doc.setTextColor(...COLOR.brownDark);
-      doc.text(metodo, listaX + 12, ly);
+      doc.text(`${metodo} (${pct}%)`, listaX + 12, ly);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...COLOR.terracotaDark);
       doc.text(fmt.format(total), listaX + listaW - 5, ly, { align: 'right' });
