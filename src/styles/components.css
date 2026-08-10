@@ -63,6 +63,23 @@
 }
 .card-pad { padding: var(--space-5); }
 
+/* ---------- Tarjetas de stats (Salón, Cierre de turno) ---------- */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); }
+.stat-card { border-left: 3px solid var(--terracota); }
+.stat-card-value { font-size: 22px; font-weight: 700; line-height: 1.15; color: var(--terracota-dark); }
+.stat-card-label { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+@media (max-width: 560px) {
+  .stat-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .stat-card.card-pad { padding: 8px 6px; }
+  .stat-card-value { font-size: 14px; }
+  .stat-card-label { font-size: 8.5px; line-height: 1.25; }
+
+  table.data-table { font-size: 12px; }
+  table.data-table thead th,
+  table.data-table tbody td { padding: 7px 8px; }
+}
+
 /* ---------- Inputs ---------- */
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field-label {

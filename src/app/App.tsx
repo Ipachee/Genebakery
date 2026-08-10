@@ -10,6 +10,7 @@ import { AjustesView } from '../features/ajustes/components/AjustesView';
 import { TurnoProvider } from '../features/turnos/TurnoContext';
 import { TurnoBadge } from '../features/turnos/components/TurnoBadge';
 import { useTurnoActual } from '../features/turnos/useTurnoActual';
+import { useNuevaVersion } from './useNuevaVersion';
 import { Button } from '../components/Button';
 import './shell.css';
 
@@ -20,14 +21,60 @@ export function App() {
     return <p style={{ padding: 24 }}>Cargando…</p>;
   }
 
-  if (!session) {
-    return <LoginScreen />;
-  }
-
   return (
-    <TurnoProvider>
-      <Shell />
-    </TurnoProvider>
+    <>
+      {!session ? (
+        <LoginScreen />
+      ) : (
+        <TurnoProvider>
+          <Shell />
+        </TurnoProvider>
+      )}
+      <BannerNuevaVersion />
+    </>
+  );
+}
+
+function BannerNuevaVersion() {
+  const hayNueva = useNuevaVersion();
+  if (!hayNueva) return null;
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 200,
+        background: 'var(--brown-dark)',
+        color: '#fff',
+        padding: '10px 16px',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 12,
+        fontSize: 12.5,
+        flexWrap: 'wrap',
+        boxShadow: 'var(--shadow-lg)',
+      }}
+    >
+      <span>Hay una versión nueva de ComandaCafé.</span>
+      <button
+        onClick={() => window.location.reload()}
+        style={{
+          background: 'var(--terracota)',
+          color: '#fff',
+          border: 'none',
+          borderRadius: 6,
+          padding: '6px 14px',
+          fontWeight: 700,
+          fontSize: 12.5,
+          cursor: 'pointer',
+        }}
+      >
+        ↺ Actualizar
+      </button>
+    </div>
   );
 }
 

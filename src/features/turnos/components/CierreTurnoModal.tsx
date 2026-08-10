@@ -106,18 +106,18 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
             {turno.etiqueta} · {new Date(turno.abierto_at).toLocaleDateString('es-AR')}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-3)' }}>
-            <div className="card card-pad" style={{ borderLeft: '3px solid var(--terracota)' }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--terracota-dark)' }}>{ventas?.length ?? 0}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>Mesas cobradas</div>
+          <div className="stat-grid">
+            <div className="card card-pad stat-card">
+              <div className="stat-card-value">{ventas?.length ?? 0}</div>
+              <div className="stat-card-label">Mesas cobradas</div>
             </div>
-            <div className="card card-pad" style={{ borderLeft: '3px solid var(--terracota)' }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--terracota-dark)' }}>{fmt.format(facturado)}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>Total facturado</div>
+            <div className="card card-pad stat-card">
+              <div className="stat-card-value">{fmt.format(facturado)}</div>
+              <div className="stat-card-label">Total facturado</div>
             </div>
-            <div className="card card-pad" style={{ borderLeft: '3px solid var(--terracota)' }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--terracota-dark)' }}>{mesasPendientes?.length ?? 0}</div>
-              <div style={{ fontSize: 11.5, color: 'var(--text-dim)' }}>Mesas pendientes</div>
+            <div className="card card-pad stat-card">
+              <div className="stat-card-value">{mesasPendientes?.length ?? 0}</div>
+              <div className="stat-card-label">Mesas pendientes</div>
             </div>
           </div>
 

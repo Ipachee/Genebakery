@@ -135,7 +135,7 @@ export function SalonView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 'var(--space-3)' }}>
+      <div className="stat-grid">
         <StatCard valor={mesasLibresCount} label="Mesas libres" />
         <StatCard valor={mesasOcupadasCount} label="Mesas ocupadas" />
         <StatCard valor={mesasOcupadasCount} label="Pedidos en curso" />
@@ -436,9 +436,9 @@ function PanelEdicion({
 
 function StatCard({ valor, label }: { valor: number | string; label: string }) {
   return (
-    <div className="card card-pad" style={{ borderLeft: '3px solid var(--terracota)' }}>
-      <div style={{ fontSize: 22, fontWeight: 700, lineHeight: 1.1, color: 'var(--terracota-dark)' }}>{valor}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>{label}</div>
+    <div className="card card-pad stat-card">
+      <div className="stat-card-value">{valor}</div>
+      <div className="stat-card-label">{label}</div>
     </div>
   );
 }

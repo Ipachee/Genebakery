@@ -60,6 +60,14 @@
   .pedido-cart { flex: 1 1 60%; min-height: 0; }
 }
 
+@media (max-width: 560px) {
+  .pedido-overlay { padding: 0; align-items: flex-end; }
+  .pedido-modal { max-height: 96svh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .pedido-modal-header { padding: var(--space-3) var(--space-4); }
+  .pedido-modal-header h3 { font-size: 14.5px; }
+  .pedido-menu, .pedido-cart { padding: var(--space-3); }
+}
+
 .pedido-cat-tabs { display: flex; gap: 4px; margin-bottom: var(--space-3); background: var(--surface-sunken); padding: 3px; border-radius: var(--radius-sm); width: fit-content; }
 .pedido-cat-tab { padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: 600; color: var(--text-dim); border: none; background: transparent; }
 .pedido-cat-tab.active { background: var(--surface-raised); color: var(--brown-dark); box-shadow: var(--shadow-sm); }
