@@ -37,23 +37,30 @@ export async function crearPedido(mesaId: number, turnoId: number, mozoId: strin
 }
 
 export async function agregarItem(pedidoId: number, productoId: number, precioUnitario: number, nota: string) {
-  const { error } = await supabase.from('pedido_items').insert({
-    pedido_id: pedidoId,
-    producto_id: productoId,
-    precio_unitario: precioUnitario,
-    nota: nota || null,
-  });
+  const { data, error } = await supabase
+    .from('pedido_items')
+    .insert({ pedido_id: pedidoId, producto_id: productoId, precio_unitario: precioUnitario, nota: nota || null })
+    .select('*, productos(*)')
+    .single();
   if (error) throw error;
+  return data;
 }
 
 export async function actualizarCantidadItem(itemId: number, cantidad: number) {
-  const { error } = await supabase.from('pedido_items').update({ cantidad }).eq('id', itemId);
+  const { data, error } = await supabase.from('pedido_items').update({ cantidad }).eq('id', itemId).select('*, productos(*)').single();
   if (error) throw error;
+  return data;
 }
 
 export async function actualizarNotaItem(itemId: number, nota: string) {
-  const { error } = await supabase.from('pedido_items').update({ nota: nota || null }).eq('id', itemId);
+  const { data, error } = await supabase
+    .from('pedido_items')
+    .update({ nota: nota || null })
+    .eq('id', itemId)
+    .select('*, productos(*)')
+    .single();
   if (error) throw error;
+  return data;
 }
 
 export async function quitarItem(itemId: number) {

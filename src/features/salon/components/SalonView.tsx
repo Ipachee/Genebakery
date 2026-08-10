@@ -330,6 +330,11 @@ function PanelEdicion({
             Unir mesa
           </Button>
         )}
+        {(mutations.dividirMesa.isError || mutations.unirMesa.isError) && (
+          <p style={{ color: 'var(--red)', fontSize: 11.5, margin: 0 }}>
+            {(mutations.dividirMesa.error ?? mutations.unirMesa.error)?.message}
+          </p>
+        )}
         <Button
           variant="danger"
           size="sm"

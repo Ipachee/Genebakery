@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/useAuth';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
-import { usePedidoDeMesa, usePedidoMutations, useProductos } from '../hooks';
+import { pedidoMesaKey, usePedidoDeMesa, usePedidoMutations, useProductos, type PedidoConItems } from '../hooks';
 import { useClientes } from '../../clientes/hooks';
 import { Button } from '../../../components/Button';
 import { Select } from '../../../components/Field';
@@ -29,6 +30,8 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const { data: pedido, isLoading } = usePedidoDeMesa(mesa.id);
   const { data: clientes } = useClientes();
   const mutations = usePedidoMutations(mesa.id);
+  const qc = useQueryClient();
+  const colaRef = useRef<Promise<void>>(Promise.resolve());
 
   const [categoria, setCategoria] = useState<Producto['categoria']>('bebida');
   const [cobrando, setCobrando] = useState(false);
@@ -43,14 +46,32 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const descuento = clienteSeleccionado ? Math.round(subtotal * (Number(clienteSeleccionado.descuento_pct) / 100)) : 0;
   const total = subtotal - descuento;
 
-  async function agregarProducto(producto: Producto) {
+  // Clickear rápido en el mismo producto no debe crear una fila nueva por
+  // click (debe sumar cantidad a la línea existente) ni disparar dos
+  // pedidos para la misma mesa si el primer click todavía está creando el
+  // pedido. Por eso cada click se encola: el siguiente no arranca hasta que
+  // el anterior terminó su round-trip, y cada paso relee la cache fresca
+  // (no el `pedido` capturado en el cierre del render, que puede estar
+  // desactualizado a mitad de una tanda de clicks).
+  function agregarProducto(producto: Producto) {
+    colaRef.current = colaRef.current.then(() => procesarAgregado(producto));
+  }
+
+  async function procesarAgregado(producto: Producto) {
     if (!turno || !mozoId) return;
-    let pedidoId = pedido?.id;
+    const actual = qc.getQueryData<PedidoConItems | null>(pedidoMesaKey(mesa.id));
+    let pedidoId = actual?.id;
     if (!pedidoId) {
       const nuevo = await mutations.crearPedido.mutateAsync({ turnoId: turno.id, mozoId });
       pedidoId = nuevo.id;
     }
-    await mutations.agregarItem.mutateAsync({ pedidoId, productoId: producto.id, precio: producto.precio, nota: '' });
+    const conPedido = qc.getQueryData<PedidoConItems | null>(pedidoMesaKey(mesa.id));
+    const existente = conPedido?.pedido_items.find((it) => it.producto_id === producto.id && !it.enviado_cocina);
+    if (existente) {
+      await mutations.actualizarCantidad.mutateAsync({ itemId: existente.id, cantidad: Number(existente.cantidad) + 1 });
+    } else {
+      await mutations.agregarItem.mutateAsync({ pedidoId, productoId: producto.id, precio: producto.precio, nota: '' });
+    }
   }
 
   async function handleEnviarCocina() {

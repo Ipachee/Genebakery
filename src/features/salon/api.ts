@@ -85,7 +85,21 @@ export async function borrarMesa(id: number) {
   if (error) throw error;
 }
 
+async function mesasConPedidoActivo(mesaIds: number[]) {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select('mesa_id')
+    .in('mesa_id', mesaIds)
+    .in('estado', ['abierto', 'enviado_cocina'])
+    .is('deleted_at', null);
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
 export async function dividirMesa(mesa: { id: number; salon_id: number; x: number; y: number }) {
+  if (await mesasConPedidoActivo([mesa.id])) {
+    throw new Error('No se puede dividir: la mesa tiene un pedido activo. Cobralo o cancelalo primero.');
+  }
   const { error } = await supabase.from('mesas').insert([
     {
       salon_id: mesa.salon_id,
@@ -112,6 +126,16 @@ export async function dividirMesa(mesa: { id: number; salon_id: number; x: numbe
 }
 
 export async function unirMesa(mesaPadreId: number) {
+  const { data: hijas, error: e1 } = await supabase
+    .from('mesas')
+    .select('id')
+    .eq('mesa_padre_id', mesaPadreId)
+    .is('deleted_at', null);
+  if (e1) throw e1;
+  const hijaIds = (hijas ?? []).map((h) => h.id);
+  if (hijaIds.length && (await mesasConPedidoActivo(hijaIds))) {
+    throw new Error('No se puede unir: una de las mitades tiene un pedido activo. Cobralo o cancelalo primero.');
+  }
   const { error } = await supabase
     .from('mesas')
     .update({ deleted_at: new Date().toISOString() })
