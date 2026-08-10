@@ -98,13 +98,18 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     setEnviando(false);
   }
 
-  // Cerrar el panel sin haber mandado nada a cocina (ni cobrado) descarta el
-  // carrito entero: es solo un borrador hasta que se confirma con "Enviar a
-  // cocina". Si no, la mesa quedaba marcada "ocupada" con un pedido a medio
-  // armar que nadie iba a retomar.
+  // Cerrar el panel sin mandar a cocina descarta lo que quedó sin enviar --
+  // es solo un borrador hasta confirmar con "Enviar a cocina". Esto aplica
+  // aunque la mesa ya tenga rondas anteriores confirmadas (no alcanzaba con
+  // revisar si el pedido entero era nuevo: agregar un producto a una mesa
+  // que YA tenía historial y cerrar sin enviar dejaba ese producto pegado
+  // ahí para siempre, apareciendo recién la próxima vez que se mandara algo
+  // a cocina).
   function handleClose() {
-    if (pedido && pedido.estado === 'abierto') {
-      mutations.cancelarPedido.mutate(pedido.id);
+    if (pedido) {
+      for (const it of pedido.pedido_items) {
+        if (!it.enviado_cocina) mutations.quitarItem.mutate(it.id);
+      }
     }
     onClose();
   }

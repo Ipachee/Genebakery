@@ -102,7 +102,7 @@ function Shell() {
       </header>
       <main className="shell-main">
         {bloqueadoPorTurno ? (
-          <TurnoBloqueado mensaje={turnoError!} onReintentar={reintentarTurno} />
+          <TurnoBloqueado mensaje={turnoError!} onReintentar={reintentarTurno} onVolverATurnos={signOut} />
         ) : (
           <>
             {vista === 'admin' && esAdmin && <AdminPanel />}
@@ -116,7 +116,15 @@ function Shell() {
   );
 }
 
-function TurnoBloqueado({ mensaje, onReintentar }: { mensaje: string; onReintentar: () => void }) {
+function TurnoBloqueado({
+  mensaje,
+  onReintentar,
+  onVolverATurnos,
+}: {
+  mensaje: string;
+  onReintentar: () => void;
+  onVolverATurnos: () => void;
+}) {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 16px' }}>
       <div className="card card-pad" style={{ maxWidth: 440, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -124,10 +132,13 @@ function TurnoBloqueado({ mensaje, onReintentar }: { mensaje: string; onReintent
         <h3 style={{ margin: 0 }}>No se pudo abrir el turno</h3>
         <p style={{ margin: 0, color: 'var(--red)', fontSize: 13.5, fontWeight: 600 }}>{mensaje}</p>
         <p style={{ margin: 0, color: 'var(--text-dim)', fontSize: 12.5 }}>
-          Salí y entrá con la cuenta de ese turno para cerrarlo desde ahí. Después volvé a entrar con esta cuenta.
+          Entrá con la cuenta de ese turno para cerrarlo desde ahí. Después volvé a entrar con esta cuenta.
         </p>
-        <div>
-          <Button onClick={onReintentar}>↺ Reintentar</Button>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+          <Button onClick={onVolverATurnos}>↩ Volver a turnos</Button>
+          <Button variant="secondary" onClick={onReintentar}>
+            ↺ Reintentar
+          </Button>
         </div>
       </div>
     </div>
