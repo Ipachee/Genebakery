@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useTurnoActual } from '../useTurnoActual';
 import { CierreTurnoModal } from './CierreTurnoModal';
-
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+import { fmtMoney as fmt } from '../../../lib/format';
 
 export function TurnoBadge() {
   const { turno, facturado, loading, reabrirTurno } = useTurnoActual();

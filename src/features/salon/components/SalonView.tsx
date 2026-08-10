@@ -6,12 +6,12 @@ import { PedidoPanel } from '../../pedidos/components/PedidoPanel';
 import { Button } from '../../../components/Button';
 import { TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
+import { useConfirm } from '../../../components/ConfirmDialog';
+import { fmtMoney } from '../../../lib/format';
 import type { Database } from '../../../lib/supabase/types';
 
 type Mesa = Database['public']['Tables']['mesas']['Row'];
 type Salon = Database['public']['Tables']['salones']['Row'];
-
-const fmtMoney = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
 // Antes "abierto" (armando el pedido) era rojo y "entregado" (esperando
 // cobro) era verde con etiquetas distintas -- para el que mira el plano de
@@ -60,6 +60,7 @@ export function SalonView() {
   const [posOverride, setPosOverride] = useState<Record<string, { x: number; y: number }>>({});
   const [mesaParaPedido, setMesaParaPedido] = useState<Mesa | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const { confirm, dialog } = useConfirm();
 
   const esAdmin = profile?.rol === 'admin';
 
@@ -184,8 +185,8 @@ export function SalonView() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => {
-                    if (confirm('¿Restablecer el plano a la disposición original? Esto no borra mesas ni salones agregados.')) {
+                  onClick={async () => {
+                    if (await confirm('¿Restablecer el plano a la disposición original? Esto no borra mesas ni salones agregados.', { danger: false })) {
                       mutations.restablecerPlano.mutate();
                     }
                   }}
@@ -335,6 +336,7 @@ export function SalonView() {
       {mesaParaPedido && (
         <PedidoPanel mesa={mesaParaPedido} onClose={() => setMesaParaPedido(null)} />
       )}
+      {dialog}
     </div>
   );
 }

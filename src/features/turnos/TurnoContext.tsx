@@ -2,7 +2,6 @@ import { createContext, type ReactNode } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { etiquetaPorEmail } from '../auth/accounts';
 import {
-  useCerrarTurno,
   useFacturadoTurno,
   useReabrirTurno,
   useResolverTurno,
@@ -18,7 +17,6 @@ type TurnoContextValue = {
   loading: boolean;
   error: string | null;
   reintentar: () => void;
-  cerrarTurno: () => void;
   reabrirTurno: () => void;
 };
 
@@ -32,7 +30,6 @@ export function TurnoProvider({ children }: { children: ReactNode }) {
   const { turnoId, resolviendo, error, reintentar } = useResolverTurno(etiqueta, userId);
   const { data: turno, isLoading: cargandoTurno } = useTurno(turnoId);
   const { data: facturado = 0 } = useFacturadoTurno(turnoId);
-  const cerrar = useCerrarTurno(turnoId);
   const reabrir = useReabrirTurno(turnoId);
 
   const value: TurnoContextValue = {
@@ -41,7 +38,6 @@ export function TurnoProvider({ children }: { children: ReactNode }) {
     loading: etiqueta != null && (resolviendo || cargandoTurno),
     error,
     reintentar,
-    cerrarTurno: () => cerrar.mutate(),
     reabrirTurno: () => reabrir.mutate(),
   };
 

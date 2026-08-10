@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase/client';
+import { ESTADOS_PEDIDO_ACTIVO } from '../../lib/pedidoConstantes';
 
 // Visible sin login (RLS bypaseado a proposito en la vista): solo etiqueta +
 // estado, para mostrar en la pantalla de inicio de sesion cual turno esta
@@ -15,30 +16,8 @@ export async function resolverTurno(etiqueta: string, usuarioId: string) {
   return data;
 }
 
-export async function fetchUltimoTurno(etiqueta: string) {
-  const { data, error } = await supabase
-    .from('turnos')
-    .select('*')
-    .eq('etiqueta', etiqueta)
-    .order('abierto_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data;
-}
-
 export async function fetchTurnoPorId(id: number) {
   const { data, error } = await supabase.from('turnos').select('*').eq('id', id).single();
-  if (error) throw error;
-  return data;
-}
-
-export async function abrirTurno(etiqueta: string, userId: string) {
-  const { data, error } = await supabase
-    .from('turnos')
-    .insert({ etiqueta, abierto_por: userId })
-    .select()
-    .single();
   if (error) throw error;
   return data;
 }
@@ -93,7 +72,7 @@ export async function fetchMesasPendientesDelTurno(_turnoId: number) {
   const { data, error } = await supabase
     .from('pedidos')
     .select('mesa_id, estado, mesas(label)')
-    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
+    .in('estado', ESTADOS_PEDIDO_ACTIVO)
     .is('deleted_at', null);
   if (error) throw error;
   return data;

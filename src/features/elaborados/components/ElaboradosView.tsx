@@ -7,8 +7,7 @@ import { Select, TextInput } from '../../../components/Field';
 import { Badge } from '../../../components/Badge';
 import { EmptyState } from '../../../components/EmptyState';
 import { Card } from '../../../components/Card';
-
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 });
+import { fmtMoneyDecimal as fmt } from '../../../lib/format';
 
 export function ElaboradosView() {
   const { session } = useAuth();

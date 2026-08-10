@@ -4,9 +4,8 @@ import { DataTable } from '../../../components/DataTable';
 import { Button } from '../../../components/Button';
 import { Select } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
-
-const METODOS = ['Efectivo', 'Tarjeta', 'Transferencia'];
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+import { fmtMoney as fmt } from '../../../lib/format';
+import { METODOS_PAGO } from '../../../lib/pedidoConstantes';
 
 export function VentasView() {
   const { data: ventas, isLoading } = useVentas();
@@ -45,7 +44,7 @@ export function VentasView() {
                     onChange={(e) => actualizarMetodoPago.mutate({ id: v.id, metodoPago: e.target.value })}
                     style={{ padding: '5px 8px', fontSize: 12.5 }}
                   >
-                    {METODOS.map((m) => (
+                    {METODOS_PAGO.map((m) => (
                       <option key={m} value={m}>
                         {m}
                       </option>

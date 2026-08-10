@@ -12,11 +12,11 @@ import { usePerfilNegocio } from '../../negocio/hooks';
 import { generarPdfCierre } from '../cierrePdf';
 import { Button } from '../../../components/Button';
 import { TextInput } from '../../../components/Field';
+import { fmtMoney as fmt } from '../../../lib/format';
 import type { Database } from '../../../lib/supabase/types';
 
 type Turno = Database['public']['Tables']['turnos']['Row'];
 
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: () => void }) {

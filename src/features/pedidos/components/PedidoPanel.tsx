@@ -1,37 +1,24 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/useAuth';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
-import {
-  pedidoMesaKey,
-  usePedidoDeMesa,
-  usePedidoMutations,
-  useProductos,
-  type ItemConProducto,
-  type PedidoConItems,
-} from '../hooks';
+import { pedidoMesaKey, usePedidoDeMesa, usePedidoMutations, useProductos, type PedidoConItems } from '../hooks';
 import { useClientes } from '../../clientes/hooks';
 import { useMesas, useEstadoDeMesas } from '../../salon/hooks';
-import { Button } from '../../../components/Button';
-import { Badge } from '../../../components/Badge';
-import { Select } from '../../../components/Field';
+import { agruparEnviados, partirLineas, type GrupoEnviado } from '../transferencia';
+import { useConfirm } from '../../../components/ConfirmDialog';
+import { Cronometro } from './Cronometro';
+import { PedidoMenu } from './PedidoMenu';
+import { PedidoCarrito } from './PedidoCarrito';
+import { PedidoFooterAcciones } from './PedidoFooterAcciones';
+import { PedidoFooterCobro } from './PedidoFooterCobro';
+import { PedidoFooterTransferir } from './PedidoFooterTransferir';
 import { EmptyState } from '../../../components/EmptyState';
 import type { Database } from '../../../lib/supabase/types';
 import './PedidoPanel.css';
 
 type Mesa = Database['public']['Tables']['mesas']['Row'];
 type Producto = Database['public']['Tables']['productos']['Row'];
-
-const CATEGORIAS: { id: Producto['categoria']; label: string }[] = [
-  { id: 'bebida', label: 'Bebidas' },
-  { id: 'comida', label: 'Comidas' },
-  { id: 'pasteleria', label: 'Pastelería' },
-  { id: 'noche', label: 'Noche' },
-];
-
-const METODOS = ['Efectivo', 'Tarjeta', 'Transferencia'];
-
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
 export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void }) {
   const { session } = useAuth();
@@ -44,6 +31,7 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const mutations = usePedidoMutations(mesa.id);
   const qc = useQueryClient();
   const colaRef = useRef<Promise<void>>(Promise.resolve());
+  const { confirm, dialog } = useConfirm();
 
   const [categoria, setCategoria] = useState<Producto['categoria']>('bebida');
   const [cobrando, setCobrando] = useState(false);
@@ -70,13 +58,15 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   // un rango entre la última fila clickeada y la actual.
   const filasTransferibles: GrupoEnviado[] = [
     ...agruparEnviados(items),
-    ...items.filter((it) => !it.enviado_cocina).map((it) => ({
-      key: `suelto-${it.id}`,
-      nombre: it.productos?.nombre ?? `Producto #${it.producto_id}`,
-      cantidad: Number(it.cantidad),
-      entregado: false,
-      lineas: [{ id: it.id, cantidad: Number(it.cantidad) }],
-    })),
+    ...items
+      .filter((it) => !it.enviado_cocina)
+      .map((it) => ({
+        key: `suelto-${it.id}`,
+        nombre: it.productos?.nombre ?? `Producto #${it.producto_id}`,
+        cantidad: Number(it.cantidad),
+        entregado: false,
+        lineas: [{ id: it.id, cantidad: Number(it.cantidad) }],
+      })),
   ];
   const totalUnidadesSeleccionadas = [...cantidadesTransferir.values()].reduce((s, n) => s + n, 0);
 
@@ -122,22 +112,6 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     setMesaDestino('');
     setCantidadesTransferir(new Map());
     ultimaFilaRef.current = null;
-  }
-
-  // Si una fila tiene más cantidad de la elegida, hay que decidir de cuáles
-  // líneas (rondas) sacar las unidades -- se toma en orden hasta completar
-  // lo pedido; transferirItems del lado del servidor parte la última línea
-  // tocada si hace falta.
-  function partirLineas(lineas: { id: number; cantidad: number }[], cantidad: number) {
-    const resultado: { itemId: number; cantidad: number }[] = [];
-    let restante = cantidad;
-    for (const linea of lineas) {
-      if (restante <= 0) break;
-      const tomar = Math.min(restante, linea.cantidad);
-      resultado.push({ itemId: linea.id, cantidad: tomar });
-      restante -= tomar;
-    }
-    return resultado;
   }
 
   async function handleTransferir() {
@@ -238,6 +212,14 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     onClose();
   }
 
+  async function handleCancelarPedido() {
+    if (!pedido) return;
+    if (await confirm('¿Cancelar todo el pedido de esta mesa? Se borra todo lo agregado.')) {
+      mutations.cancelarPedido.mutate(pedido.id);
+      onClose();
+    }
+  }
+
   return (
     <div className="pedido-overlay" onClick={handleClose}>
       <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
@@ -255,335 +237,65 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
           <EmptyState>Necesitás un turno abierto para tomar pedidos.</EmptyState>
         ) : (
           <div className="pedido-body">
-            <div className="pedido-menu">
-              <div className="pedido-cat-tabs">
-                {CATEGORIAS.map((c) => (
-                  <button key={c.id} className={`pedido-cat-tab ${categoria === c.id ? 'active' : ''}`} onClick={() => setCategoria(c.id)}>
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-              <div className="pedido-producto-list">
-                {productos
-                  ?.filter((p) => p.categoria === categoria)
-                  .map((p) => (
-                    <button key={p.id} className="pedido-producto-btn" onClick={() => agregarProducto(p)}>
-                      <span>{p.nombre}</span>
-                      <span className="pedido-producto-precio">{fmt.format(p.precio)}</span>
-                    </button>
-                  ))}
-              </div>
-            </div>
+            <PedidoMenu productos={productos} categoria={categoria} onCategoria={setCategoria} onAgregar={agregarProducto} />
 
             <div className="pedido-cart">
               <div className="pedido-cart-items">
-                {isLoading ? (
-                  <EmptyState>Cargando…</EmptyState>
-                ) : items.length === 0 ? (
-                  <EmptyState>Todavía no agregaste nada.</EmptyState>
-                ) : transfiriendo ? (
-                  filasTransferibles.map((fila, i) => (
-                    <FilaSeleccionable
-                      key={fila.key}
-                      fila={fila}
-                      cantidadElegida={cantidadesTransferir.get(fila.key) ?? 0}
-                      onToggle={(shiftKey) => toggleSeleccionFila(fila, i, shiftKey)}
-                      onCambiarCantidad={(nueva) => cambiarCantidadFila(fila, nueva)}
-                    />
-                  ))
-                ) : (
-                  <>
-                    {agruparEnviados(items).map((g) => (
-                      <ItemGrupoFila key={g.key} grupo={g} />
-                    ))}
-                    {items
-                      .filter((it) => !it.enviado_cocina)
-                      .map((it) => (
-                        <ItemFila key={it.id} item={it} mutations={mutations} />
-                      ))}
-                  </>
-                )}
+                <PedidoCarrito
+                  isLoading={isLoading}
+                  items={items}
+                  mutations={mutations}
+                  modoTransferir={transfiriendo}
+                  filasTransferibles={filasTransferibles}
+                  cantidadesTransferir={cantidadesTransferir}
+                  onToggleFila={toggleSeleccionFila}
+                  onCambiarCantidadFila={cambiarCantidadFila}
+                />
               </div>
 
               <div className="pedido-footer">
                 {transfiriendo ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <p style={{ fontSize: 11.5, color: 'var(--text-dim)', margin: 0 }}>
-                      {totalUnidadesSeleccionadas > 0
-                        ? `Se transfieren ${totalUnidadesSeleccionadas} unidad(es). Si un producto tiene más de 1, podés bajarle la cantidad con −/+.`
-                        : 'Sin elegir nada se transfiere la mesa entera. Tocá los items para elegir solo algunos (shift+click para un rango).'}
-                    </p>
-                    <Select
-                      value={mesaDestino}
-                      onChange={(e) => setMesaDestino(e.target.value ? Number(e.target.value) : '')}
-                      style={{ fontSize: 12.5 }}
-                    >
-                      <option value="">Elegí la mesa destino…</option>
-                      {mesasDestinoOpciones.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          Mesa {m.label ?? m.id}
-                        </option>
-                      ))}
-                    </Select>
-                    {(mutations.transferirMesa.isError || mutations.transferirItems.isError) && (
-                      <p style={{ color: 'var(--red)', fontSize: 11.5, margin: 0 }}>
-                        {(mutations.transferirMesa.error ?? mutations.transferirItems.error)?.message}
-                      </p>
-                    )}
-                    <div className="pedido-actions">
-                      <Button
-                        block
-                        disabled={!mesaDestino || mutations.transferirMesa.isPending || mutations.transferirItems.isPending}
-                        onClick={handleTransferir}
-                      >
-                        {totalUnidadesSeleccionadas > 0 ? `🔀 Transferir ${totalUnidadesSeleccionadas} unidad(es)` : '🔀 Transferir mesa completa'}
-                      </Button>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={cerrarTransferencia}>
-                      cancelar
-                    </Button>
-                  </div>
+                  <PedidoFooterTransferir
+                    mesasDestinoOpciones={mesasDestinoOpciones}
+                    mesaDestino={mesaDestino}
+                    onMesaDestino={setMesaDestino}
+                    totalUnidadesSeleccionadas={totalUnidadesSeleccionadas}
+                    pendiente={mutations.transferirMesa.isPending || mutations.transferirItems.isPending}
+                    error={(mutations.transferirMesa.error ?? mutations.transferirItems.error)?.message ?? null}
+                    onTransferir={handleTransferir}
+                    onCancelar={cerrarTransferencia}
+                  />
                 ) : !cobrando ? (
-                  <>
-                    <div className="pedido-total-row">
-                      <span className="label">Total</span>
-                      <span>{fmt.format(subtotal)}</span>
-                    </div>
-                    <div className="pedido-actions">
-                      <Button block disabled={!pedido || !hayPendientesDeCocina || enviando} onClick={handleEnviarCocina}>
-                        🍳 Enviar a cocina
-                      </Button>
-                      {pedido?.estado === 'enviado_cocina' && !hayPendientesDeCocina && (
-                        <Button block onClick={() => mutations.marcarEntregado.mutate(pedido.id)}>
-                          ✅ Entregado
-                        </Button>
-                      )}
-                      <Button variant="success" block disabled={!pedido || items.length === 0} onClick={() => setCobrando(true)}>
-                        💰 Cobrar
-                      </Button>
-                    </div>
-                    <div className="pedido-actions">
-                      <Button variant="secondary" size="sm" block disabled={!pedido} onClick={() => setTransfiriendo(true)}>
-                        🔀 Transferir
-                      </Button>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        block
-                        disabled={!pedido}
-                        onClick={() => {
-                          if (pedido && confirm('¿Cancelar todo el pedido de esta mesa? Se borra todo lo agregado.')) {
-                            mutations.cancelarPedido.mutate(pedido.id);
-                            onClose();
-                          }
-                        }}
-                      >
-                        🗑 Cancelar pedido
-                      </Button>
-                    </div>
-                  </>
+                  <PedidoFooterAcciones
+                    pedido={pedido}
+                    subtotal={subtotal}
+                    itemsCount={items.length}
+                    hayPendientesDeCocina={hayPendientesDeCocina}
+                    enviando={enviando}
+                    onEnviarCocina={handleEnviarCocina}
+                    onMarcarEntregado={() => pedido && mutations.marcarEntregado.mutate(pedido.id)}
+                    onCobrar={() => setCobrando(true)}
+                    onTransferir={() => setTransfiriendo(true)}
+                    onCancelarPedido={handleCancelarPedido}
+                  />
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <Select value={clienteId} onChange={(e) => setClienteId(e.target.value ? Number(e.target.value) : '')} style={{ fontSize: 12.5 }}>
-                      <option value="">Sin cliente</option>
-                      {clientes?.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nombre} {c.apellido} {Number(c.descuento_pct) > 0 ? `(-${c.descuento_pct}%)` : ''}
-                        </option>
-                      ))}
-                    </Select>
-                    <div className="pedido-cobro-summary">
-                      Subtotal {fmt.format(subtotal)}
-                      {descuento > 0 && ` · Descuento −${fmt.format(descuento)}`}
-                    </div>
-                    <div className="pedido-total-row">
-                      <span className="label">Total</span>
-                      <span>{fmt.format(total)}</span>
-                    </div>
-                    <span className="field-label">Método de pago</span>
-                    <div className="pedido-actions">
-                      {METODOS.map((m) => (
-                        <Button key={m} size="sm" block onClick={() => handleCobrar(m)}>
-                          {m}
-                        </Button>
-                      ))}
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={() => setCobrando(false)}>
-                      cancelar
-                    </Button>
-                  </div>
+                  <PedidoFooterCobro
+                    clientes={clientes}
+                    clienteId={clienteId}
+                    onClienteId={setClienteId}
+                    subtotal={subtotal}
+                    descuento={descuento}
+                    total={total}
+                    onCobrar={handleCobrar}
+                    onCancelar={() => setCobrando(false)}
+                  />
                 )}
               </div>
             </div>
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// Los items ya enviados a cocina se agrupan por producto+nota para mostrar
-// una sola fila con la cantidad sumada (aunque vengan de rondas distintas) --
-// mostrar "Agua mineral" repetida 3 veces por 3 rondas distintas era
-// confuso. Ya no son editables desde acá (para eso está "Cancelar pedido" o
-// pedirle a cocina); lo nuevo que se agrega sigue siendo una fila aparte
-// hasta que se envía.
-type GrupoEnviado = {
-  key: string;
-  nombre: string;
-  cantidad: number;
-  entregado: boolean;
-  lineas: { id: number; cantidad: number }[];
-};
-
-function agruparEnviados(items: ItemConProducto[]): GrupoEnviado[] {
-  const grupos = new Map<string, GrupoEnviado>();
-  for (const it of items) {
-    if (!it.enviado_cocina) continue;
-    const key = `${it.producto_id}-${it.nota ?? ''}`;
-    const prev = grupos.get(key);
-    if (prev) {
-      prev.cantidad += Number(it.cantidad);
-      prev.entregado = prev.entregado && it.entregado;
-      prev.lineas.push({ id: it.id, cantidad: Number(it.cantidad) });
-    } else {
-      grupos.set(key, {
-        key,
-        nombre: it.productos?.nombre ?? `Producto #${it.producto_id}`,
-        cantidad: Number(it.cantidad),
-        entregado: it.entregado,
-        lineas: [{ id: it.id, cantidad: Number(it.cantidad) }],
-      });
-    }
-  }
-  return [...grupos.values()];
-}
-
-function ItemGrupoFila({ grupo }: { grupo: GrupoEnviado }) {
-  return (
-    <div className="pedido-item">
-      <div className="pedido-item-top">
-        <span className="pedido-item-nombre">
-          {grupo.nombre}
-          <span style={{ marginLeft: 6 }}>
-            <Badge tone={grupo.entregado ? 'good' : 'info'}>{grupo.entregado ? 'entregado' : 'en cocina'}</Badge>
-          </span>
-        </span>
-        <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>x{grupo.cantidad}</span>
-      </div>
-    </div>
-  );
-}
-
-function FilaSeleccionable({
-  fila,
-  cantidadElegida,
-  onToggle,
-  onCambiarCantidad,
-}: {
-  fila: GrupoEnviado;
-  cantidadElegida: number;
-  onToggle: (shiftKey: boolean) => void;
-  onCambiarCantidad: (nueva: number) => void;
-}) {
-  const seleccionada = cantidadElegida > 0;
-  return (
-    <div
-      className="pedido-item"
-      style={{
-        borderColor: seleccionada ? 'var(--terracota)' : undefined,
-        background: seleccionada ? 'var(--cream-deep)' : undefined,
-      }}
-    >
-      <div
-        className="pedido-item-top"
-        role="checkbox"
-        aria-checked={seleccionada}
-        onClick={(e) => onToggle(e.shiftKey)}
-        style={{ cursor: 'pointer' }}
-      >
-        <span className="pedido-item-nombre">
-          <span style={{ marginRight: 8 }}>{seleccionada ? '☑️' : '⬜'}</span>
-          {fila.nombre}
-        </span>
-        <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>x{fila.cantidad}</span>
-      </div>
-      {seleccionada && fila.cantidad > 1 && (
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7 }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Transferir:</span>
-          <button className="pedido-qty-btn" onClick={() => onCambiarCantidad(cantidadElegida - 1)}>
-            −
-          </button>
-          <span style={{ minWidth: 14, textAlign: 'center' }}>{cantidadElegida}</span>
-          <button className="pedido-qty-btn" onClick={() => onCambiarCantidad(cantidadElegida + 1)}>
-            +
-          </button>
-          <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>de {fila.cantidad}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Cronometro({ desde }: { desde: string }) {
-  const [ahora, setAhora] = useState(Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setAhora(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const segundos = Math.max(0, Math.floor((ahora - new Date(desde).getTime()) / 1000));
-  const mm = String(Math.floor(segundos / 60)).padStart(2, '0');
-  const ss = String(segundos % 60).padStart(2, '0');
-  return (
-    <span className="badge badge-accent" style={{ fontVariantNumeric: 'tabular-nums' }}>
-      ⏱ {mm}:{ss}
-    </span>
-  );
-}
-
-function ItemFila({
-  item,
-  mutations,
-}: {
-  item: ItemConProducto;
-  mutations: ReturnType<typeof usePedidoMutations>;
-}) {
-  const [nota, setNota] = useState(item.nota ?? '');
-
-  return (
-    <div className="pedido-item">
-      <div className="pedido-item-top">
-        <span className="pedido-item-nombre">
-          {item.productos?.nombre ?? `Producto #${item.producto_id}`}
-          {item.enviado_cocina && (
-            <span style={{ marginLeft: 6 }}>
-              <Badge tone={item.entregado ? 'good' : 'info'}>{item.entregado ? 'entregado' : 'en cocina'}</Badge>
-            </span>
-          )}
-        </span>
-        <div className="pedido-item-controls">
-          <button className="pedido-qty-btn" onClick={() => mutations.actualizarCantidad.mutate({ itemId: item.id, cantidad: Math.max(1, Number(item.cantidad) - 1) })}>
-            −
-          </button>
-          <span style={{ minWidth: 14, textAlign: 'center' }}>{item.cantidad}</span>
-          <button className="pedido-qty-btn" onClick={() => mutations.actualizarCantidad.mutate({ itemId: item.id, cantidad: Number(item.cantidad) + 1 })}>
-            +
-          </button>
-          <button className="btn-danger btn-icon" onClick={() => mutations.quitarItem.mutate(item.id)}>
-            🗑
-          </button>
-        </div>
-      </div>
-      <input
-        className="pedido-item-nota"
-        placeholder="Nota (ej: sin azúcar)"
-        value={nota}
-        onChange={(e) => setNota(e.target.value)}
-        onBlur={() => nota !== (item.nota ?? '') && mutations.actualizarNota.mutate({ itemId: item.id, nota })}
-      />
+      {dialog}
     </div>
   );
 }

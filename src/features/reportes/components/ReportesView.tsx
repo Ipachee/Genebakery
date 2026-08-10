@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useProductoMasVendido, useVentasPorRango } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { EmptyState } from '../../../components/EmptyState';
-
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+import { fmtMoney as fmt } from '../../../lib/format';
 
 export function ReportesView() {
   const [rango, setRango] = useState<'semana' | 'mes'>('semana');

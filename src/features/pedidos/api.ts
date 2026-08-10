@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase/client';
+import { ESTADOS_PEDIDO_ACTIVO } from '../../lib/pedidoConstantes';
 
 export async function fetchProductos() {
   const { data, error } = await supabase
@@ -101,7 +102,7 @@ export async function transferirPedido(pedidoId: number, mesaDestinoId: number) 
     .from('pedidos')
     .select('id')
     .eq('mesa_id', mesaDestinoId)
-    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
+    .in('estado', ESTADOS_PEDIDO_ACTIVO)
     .is('deleted_at', null)
     .limit(1);
   if (e1) throw e1;
@@ -132,7 +133,7 @@ export async function transferirItems(
     .from('pedidos')
     .select('id')
     .eq('mesa_id', mesaDestinoId)
-    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
+    .in('estado', ESTADOS_PEDIDO_ACTIVO)
     .is('deleted_at', null)
     .order('created_at', { ascending: false })
     .limit(1)

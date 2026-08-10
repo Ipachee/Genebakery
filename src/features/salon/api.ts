@@ -1,4 +1,5 @@
 import { supabase } from '../../lib/supabase/client';
+import { ESTADOS_PEDIDO_ACTIVO } from '../../lib/pedidoConstantes';
 
 export async function fetchSalones() {
   const { data, error } = await supabase
@@ -23,7 +24,7 @@ export async function fetchEstadoDeMesas() {
   const { data, error } = await supabase
     .from('pedidos')
     .select('mesa_id, estado')
-    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
+    .in('estado', ESTADOS_PEDIDO_ACTIVO)
     .is('deleted_at', null)
     .not('mesa_id', 'is', null);
   if (error) throw error;
@@ -90,7 +91,7 @@ async function mesasConPedidoActivo(mesaIds: number[]) {
     .from('pedidos')
     .select('mesa_id')
     .in('mesa_id', mesaIds)
-    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
+    .in('estado', ESTADOS_PEDIDO_ACTIVO)
     .is('deleted_at', null);
   if (error) throw error;
   return (data ?? []).length > 0;

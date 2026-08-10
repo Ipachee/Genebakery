@@ -6,8 +6,7 @@ import { Button } from '../../../components/Button';
 import { TextInput } from '../../../components/Field';
 import { Badge } from '../../../components/Badge';
 import { EmptyState } from '../../../components/EmptyState';
-
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 2 });
+import { fmtMoneyDecimal as fmt } from '../../../lib/format';
 
 export function InsumosView() {
   const { data: insumos, isLoading } = useInsumos();

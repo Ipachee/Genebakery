@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { generarGraficoTorta } from '../../lib/pieChart';
+import { fmtMoney as fmt } from '../../lib/format';
 import type { Database } from '../../lib/supabase/types';
 
 type Turno = Database['public']['Tables']['turnos']['Row'];
@@ -10,8 +11,6 @@ type Venta = Database['public']['Tables']['ventas']['Row'] & {
   clientes: { nombre: string; apellido: string } | null;
 };
 type Insumo = Database['public']['Tables']['insumos']['Row'];
-
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
 
 type RGB = [number, number, number];
 

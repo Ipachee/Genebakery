@@ -6,8 +6,7 @@ import { DataTable } from '../../../components/DataTable';
 import { Button } from '../../../components/Button';
 import { Select, TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
-
-const fmt = new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 });
+import { fmtMoney as fmt } from '../../../lib/format';
 
 export function GastosView() {
   const { session } = useAuth();
