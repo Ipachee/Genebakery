@@ -6,10 +6,11 @@ import { Field, Select, TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
 import { Card } from '../../../components/Card';
 
-const CATEGORIAS: { id: 'bebida' | 'comida' | 'pasteleria'; label: string }[] = [
+const CATEGORIAS: { id: 'bebida' | 'comida' | 'pasteleria' | 'noche'; label: string }[] = [
   { id: 'bebida', label: 'Bebida' },
   { id: 'comida', label: 'Cocina' },
   { id: 'pasteleria', label: 'Pastelería' },
+  { id: 'noche', label: 'Noche' },
 ];
 
 export function RecetasView() {
@@ -24,7 +25,7 @@ export function RecetasView() {
   const [cantidad, setCantidad] = useState('');
 
   const [creandoProducto, setCreandoProducto] = useState(false);
-  const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', categoria: 'comida' as 'bebida' | 'comida' | 'pasteleria', precio: '' });
+  const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', categoria: 'comida' as 'bebida' | 'comida' | 'pasteleria' | 'noche', precio: '' });
 
   const insumosUsados = new Set(receta?.map((r) => r.insumo_id));
 

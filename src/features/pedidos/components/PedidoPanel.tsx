@@ -24,6 +24,7 @@ const CATEGORIAS: { id: Producto['categoria']; label: string }[] = [
   { id: 'bebida', label: 'Bebidas' },
   { id: 'comida', label: 'Comidas' },
   { id: 'pasteleria', label: 'Pastelería' },
+  { id: 'noche', label: 'Noche' },
 ];
 
 const METODOS = ['Efectivo', 'Tarjeta', 'Transferencia'];

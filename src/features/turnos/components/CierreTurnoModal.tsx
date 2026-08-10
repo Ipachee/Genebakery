@@ -30,7 +30,13 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
   const [envioOk, setEnvioOk] = useState(false);
   const [envioError, setEnvioError] = useState<string | null>(null);
 
-  const esUltimoTurnoDelDia = turno.etiqueta === 'Tarde';
+  // Mañana y Tarde siempre pueden pasarle mesas pendientes al siguiente
+  // turno (aunque ese dia no se termine usando Noche, la mesa queda
+  // pendiente para quien abra despues, sin bloquear el cierre). Noche es el
+  // ultimo eslabon posible de la cadena, sin importar el dia -- si alguna
+  // vez se abre (una cena especial un martes, por ejemplo), es la unica que
+  // no tiene a quien pasarle mesas sin cobrar.
+  const esUltimoTurnoDelDia = turno.etiqueta === 'Noche';
   const hayPendientes = (mesasPendientes?.length ?? 0) > 0;
   const bloqueaCierre = esUltimoTurnoDelDia && hayPendientes;
   const emailValido = EMAIL_VALIDO.test(email.trim());

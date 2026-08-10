@@ -1,6 +1,11 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../../auth/useAuth';
-import { CUENTAS as OPCIONES } from './accounts';
+import { useTurnosPublico } from '../turnos/hooks';
+import { CUENTAS } from './accounts';
+
+// Admin no se loguea acá — se accede desde adentro de un turno con el
+// candadito 🔑 del header, sin perder la sesión de mozo abierta.
+const OPCIONES = CUENTAS.filter((c) => c.id !== 'admin');
 import './LoginScreen.css';
 
 function useReloj() {
@@ -18,6 +23,12 @@ export function LoginScreen() {
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const ahora = useReloj();
+  const { data: turnosPublico } = useTurnosPublico();
+
+  function turnoAbierto(opcion: (typeof OPCIONES)[number]) {
+    if (!('etiqueta' in opcion)) return false;
+    return turnosPublico?.some((t) => t.etiqueta === opcion.etiqueta && t.estado === 'abierto') ?? false;
+  }
 
   async function handleSubmit(e: FormEvent, opcion: (typeof OPCIONES)[number]) {
     e.preventDefault();
@@ -47,6 +58,11 @@ export function LoginScreen() {
               <span className="shift-icon">{opcion.icon}</span>
             </span>
             <span className="shift-name">{opcion.label}</span>
+            {turnoAbierto(opcion) && (
+              <span className="shift-status-abierto">
+                <span className="shift-status-dot" /> turno abierto
+              </span>
+            )}
             <input
               type="password"
               placeholder="Contraseña"

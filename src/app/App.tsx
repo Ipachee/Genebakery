@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { RequireRole } from '../auth/RequireRole';
 import { LoginScreen } from '../features/auth/LoginScreen';
+import { AdminUnlock } from '../features/auth/components/AdminUnlock';
 import { SalonView } from '../features/salon/components/SalonView';
 import { AdminPanel } from '../features/admin/AdminPanel';
 import { ComanderaView } from '../features/comandera/components/ComanderaView';
@@ -31,7 +32,7 @@ export function App() {
 type Vista = 'salon' | 'comandera' | 'admin' | 'ajustes';
 
 function Shell() {
-  const { session, profile, signOut } = useAuth();
+  const { session, profile, signOut, puedeVolverATurno, volverATurno } = useAuth();
   const [vista, setVista] = useState<Vista>('salon');
   const iniciales = (profile?.nombre ?? session?.user.email ?? '?').slice(0, 1).toUpperCase();
   const esAdmin = profile?.rol === 'admin';
@@ -67,6 +68,20 @@ function Shell() {
               ⚙️
             </button>
           </RequireRole>
+
+          {profile?.rol === 'mozo' && !puedeVolverATurno && <AdminUnlock onSuccess={() => setVista('admin')} />}
+
+          {puedeVolverATurno && (
+            <button
+              className="shell-signout"
+              onClick={async () => {
+                await volverATurno();
+                setVista('salon');
+              }}
+            >
+              ↩ Volver a mi turno
+            </button>
+          )}
 
           <TurnoBadge />
 

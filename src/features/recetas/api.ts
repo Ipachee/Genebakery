@@ -6,7 +6,7 @@ export async function fetchProductos() {
   return data;
 }
 
-export async function crearProducto(v: { nombre: string; categoria: 'bebida' | 'comida' | 'pasteleria'; precio: number }) {
+export async function crearProducto(v: { nombre: string; categoria: 'bebida' | 'comida' | 'pasteleria' | 'noche'; precio: number }) {
   const { data, error } = await supabase
     .from('productos')
     .insert({ nombre: v.nombre, categoria: v.categoria, precio: v.precio })

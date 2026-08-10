@@ -1,5 +1,20 @@
 import { supabase } from '../../lib/supabase/client';
 
+// Visible sin login (RLS bypaseado a proposito en la vista): solo etiqueta +
+// estado, para mostrar en la pantalla de inicio de sesion cual turno esta
+// abierto antes de que nadie se loguee.
+export async function fetchTurnosPublico() {
+  const { data, error } = await supabase.from('turnos_publico').select('*');
+  if (error) throw error;
+  return data;
+}
+
+export async function resolverTurno(etiqueta: string, usuarioId: string) {
+  const { data, error } = await supabase.rpc('fn_resolver_turno', { p_etiqueta: etiqueta, p_usuario_id: usuarioId });
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchUltimoTurno(etiqueta: string) {
   const { data, error } = await supabase
     .from('turnos')

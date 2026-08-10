@@ -1,60 +1,57 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  abrirTurno,
   cerrarTurno,
   enviarResumenPorMail,
   fetchFacturadoTurno,
   fetchInsumosStockBajo,
   fetchMesasPendientesDelTurno,
   fetchTurnoPorId,
-  fetchUltimoTurno,
+  fetchTurnosPublico,
   fetchVentasDelTurno,
   reabrirTurno,
+  resolverTurno,
 } from './api';
 
-function esMismoDia(fechaIso: string, ref: Date) {
-  const d = new Date(fechaIso);
-  return (
-    d.getFullYear() === ref.getFullYear() &&
-    d.getMonth() === ref.getMonth() &&
-    d.getDate() === ref.getDate()
-  );
+export function useTurnosPublico() {
+  return useQuery({
+    queryKey: ['turnos-publico'],
+    queryFn: fetchTurnosPublico,
+    refetchInterval: 15000,
+  });
 }
 
 /**
  * Al loguearse un mozo: retoma el turno si ya está abierto, lo reabre si lo
  * cerraron hoy mismo (por error), o arranca uno nuevo en $0 si el último
  * cierre fue otro día — sin importar la hora en la que se loguee.
+ *
+ * Todo el "leer, decidir, escribir" vive en una funcion SQL atomica
+ * (fn_resolver_turno) con un lock por etiqueta -- si este hook se dispara
+ * dos veces casi al mismo tiempo (por ejemplo, el candado de admin
+ * remonta el arbol de React al cambiar de sesion), la segunda llamada
+ * espera a la primera y retoma el mismo turno en vez de crear uno nuevo.
  */
 export function useResolverTurno(etiqueta: string | null, userId: string | null) {
   const [turnoId, setTurnoId] = useState<number | null>(null);
   const [resolviendo, setResolviendo] = useState(true);
-  const yaResuelto = useRef(false);
+  const enCurso = useRef<string | null>(null);
 
   useEffect(() => {
     if (!etiqueta || !userId) {
       setResolviendo(false);
       return;
     }
-    if (yaResuelto.current) return;
-    yaResuelto.current = true;
+    const clave = `${etiqueta}:${userId}`;
+    if (enCurso.current === clave && turnoId != null) return;
+    enCurso.current = clave;
+    setResolviendo(true);
 
-    (async () => {
-      const ultimo = await fetchUltimoTurno(etiqueta);
-      let turno = ultimo;
-      if (!ultimo) {
-        turno = await abrirTurno(etiqueta, userId);
-      } else if (ultimo.estado === 'cerrado') {
-        const fechaRef = ultimo.cerrado_at ?? ultimo.abierto_at;
-        turno = esMismoDia(fechaRef, new Date())
-          ? await reabrirTurno(ultimo.id)
-          : await abrirTurno(etiqueta, userId);
-      }
-      setTurnoId(turno!.id);
+    resolverTurno(etiqueta, userId).then((turno) => {
+      setTurnoId(turno.id);
       setResolviendo(false);
-    })();
-  }, [etiqueta, userId]);
+    });
+  }, [etiqueta, userId, turnoId]);
 
   return { turnoId, resolviendo };
 }

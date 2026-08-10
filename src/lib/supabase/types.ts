@@ -817,6 +817,13 @@ export type Database = {
         }
         Relationships: []
       }
+      turnos_publico: {
+        Row: {
+          estado: string | null
+          etiqueta: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       fn_cobrar_pedido: {
@@ -850,6 +857,23 @@ export type Database = {
           p_usuario_id: string
         }
         Returns: undefined
+      }
+      fn_resolver_turno: {
+        Args: { p_etiqueta: string; p_usuario_id: string }
+        Returns: {
+          abierto_at: string
+          abierto_por: string
+          cerrado_at: string | null
+          estado: string
+          etiqueta: string
+          id: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "turnos"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       is_active_staff: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }

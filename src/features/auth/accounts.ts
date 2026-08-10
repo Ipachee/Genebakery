@@ -16,6 +16,14 @@ export const CUENTAS = [
     rol: 'mozo' as const,
     etiqueta: 'Tarde',
   },
+  {
+    id: 'noche',
+    icon: '🍽️',
+    label: 'Turno Noche',
+    email: 'noche@comandacafe.local',
+    rol: 'mozo' as const,
+    etiqueta: 'Noche',
+  },
 ] as const;
 
 export function etiquetaPorEmail(email: string | undefined | null): string | null {
