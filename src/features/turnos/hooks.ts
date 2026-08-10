@@ -47,9 +47,12 @@ export function useResolverTurno(etiqueta: string | null, userId: string | null)
         setResolviendo(false);
       })
       .catch((e) => {
-        // El mensaje de la función SQL viene como "...: <mensaje>" -- se
-        // muestra tal cual, es un texto pensado para el mozo.
-        setError(e instanceof Error ? e.message.replace(/^.*?:\s*/, '') : 'No se pudo abrir el turno');
+        // El error de una llamada RPC de Supabase es un PostgrestError
+        // (objeto plano con .message), no necesariamente un Error nativo.
+        // El mensaje de la función SQL se muestra tal cual, es un texto
+        // pensado para el mozo.
+        const msg = typeof e === 'object' && e && 'message' in e ? String((e as { message: unknown }).message) : null;
+        setError(msg || 'No se pudo abrir el turno');
         setResolviendo(false);
       });
   }
