@@ -9,6 +9,8 @@ import { ComanderaView } from '../features/comandera/components/ComanderaView';
 import { AjustesView } from '../features/ajustes/components/AjustesView';
 import { TurnoProvider } from '../features/turnos/TurnoContext';
 import { TurnoBadge } from '../features/turnos/components/TurnoBadge';
+import { useTurnoActual } from '../features/turnos/useTurnoActual';
+import { Button } from '../components/Button';
 import './shell.css';
 
 export function App() {
@@ -33,9 +35,11 @@ type Vista = 'salon' | 'comandera' | 'admin' | 'ajustes';
 
 function Shell() {
   const { session, profile, signOut, puedeVolverATurno, volverATurno } = useAuth();
+  const { error: turnoError, reintentar: reintentarTurno } = useTurnoActual();
   const [vista, setVista] = useState<Vista>('salon');
   const iniciales = (profile?.nombre ?? session?.user.email ?? '?').slice(0, 1).toUpperCase();
   const esAdmin = profile?.rol === 'admin';
+  const bloqueadoPorTurno = profile?.rol === 'mozo' && !!turnoError;
 
   return (
     <div>
@@ -97,11 +101,35 @@ function Shell() {
         </div>
       </header>
       <main className="shell-main">
-        {vista === 'admin' && esAdmin && <AdminPanel />}
-        {vista === 'ajustes' && esAdmin && <AjustesView />}
-        {vista === 'comandera' && <ComanderaView />}
-        {(vista === 'salon' || (!esAdmin && (vista === 'admin' || vista === 'ajustes'))) && <SalonView />}
+        {bloqueadoPorTurno ? (
+          <TurnoBloqueado mensaje={turnoError!} onReintentar={reintentarTurno} />
+        ) : (
+          <>
+            {vista === 'admin' && esAdmin && <AdminPanel />}
+            {vista === 'ajustes' && esAdmin && <AjustesView />}
+            {vista === 'comandera' && <ComanderaView />}
+            {(vista === 'salon' || (!esAdmin && (vista === 'admin' || vista === 'ajustes'))) && <SalonView />}
+          </>
+        )}
       </main>
+    </div>
+  );
+}
+
+function TurnoBloqueado({ mensaje, onReintentar }: { mensaje: string; onReintentar: () => void }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 16px' }}>
+      <div className="card card-pad" style={{ maxWidth: 440, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ fontSize: 30 }}>🔒</div>
+        <h3 style={{ margin: 0 }}>No se pudo abrir el turno</h3>
+        <p style={{ margin: 0, color: 'var(--red)', fontSize: 13.5, fontWeight: 600 }}>{mensaje}</p>
+        <p style={{ margin: 0, color: 'var(--text-dim)', fontSize: 12.5 }}>
+          Salí y entrá con la cuenta de ese turno para cerrarlo desde ahí. Después volvé a entrar con esta cuenta.
+        </p>
+        <div>
+          <Button onClick={onReintentar}>↺ Reintentar</Button>
+        </div>
+      </div>
     </div>
   );
 }

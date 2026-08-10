@@ -35,7 +35,24 @@ export function useTurnosPublico() {
 export function useResolverTurno(etiqueta: string | null, userId: string | null) {
   const [turnoId, setTurnoId] = useState<number | null>(null);
   const [resolviendo, setResolviendo] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const enCurso = useRef<string | null>(null);
+
+  function intentar(etq: string, uid: string) {
+    setResolviendo(true);
+    setError(null);
+    resolverTurno(etq, uid)
+      .then((turno) => {
+        setTurnoId(turno.id);
+        setResolviendo(false);
+      })
+      .catch((e) => {
+        // El mensaje de la función SQL viene como "...: <mensaje>" -- se
+        // muestra tal cual, es un texto pensado para el mozo.
+        setError(e instanceof Error ? e.message.replace(/^.*?:\s*/, '') : 'No se pudo abrir el turno');
+        setResolviendo(false);
+      });
+  }
 
   useEffect(() => {
     if (!etiqueta || !userId) {
@@ -43,17 +60,18 @@ export function useResolverTurno(etiqueta: string | null, userId: string | null)
       return;
     }
     const clave = `${etiqueta}:${userId}`;
-    if (enCurso.current === clave && turnoId != null) return;
+    if (enCurso.current === clave) return;
     enCurso.current = clave;
-    setResolviendo(true);
+    intentar(etiqueta, userId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etiqueta, userId]);
 
-    resolverTurno(etiqueta, userId).then((turno) => {
-      setTurnoId(turno.id);
-      setResolviendo(false);
-    });
-  }, [etiqueta, userId, turnoId]);
-
-  return { turnoId, resolviendo };
+  return {
+    turnoId,
+    resolviendo,
+    error,
+    reintentar: () => etiqueta && userId && intentar(etiqueta, userId),
+  };
 }
 
 export function useTurno(turnoId: number | null) {

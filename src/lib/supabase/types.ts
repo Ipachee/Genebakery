@@ -362,32 +362,41 @@ export type Database = {
         Row: {
           cantidad: number
           created_at: string
+          entregado: boolean
           enviado_cocina: boolean
+          enviado_cocina_at: string | null
           id: number
           nota: string | null
           pedido_id: number
           precio_unitario: number
           producto_id: number
+          ronda: number | null
         }
         Insert: {
           cantidad?: number
           created_at?: string
+          entregado?: boolean
           enviado_cocina?: boolean
+          enviado_cocina_at?: string | null
           id?: never
           nota?: string | null
           pedido_id: number
           precio_unitario: number
           producto_id: number
+          ronda?: number | null
         }
         Update: {
           cantidad?: number
           created_at?: string
+          entregado?: boolean
           enviado_cocina?: boolean
+          enviado_cocina_at?: string | null
           id?: never
           nota?: string | null
           pedido_id?: number
           precio_unitario?: number
           producto_id?: number
+          ronda?: number | null
         }
         Relationships: [
           {
@@ -419,6 +428,7 @@ export type Database = {
           mesa_id: number | null
           metodo_pago: string | null
           mozo_id: string
+          ronda_actual: number
           subtotal: number
           total: number
           turno_id: number
@@ -435,6 +445,7 @@ export type Database = {
           mesa_id?: number | null
           metodo_pago?: string | null
           mozo_id: string
+          ronda_actual?: number
           subtotal?: number
           total?: number
           turno_id: number
@@ -451,6 +462,7 @@ export type Database = {
           mesa_id?: number | null
           metodo_pago?: string | null
           mozo_id?: string
+          ronda_actual?: number
           subtotal?: number
           total?: number
           turno_id?: number
@@ -838,6 +850,15 @@ export type Database = {
           p_total?: number
           p_turno_id: number
         }
+        Returns: undefined
+      }
+      fn_enviar_a_cocina: { Args: { p_pedido_id: number }; Returns: undefined }
+      fn_marcar_pedido_entregado: {
+        Args: { p_pedido_id: number }
+        Returns: undefined
+      }
+      fn_marcar_ronda_entregada: {
+        Args: { p_pedido_id: number; p_ronda: number }
         Returns: undefined
       }
       fn_registrar_gasto: {

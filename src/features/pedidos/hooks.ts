@@ -42,6 +42,13 @@ export function usePedidoMutations(mesaId: number) {
   };
 
   return {
+    cancelarPedido: useMutation({
+      mutationFn: (pedidoId: number) => api.cancelarPedido(pedidoId),
+      onSuccess: () => {
+        patch(() => null);
+        invalidarSecundarios();
+      },
+    }),
     crearPedido: useMutation({
       mutationFn: (v: { turnoId: number; mozoId: string }) => api.crearPedido(mesaId, v.turnoId, v.mozoId),
       onSuccess: (nuevo) => {
@@ -102,7 +109,7 @@ export function usePedidoMutations(mesaId: number) {
       },
     }),
     marcarEntregado: useMutation({
-      mutationFn: (pedidoId: number) => api.marcarEntregado(pedidoId),
+      mutationFn: (pedidoId: number) => api.marcarPedidoEntregado(pedidoId),
       onSuccess: () => {
         patch((prev) => (prev ? { ...prev, estado: 'entregado' } : prev));
         invalidarSecundarios();

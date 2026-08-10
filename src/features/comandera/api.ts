@@ -10,3 +10,11 @@ export async function fetchPedidosComandera() {
   if (error) throw error;
   return data;
 }
+
+// Marca entregada una ronda puntual (un ticket de la comandera), no todo el
+// pedido -- si la mesa tiene otra ronda todavía sin entregar, sigue
+// mostrándose por separado.
+export async function marcarRondaEntregada(pedidoId: number, ronda: number) {
+  const { error } = await supabase.rpc('fn_marcar_ronda_entregada', { p_pedido_id: pedidoId, p_ronda: ronda });
+  if (error) throw error;
+}

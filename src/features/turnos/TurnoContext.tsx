@@ -16,6 +16,8 @@ type TurnoContextValue = {
   turno: Turno | null;
   facturado: number;
   loading: boolean;
+  error: string | null;
+  reintentar: () => void;
   cerrarTurno: () => void;
   reabrirTurno: () => void;
 };
@@ -27,7 +29,7 @@ export function TurnoProvider({ children }: { children: ReactNode }) {
   const etiqueta = profile?.rol === 'mozo' ? etiquetaPorEmail(session?.user.email) : null;
   const userId = session?.user.id ?? null;
 
-  const { turnoId, resolviendo } = useResolverTurno(etiqueta, userId);
+  const { turnoId, resolviendo, error, reintentar } = useResolverTurno(etiqueta, userId);
   const { data: turno, isLoading: cargandoTurno } = useTurno(turnoId);
   const { data: facturado = 0 } = useFacturadoTurno(turnoId);
   const cerrar = useCerrarTurno(turnoId);
@@ -37,6 +39,8 @@ export function TurnoProvider({ children }: { children: ReactNode }) {
     turno: turno ?? null,
     facturado,
     loading: etiqueta != null && (resolviendo || cargandoTurno),
+    error,
+    reintentar,
     cerrarTurno: () => cerrar.mutate(),
     reabrirTurno: () => reabrir.mutate(),
   };

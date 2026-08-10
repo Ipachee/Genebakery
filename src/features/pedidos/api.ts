@@ -77,28 +77,19 @@ export async function cancelarPedido(pedidoId: number) {
   if (error) throw error;
 }
 
+// Numera los items recién enviados con una "ronda" nueva (fn_enviar_a_cocina)
+// para que la comandera pueda armar un ticket separado por cada tanda, en
+// vez de mezclar los items nuevos con los de una tanda anterior ya entregada.
 export async function enviarACocina(pedidoId: number) {
-  const { error: e1 } = await supabase
-    .from('pedido_items')
-    .update({ enviado_cocina: true })
-    .eq('pedido_id', pedidoId)
-    .eq('enviado_cocina', false);
-  if (e1) throw e1;
-  // Sin el filtro por estado 'abierto': una segunda tanda de la misma mesa
-  // (agregada después de que cocina ya marcó "Entregado" la primera) tiene
-  // que poder volver a "enviado_cocina" -- si no, el pedido quedaba
-  // "entregado" en la base aunque la comandera mostrara otra cosa en el
-  // momento, y al refrescar volvía a verse verde en vez de azul.
-  const { error: e2 } = await supabase
-    .from('pedidos')
-    .update({ estado: 'enviado_cocina', enviado_at: new Date().toISOString() })
-    .eq('id', pedidoId)
-    .neq('estado', 'cobrado');
-  if (e2) throw e2;
+  const { error } = await supabase.rpc('fn_enviar_a_cocina', { p_pedido_id: pedidoId });
+  if (error) throw error;
 }
 
-export async function marcarEntregado(pedidoId: number) {
-  const { error } = await supabase.from('pedidos').update({ estado: 'entregado' }).eq('id', pedidoId);
+// Marca entregado TODO lo pendiente del pedido de una sola vez -- se usa
+// desde el panel de la mesa (no desde la comandera, que marca ronda por
+// ronda con marcarRondaEntregada).
+export async function marcarPedidoEntregado(pedidoId: number) {
+  const { error } = await supabase.rpc('fn_marcar_pedido_entregado', { p_pedido_id: pedidoId });
   if (error) throw error;
 }
 

@@ -98,6 +98,17 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     setEnviando(false);
   }
 
+  // Cerrar el panel sin haber mandado nada a cocina (ni cobrado) descarta el
+  // carrito entero: es solo un borrador hasta que se confirma con "Enviar a
+  // cocina". Si no, la mesa quedaba marcada "ocupada" con un pedido a medio
+  // armar que nadie iba a retomar.
+  function handleClose() {
+    if (pedido && pedido.estado === 'abierto') {
+      mutations.cancelarPedido.mutate(pedido.id);
+    }
+    onClose();
+  }
+
   async function handleCobrar(metodo: string) {
     if (!pedido || !turno || !mozoId) return;
     await mutations.cobrar.mutateAsync({
@@ -116,14 +127,14 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   }
 
   return (
-    <div className="pedido-overlay" onClick={onClose}>
+    <div className="pedido-overlay" onClick={handleClose}>
       <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
         <div className="pedido-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h3>Mesa {mesa.label ?? mesa.id}</h3>
             {pedido?.enviado_at && pedido.estado !== 'cobrado' && <Cronometro desde={pedido.enviado_at} />}
           </div>
-          <button className="pedido-close" onClick={onClose}>
+          <button className="pedido-close" onClick={handleClose}>
             ✕
           </button>
         </div>

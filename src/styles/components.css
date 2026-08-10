@@ -121,7 +121,7 @@ table.data-table thead th {
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
-table.data-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.data-table tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
 table.data-table tbody tr:last-child td { border-bottom: none; }
 table.data-table tbody tr { transition: background-color 0.1s; }
 table.data-table tbody tr:hover { background: var(--surface-sunken); }

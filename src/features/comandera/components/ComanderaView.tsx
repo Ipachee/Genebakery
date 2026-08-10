@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { usePedidosComandera } from '../hooks';
-import { marcarEntregado } from '../../pedidos/api';
+import { usePedidosComandera, type TicketComandera } from '../hooks';
+import { marcarRondaEntregada } from '../api';
 import { TicketImprimible } from './TicketImprimible';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
 import { EmptyState } from '../../../components/EmptyState';
-import type { PedidoConItems } from '../../pedidos/hooks';
 
 function useCronometro(desde: string | null) {
   const [ahora, setAhora] = useState(Date.now());
@@ -21,12 +20,12 @@ function useCronometro(desde: string | null) {
 }
 
 export function ComanderaView() {
-  const { data: pedidos, isLoading } = usePedidosComandera();
+  const { data: tickets, isLoading } = usePedidosComandera();
   const qc = useQueryClient();
-  const [imprimiendo, setImprimiendo] = useState<{ pedido: PedidoConItems; mesaLabel: string } | null>(null);
+  const [imprimiendo, setImprimiendo] = useState<TicketComandera | null>(null);
 
   const marcar = useMutation({
-    mutationFn: (pedidoId: number) => marcarEntregado(pedidoId),
+    mutationFn: (t: { pedidoId: number; ronda: number }) => marcarRondaEntregada(t.pedidoId, t.ronda),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['comandera'] });
       qc.invalidateQueries({ queryKey: ['mesas-ocupadas'] });
@@ -49,55 +48,56 @@ export function ComanderaView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <PageHeader
         title="Comandera — pedidos enviados a cocina/barra"
-        subtitle="Estas comandas son solo para cocina/barra (sin precios, sin cobro). El cobro se hace desde la mesa con el botón Cobrar, que recién ahí descuenta los insumos y libera la mesa."
+        subtitle="Cada tanda enviada con 'Enviar a cocina' es un ticket aparte, aunque sea la misma mesa -- así no se mezcla con lo que ya salió antes. Estas comandas son solo para cocina/barra (sin precios, sin cobro); el cobro se hace desde la mesa."
       />
 
       {isLoading ? (
         <EmptyState>Cargando…</EmptyState>
-      ) : !pedidos?.length ? (
+      ) : !tickets?.length ? (
         <EmptyState>Todavía no se enviaron pedidos.</EmptyState>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          {(pedidos as unknown as (PedidoConItems & { mesas: { label: string | null } | null })[]).map((p) => (
-            <PedidoComandera
-              key={p.id}
-              pedido={p}
-              mesaLabel={p.mesas?.label ?? String(p.mesa_id)}
-              onMarcarEntregado={() => marcar.mutate(p.id)}
-              onImprimir={() => setImprimiendo({ pedido: p, mesaLabel: p.mesas?.label ?? String(p.mesa_id) })}
+          {tickets.map((t) => (
+            <TicketComanda
+              key={t.key}
+              ticket={t}
+              onMarcarEntregado={() => marcar.mutate({ pedidoId: t.pedidoId, ronda: t.ronda })}
+              onImprimir={() => setImprimiendo(t)}
             />
           ))}
         </div>
       )}
 
-      {imprimiendo && <TicketImprimible pedido={imprimiendo.pedido} mesaLabel={imprimiendo.mesaLabel} />}
+      {imprimiendo && (
+        <TicketImprimible items={imprimiendo.items} mesaLabel={imprimiendo.mesaLabel} horaIso={imprimiendo.enviadoAt} />
+      )}
     </div>
   );
 }
 
-function PedidoComandera({
-  pedido,
-  mesaLabel,
+function TicketComanda({
+  ticket,
   onMarcarEntregado,
   onImprimir,
 }: {
-  pedido: PedidoConItems;
-  mesaLabel: string;
+  ticket: TicketComandera;
   onMarcarEntregado: () => void;
   onImprimir: () => void;
 }) {
-  const tiempo = useCronometro(pedido.enviado_at);
-  const entregado = pedido.estado === 'entregado';
+  const tiempo = useCronometro(ticket.enviadoAt);
 
   return (
     <div className="card card-pad" style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap', alignItems: 'flex-start' }}>
       <div style={{ minWidth: 90 }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>Mesa {mesaLabel}</div>
-        <Badge tone={entregado ? 'good' : 'info'}>{entregado ? 'Entregado' : 'Enviado'}</Badge>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>Mesa {ticket.mesaLabel}</div>
+        {ticket.ronda > 1 && (
+          <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Ronda {ticket.ronda}</div>
+        )}
+        <Badge tone={ticket.entregado ? 'good' : 'info'}>{ticket.entregado ? 'Entregado' : 'Enviado'}</Badge>
         <div style={{ marginTop: 6, fontVariantNumeric: 'tabular-nums', fontSize: 12.5, color: 'var(--text-dim)' }}>⏱ {tiempo}</div>
       </div>
       <div style={{ flex: 1, minWidth: 200, fontSize: 13.5 }}>
-        {pedido.pedido_items.map((it) => (
+        {ticket.items.map((it) => (
           <div key={it.id} style={{ marginBottom: 3 }}>
             <strong>{it.cantidad}x</strong> {it.productos?.nombre ?? `#${it.producto_id}`}
             {it.nota && <span style={{ color: 'var(--text-dim)' }}> · {it.nota}</span>}
@@ -108,7 +108,7 @@ function PedidoComandera({
         <Button size="sm" onClick={onImprimir}>
           🖨️ Imprimir
         </Button>
-        {!entregado && (
+        {!ticket.entregado && (
           <Button size="sm" variant="secondary" onClick={onMarcarEntregado}>
             ✅ Entregado
           </Button>

@@ -1,7 +1,15 @@
 import { getTicketConfig } from '../../../lib/ticketConfig';
-import type { PedidoConItems } from '../../pedidos/hooks';
+import type { ItemConProducto } from '../../pedidos/hooks';
 
-export function TicketImprimible({ pedido, mesaLabel }: { pedido: PedidoConItems; mesaLabel: string }) {
+export function TicketImprimible({
+  items,
+  mesaLabel,
+  horaIso,
+}: {
+  items: ItemConProducto[];
+  mesaLabel: string;
+  horaIso: string | null;
+}) {
   const cfg = getTicketConfig();
   const anchoPx = cfg.ancho === 58 ? 210 : 280;
   const fontFamily = cfg.fuente === 'mono' ? 'ui-monospace, Consolas, monospace' : 'Arial, sans-serif';
@@ -25,12 +33,12 @@ export function TicketImprimible({ pedido, mesaLabel }: { pedido: PedidoConItems
           <strong>Mesa:</strong> {mesaLabel}
         </div>
         <div>
-          <strong>Hora:</strong> {new Date(pedido.enviado_at ?? pedido.created_at).toLocaleTimeString('es-AR')}
+          <strong>Hora:</strong> {horaIso ? new Date(horaIso).toLocaleTimeString('es-AR') : '—'}
         </div>
       </div>
       <hr style={{ border: 'none', borderTop: '1px dashed #000' }} />
       <div style={{ margin: '6px 0' }}>
-        {pedido.pedido_items.map((it) => (
+        {items.map((it) => (
           <div key={it.id} style={{ marginBottom: 4 }}>
             <div>
               {it.cantidad}x {it.productos?.nombre ?? `Producto #${it.producto_id}`}
