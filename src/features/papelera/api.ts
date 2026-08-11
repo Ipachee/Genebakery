@@ -3,7 +3,7 @@ import type { Database } from '../../lib/supabase/types';
 
 type TablaSoftDelete = Exclude<
   keyof Database['public']['Tables'],
-  'movimientos' | 'recetas' | 'pedido_items' | 'turnos' | 'profiles' | 'perfil_negocio'
+  'movimientos' | 'recetas' | 'pedido_items' | 'turnos' | 'profiles' | 'perfil_negocio' | 'credenciales_facturacion'
 >;
 
 const TABLA_POR_TIPO: Record<string, TablaSoftDelete> = {

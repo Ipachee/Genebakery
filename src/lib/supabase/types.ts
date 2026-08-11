@@ -84,6 +84,44 @@ export type Database = {
         }
         Relationships: []
       }
+      credenciales_facturacion: {
+        Row: {
+          actualizado_at: string
+          actualizado_por: string | null
+          clave_secreta: string | null
+          id: number
+          proveedor: string | null
+          token_api: string | null
+          usuario: string | null
+        }
+        Insert: {
+          actualizado_at?: string
+          actualizado_por?: string | null
+          clave_secreta?: string | null
+          id?: number
+          proveedor?: string | null
+          token_api?: string | null
+          usuario?: string | null
+        }
+        Update: {
+          actualizado_at?: string
+          actualizado_por?: string | null
+          clave_secreta?: string | null
+          id?: number
+          proveedor?: string | null
+          token_api?: string | null
+          usuario?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credenciales_facturacion_actualizado_por_fkey"
+            columns: ["actualizado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       elaborados: {
         Row: {
           costo_unit_porcion: number
@@ -853,6 +891,24 @@ export type Database = {
         Returns: undefined
       }
       fn_enviar_a_cocina: { Args: { p_pedido_id: number }; Returns: undefined }
+      fn_estado_credenciales_facturacion: {
+        Args: never
+        Returns: {
+          actualizado_at: string
+          actualizado_por_nombre: string
+          configurado: boolean
+          proveedor: string
+        }[]
+      }
+      fn_guardar_credenciales_facturacion: {
+        Args: {
+          p_clave_secreta?: string
+          p_proveedor: string
+          p_token_api?: string
+          p_usuario?: string
+        }
+        Returns: undefined
+      }
       fn_marcar_pedido_entregado: {
         Args: { p_pedido_id: number }
         Returns: undefined
