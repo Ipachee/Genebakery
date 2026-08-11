@@ -212,6 +212,24 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     onClose();
   }
 
+  async function handleCobrarMultiple(pagos: { metodo: string; monto: number }[]) {
+    if (!pedido || !turno || !mozoId) return;
+    await mutations.cobrar.mutateAsync({
+      pedidoId: pedido.id,
+      turnoId: turno.id,
+      mesaId: mesa.id,
+      mozoId,
+      clienteId: clienteId || null,
+      subtotal,
+      descuento,
+      total,
+      metodoPago: pagos.map((p) => p.metodo).join(' + '),
+      pagos,
+    });
+    setCobrando(false);
+    onClose();
+  }
+
   async function handleCancelarPedido() {
     if (!pedido) return;
     if (await confirm('¿Cancelar todo el pedido de esta mesa? Se borra todo lo agregado.')) {
@@ -287,6 +305,9 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                     descuento={descuento}
                     total={total}
                     onCobrar={handleCobrar}
+                    onCobrarMultiple={handleCobrarMultiple}
+                    pendiente={mutations.cobrar.isPending}
+                    error={mutations.cobrar.error?.message ?? null}
                     onCancelar={() => setCobrando(false)}
                   />
                 )}

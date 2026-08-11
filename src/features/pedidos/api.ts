@@ -194,6 +194,10 @@ export async function cobrarPedido(params: {
   descuento: number;
   total: number;
   metodoPago: string;
+  // Si viene con datos, se cobra dividido: una fila en "ventas" por cada
+  // forma de pago. El total de los montos tiene que sumar `total` -- si
+  // no, la función SQL rechaza el cobro entero.
+  pagos?: { metodo: string; monto: number }[];
 }) {
   const { error } = await supabase.rpc('fn_cobrar_pedido', {
     p_pedido_id: params.pedidoId,
@@ -205,6 +209,7 @@ export async function cobrarPedido(params: {
     p_descuento: params.descuento,
     p_total: params.total,
     p_metodo_pago: params.metodoPago,
+    p_pagos: params.pagos && params.pagos.length > 0 ? params.pagos : undefined,
   });
   if (error) throw error;
 }

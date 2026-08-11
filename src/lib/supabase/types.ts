@@ -883,6 +883,7 @@ export type Database = {
           p_mesa_id: number
           p_metodo_pago?: string
           p_mozo_id: string
+          p_pagos?: Json
           p_pedido_id: number
           p_subtotal?: number
           p_total?: number
