@@ -1,12 +1,7 @@
 import { createContext, type ReactNode } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { etiquetaPorEmail } from '../auth/accounts';
-import {
-  useFacturadoTurno,
-  useReabrirTurno,
-  useResolverTurno,
-  useTurno,
-} from './hooks';
+import { useFacturadoTurno, useResolverTurno, useTurno } from './hooks';
 import type { Database } from '../../lib/supabase/types';
 
 type Turno = Database['public']['Tables']['turnos']['Row'];
@@ -30,7 +25,6 @@ export function TurnoProvider({ children }: { children: ReactNode }) {
   const { turnoId, resolviendo, error, reintentar } = useResolverTurno(etiqueta, userId);
   const { data: turno, isLoading: cargandoTurno } = useTurno(turnoId);
   const { data: facturado = 0 } = useFacturadoTurno(turnoId);
-  const reabrir = useReabrirTurno(turnoId);
 
   const value: TurnoContextValue = {
     turno: turno ?? null,
@@ -38,7 +32,11 @@ export function TurnoProvider({ children }: { children: ReactNode }) {
     loading: etiqueta != null && (resolviendo || cargandoTurno),
     error,
     reintentar,
-    reabrirTurno: () => reabrir.mutate(),
+    // "Reabrir" pasa de nuevo por fn_resolver_turno (mismo camino que al
+    // loguearse) -- así respeta las mismas reglas de negocio (un turno
+    // abierto a la vez, ventana horaria) en vez de reabrir con un update
+    // directo que se las saltea.
+    reabrirTurno: reintentar,
   };
 
   return <TurnoContext.Provider value={value}>{children}</TurnoContext.Provider>;

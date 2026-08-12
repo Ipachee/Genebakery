@@ -22,17 +22,6 @@ export async function fetchTurnoPorId(id: number) {
   return data;
 }
 
-export async function reabrirTurno(id: number) {
-  const { data, error } = await supabase
-    .from('turnos')
-    .update({ estado: 'abierto', cerrado_at: null })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
-}
-
 export async function cerrarTurno(id: number, efectivoContado: number | null) {
   const { data, error } = await supabase
     .from('turnos')
