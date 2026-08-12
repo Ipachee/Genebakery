@@ -59,8 +59,9 @@ function BannerOffline() {
         zIndex: 250,
       }}
     >
-      📡 Sin conexión — se ve el último plano guardado. Cobrar, enviar a cocina y transferir quedan pausados hasta
-      que vuelva internet.
+      📡 Sin conexión — se ve el último plano guardado. Podés seguir armando pedidos y cobrando (el cobro queda
+      pendiente hasta que vuelva internet); enviar a cocina y transferir no funcionan. No cierres ni recargues la
+      página si acabás de cobrar algo — se pierde ese cobro.
     </div>
   );
 }
