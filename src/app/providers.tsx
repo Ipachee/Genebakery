@@ -37,6 +37,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
       persistOptions={{
         persister,
         maxAge: 1000 * 60 * 60 * 12, // 12hs -- no tiene sentido mostrar datos de hace 3 días
+        // Si el DATO que se guarda cambia de forma de manera incompatible
+        // (como pasó con el Map de mesas-ocupadas), subir este número
+        // invalida de una cualquier cache vieja ya guardada en el
+        // localStorage de los navegadores, en vez de depender de que cada
+        // uno lo borre a mano.
+        buster: 'v2',
         dehydrateOptions: {
           // Solo se persisten queries (lecturas) que ya resolvieron bien.
           // Las mutaciones (agregar item, cobrar, etc.) NO se persisten a
