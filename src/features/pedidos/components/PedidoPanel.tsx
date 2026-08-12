@@ -203,7 +203,35 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
       );
       await mutations.actualizarCantidad.mutateAsync({ itemId: existente.id, cantidad: cantidadNueva });
     } else {
+      // Optimista también para un producto nuevo (no solo para sumar
+      // cantidad): sin esto, con la mutación pausada por estar sin
+      // conexión, el click no mostraba nada hasta que volviera la red y el
+      // mozo no tenía forma de saber si había quedado registrado. La fila
+      // temporal (id negativo) se saca apenas la mutación resuelve de
+      // verdad -- el onSuccess de agregarItem ya agrega la fila real, acá
+      // solo se limpia el placeholder para no duplicar.
+      const tempId = -Date.now();
+      const itemOptimista = {
+        id: tempId,
+        pedido_id: pedidoId,
+        producto_id: producto.id,
+        cantidad: 1,
+        precio_unitario: producto.precio,
+        nota: null,
+        enviado_cocina: false,
+        entregado: false,
+        ronda: null,
+        enviado_cocina_at: null,
+        created_at: new Date().toISOString(),
+        productos: producto,
+      } as ItemConProducto;
+      qc.setQueryData<PedidoConItems | null>(pedidoMesaKey(mesa.id), (prev) =>
+        prev ? { ...prev, pedido_items: [...prev.pedido_items, itemOptimista] } : prev
+      );
       await mutations.agregarItem.mutateAsync({ pedidoId, productoId: producto.id, precio: producto.precio, nota: '' });
+      qc.setQueryData<PedidoConItems | null>(pedidoMesaKey(mesa.id), (prev) =>
+        prev ? { ...prev, pedido_items: prev.pedido_items.filter((it) => it.id !== tempId) } : prev
+      );
     }
   }
 
