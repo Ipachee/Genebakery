@@ -37,8 +37,8 @@ export function PedidoFooterAcciones({
       </div>
       {offline && (
         <p style={{ fontSize: 11, color: 'var(--red)', margin: 0 }}>
-          📡 Sin conexión: podés seguir armando el pedido, pero enviar a cocina, cobrar y transferir necesitan
-          internet.
+          📡 Sin conexión: podés seguir armando el pedido y cobrar (se confirma solo apenas vuelva internet), pero
+          enviar a cocina y transferir necesitan conexión.
         </p>
       )}
       <div className="pedido-actions">
@@ -50,7 +50,7 @@ export function PedidoFooterAcciones({
             ✅ Entregado
           </Button>
         )}
-        <Button variant="success" block disabled={!pedido || itemsCount === 0 || offline} onClick={onCobrar}>
+        <Button variant="success" block disabled={!pedido || itemsCount === 0} onClick={onCobrar}>
           💰 Cobrar
         </Button>
       </div>

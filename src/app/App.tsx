@@ -12,6 +12,7 @@ import { TurnoBadge } from '../features/turnos/components/TurnoBadge';
 import { useTurnoActual } from '../features/turnos/useTurnoActual';
 import { useNuevaVersion } from './useNuevaVersion';
 import { useOnlineStatus } from './useOnlineStatus';
+import { useCobrosPendientes } from '../features/pedidos/hooks';
 import { Button } from '../components/Button';
 import './shell.css';
 
@@ -25,6 +26,7 @@ export function App() {
   return (
     <>
       <BannerOffline />
+      <BannerCobrosPendientes />
       {!session ? (
         <LoginScreen />
       ) : (
@@ -59,6 +61,33 @@ function BannerOffline() {
     >
       📡 Sin conexión — se ve el último plano guardado. Cobrar, enviar a cocina y transferir quedan pausados hasta
       que vuelva internet.
+    </div>
+  );
+}
+
+// Se muestra haya o no conexión: el hueco de riesgo real no es solo "estoy
+// offline" sino también el ratito después de volver la señal en el que el
+// cobro todavía no terminó de viajar al servidor -- mientras exista, no hay
+// que cerrar ni recargar la pestaña o ese cobro se pierde (las mutaciones
+// pendientes no sobreviven a un recargado, a propósito, ver providers.tsx).
+function BannerCobrosPendientes() {
+  const pendientes = useCobrosPendientes();
+  if (pendientes === 0) return null;
+  return (
+    <div
+      style={{
+        background: 'var(--amber)',
+        color: '#3b2418',
+        padding: '8px 16px',
+        textAlign: 'center',
+        fontSize: 12.5,
+        fontWeight: 600,
+        position: 'relative',
+        zIndex: 250,
+      }}
+    >
+      🧾 {pendientes} cobro{pendientes > 1 ? 's' : ''} esperando conexión para confirmarse — no cierres ni recargués
+      esta pestaña hasta que se confirme.
     </div>
   );
 }

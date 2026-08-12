@@ -1,10 +1,24 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as api from './api';
 import type { Database } from '../../lib/supabase/types';
 
 type Producto = Database['public']['Tables']['productos']['Row'];
 export type ItemConProducto = Database['public']['Tables']['pedido_items']['Row'] & { productos: Producto | null };
 export type PedidoConItems = Database['public']['Tables']['pedidos']['Row'] & { pedido_items: ItemConProducto[] };
+type FilaEstadoMesa = { mesa_id: number | null; estado: string };
+
+// Cuenta los cobros que quedaron pausados esperando conexión (mutationKey
+// compartida por todos los cobros, de cualquier mesa). Mientras hay
+// internet un cobro está "pending" solo el instante del viaje al servidor y
+// no hace falta avisar nada -- isPaused es lo que distingue "está en curso"
+// de "está atascado sin red, ojo con cerrar la pestaña".
+export function useCobrosPendientes() {
+  const estados = useMutationState({
+    filters: { mutationKey: ['cobrar-pedido'] },
+    select: (mutation) => mutation.state,
+  });
+  return estados.filter((s) => s.status === 'pending' && s.isPaused).length;
+}
 
 export function useProductos() {
   return useQuery({ queryKey: ['productos'], queryFn: api.fetchProductos });
@@ -117,7 +131,31 @@ export function usePedidoMutations(mesaId: number) {
       },
     }),
     cobrar: useMutation({
+      // mutationKey compartida (no por mesa) para poder contar TODOS los
+      // cobros pausados sin conexión desde un solo lugar (useCobrosPendientes).
+      mutationKey: ['cobrar-pedido'],
       mutationFn: api.cobrarPedido,
+      onMutate: async () => {
+        await qc.cancelQueries({ queryKey: key });
+        await qc.cancelQueries({ queryKey: ['mesas-ocupadas'] });
+        const pedidoPrevio = qc.getQueryData<PedidoConItems | null>(key);
+        const mesasPrevias = qc.getQueryData<FilaEstadoMesa[]>(['mesas-ocupadas']);
+        // Optimista: la mesa se libera al instante (haya o no conexión) --
+        // con un solo cajón cobrando, no hace falta esperar la confirmación
+        // del servidor para que el plano deje de mostrarla ocupada. Si el
+        // cobro está sin conexión, queda pausado y se manda solo apenas
+        // vuelva internet (useCobrosPendientes avisa mientras tanto).
+        patch(() => null);
+        qc.setQueryData<FilaEstadoMesa[]>(['mesas-ocupadas'], (prev) => (prev ?? []).filter((f) => f.mesa_id !== mesaId));
+        return { pedidoPrevio, mesasPrevias };
+      },
+      onError: (_err, _vars, contexto) => {
+        // Un error acá es de verdad (offline nunca dispara onError, la
+        // mutación queda pausada) -- se deshace lo optimista para que la
+        // mesa vuelva a aparecer ocupada.
+        if (contexto?.pedidoPrevio !== undefined) patch(() => contexto.pedidoPrevio);
+        if (contexto?.mesasPrevias !== undefined) qc.setQueryData(['mesas-ocupadas'], contexto.mesasPrevias);
+      },
       onSuccess: () => {
         qc.invalidateQueries({ queryKey: key });
         invalidarSecundarios();

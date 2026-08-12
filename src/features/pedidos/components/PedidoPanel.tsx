@@ -258,9 +258,16 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     onClose();
   }
 
+  // Sin conexión no se puede esperar la respuesta del servidor (la
+  // mutación queda pausada hasta que vuelva internet, quedaríamos colgados
+  // acá) -- se dispara sin esperar y se sigue de una: el patch optimista de
+  // la mutación ya liberó la mesa, y el ticket se arma con los datos que ya
+  // tenemos en pantalla. Online se sigue esperando la confirmación real,
+  // así un error de verdad (no de conexión) se ve en el cartel de error en
+  // vez de imprimir un ticket de un cobro que falló.
   async function handleCobrar(metodo: string) {
     if (!pedido || !turno || !mozoId) return;
-    await mutations.cobrar.mutateAsync({
+    const params = {
       pedidoId: pedido.id,
       turnoId: turno.id,
       mesaId: mesa.id,
@@ -270,7 +277,9 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
       descuento,
       total,
       metodoPago: metodo,
-    });
+    };
+    if (online) await mutations.cobrar.mutateAsync(params);
+    else mutations.cobrar.mutate(params);
     setCobrando(false);
     setRecibo({ pedidoId: pedido.id, items, subtotal, descuento, total, metodoPago: metodo, clienteNombre: nombreCliente() });
   }
@@ -278,7 +287,7 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   async function handleCobrarMultiple(pagos: { metodo: string; monto: number }[]) {
     if (!pedido || !turno || !mozoId) return;
     const metodoPago = pagos.map((p) => p.metodo).join(' + ');
-    await mutations.cobrar.mutateAsync({
+    const params = {
       pedidoId: pedido.id,
       turnoId: turno.id,
       mesaId: mesa.id,
@@ -289,7 +298,9 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
       total,
       metodoPago,
       pagos,
-    });
+    };
+    if (online) await mutations.cobrar.mutateAsync(params);
+    else mutations.cobrar.mutate(params);
     setCobrando(false);
     setRecibo({ pedidoId: pedido.id, items, subtotal, descuento, total, metodoPago, clienteNombre: nombreCliente() });
   }
