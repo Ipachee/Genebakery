@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/useAuth';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
-import { pedidoMesaKey, usePedidoDeMesa, usePedidoMutations, useProductos, type PedidoConItems } from '../hooks';
+import { pedidoMesaKey, usePedidoDeMesa, usePedidoMutations, useProductos, type ItemConProducto, type PedidoConItems } from '../hooks';
 import { useClientes } from '../../clientes/hooks';
 import { useMesas, useEstadoDeMesas } from '../../salon/hooks';
+import { usePerfilNegocio } from '../../negocio/hooks';
 import { agruparEnviados, partirLineas, type GrupoEnviado } from '../transferencia';
 import { useConfirm } from '../../../components/ConfirmDialog';
 import { Cronometro } from './Cronometro';
@@ -13,6 +14,7 @@ import { PedidoCarrito } from './PedidoCarrito';
 import { PedidoFooterAcciones } from './PedidoFooterAcciones';
 import { PedidoFooterCobro } from './PedidoFooterCobro';
 import { PedidoFooterTransferir } from './PedidoFooterTransferir';
+import { TicketCobro } from './TicketCobro';
 import { EmptyState } from '../../../components/EmptyState';
 import type { Database } from '../../../lib/supabase/types';
 import './PedidoPanel.css';
@@ -20,18 +22,30 @@ import './PedidoPanel.css';
 type Mesa = Database['public']['Tables']['mesas']['Row'];
 type Producto = Database['public']['Tables']['productos']['Row'];
 
+type ReciboCobro = {
+  pedidoId: number;
+  items: ItemConProducto[];
+  subtotal: number;
+  descuento: number;
+  total: number;
+  metodoPago: string;
+  clienteNombre: string | null;
+};
+
 export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void }) {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const { turno } = useTurnoActual();
   const { data: productos } = useProductos();
   const { data: pedido, isLoading } = usePedidoDeMesa(mesa.id);
   const { data: clientes } = useClientes();
   const { data: todasMesas } = useMesas();
   const { data: estadoDeMesas } = useEstadoDeMesas();
+  const { data: perfilNegocio } = usePerfilNegocio();
   const mutations = usePedidoMutations(mesa.id);
   const qc = useQueryClient();
   const colaRef = useRef<Promise<void>>(Promise.resolve());
   const { confirm, dialog } = useConfirm();
+  const [recibo, setRecibo] = useState<ReciboCobro | null>(null);
 
   const [categoria, setCategoria] = useState<Producto['categoria']>('bebida');
   const [cobrando, setCobrando] = useState(false);
@@ -106,6 +120,25 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     if (cantidadesTransferir.size > 0) return true;
     return !estadoDeMesas?.has(m.id);
   });
+
+  // Después de cobrar se imprime el ticket para el cliente antes de cerrar
+  // el panel -- si cerráramos enseguida, el nodo del ticket se desmontaría
+  // en medio de la impresión. 'afterprint' dispara igual si el mozo
+  // cancela el diálogo, así que el panel no se queda trabado esperando.
+  useEffect(() => {
+    if (!recibo) return;
+    const id = requestAnimationFrame(() => window.print());
+    const cerrarTodo = () => {
+      setRecibo(null);
+      onClose();
+    };
+    window.addEventListener('afterprint', cerrarTodo);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener('afterprint', cerrarTodo);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recibo]);
 
   function cerrarTransferencia() {
     setTransfiriendo(false);
@@ -209,11 +242,12 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
       metodoPago: metodo,
     });
     setCobrando(false);
-    onClose();
+    setRecibo({ pedidoId: pedido.id, items, subtotal, descuento, total, metodoPago: metodo, clienteNombre: nombreCliente() });
   }
 
   async function handleCobrarMultiple(pagos: { metodo: string; monto: number }[]) {
     if (!pedido || !turno || !mozoId) return;
+    const metodoPago = pagos.map((p) => p.metodo).join(' + ');
     await mutations.cobrar.mutateAsync({
       pedidoId: pedido.id,
       turnoId: turno.id,
@@ -223,11 +257,15 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
       subtotal,
       descuento,
       total,
-      metodoPago: pagos.map((p) => p.metodo).join(' + '),
+      metodoPago,
       pagos,
     });
     setCobrando(false);
-    onClose();
+    setRecibo({ pedidoId: pedido.id, items, subtotal, descuento, total, metodoPago, clienteNombre: nombreCliente() });
+  }
+
+  function nombreCliente() {
+    return clienteSeleccionado ? `${clienteSeleccionado.nombre} ${clienteSeleccionado.apellido}` : null;
   }
 
   async function handleCancelarPedido() {
@@ -317,6 +355,20 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
         )}
       </div>
       {dialog}
+      {recibo && (
+        <TicketCobro
+          pedidoId={recibo.pedidoId}
+          mesaLabel={mesa.label ?? String(mesa.id)}
+          atendidoPor={profile?.nombre ?? null}
+          clienteNombre={recibo.clienteNombre}
+          items={recibo.items}
+          subtotal={recibo.subtotal}
+          descuento={recibo.descuento}
+          total={recibo.total}
+          metodoPago={recibo.metodoPago}
+          perfil={perfilNegocio ?? null}
+        />
+      )}
     </div>
   );
 }
