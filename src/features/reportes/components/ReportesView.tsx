@@ -24,10 +24,14 @@ export function ReportesView() {
   }
 
   const porProducto = new Map<string, { cantidad: number; facturado: number }>();
+  // dia -> (nombre de producto -> cantidad), para poder sacar el más
+  // vendido de CADA día en vez de solo el del período entero.
+  const porProductoYDia = new Map<string, Map<string, number>>();
   type ItemVendido = {
     cantidad: number | string;
     precio_unitario: number | string;
     productos: { nombre: string } | { nombre: string }[] | null;
+    pedidos: { created_at: string } | { created_at: string }[] | null;
   };
   for (const it of (itemsVendidos as ItemVendido[] | undefined) ?? []) {
     const nombre = Array.isArray(it.productos) ? it.productos[0]?.nombre : it.productos?.nombre;
@@ -36,10 +40,26 @@ export function ReportesView() {
     actual.cantidad += Number(it.cantidad);
     actual.facturado += Number(it.cantidad) * Number(it.precio_unitario);
     porProducto.set(nombre, actual);
+
+    const pedido = Array.isArray(it.pedidos) ? it.pedidos[0] : it.pedidos;
+    if (pedido?.created_at) {
+      const dia = new Date(pedido.created_at).toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
+      const mapaDia = porProductoYDia.get(dia) ?? new Map<string, number>();
+      mapaDia.set(nombre, (mapaDia.get(nombre) ?? 0) + Number(it.cantidad));
+      porProductoYDia.set(dia, mapaDia);
+    }
   }
   const topProductos = [...porProducto.entries()].sort((a, b) => b[1].cantidad - a[1].cantidad).slice(0, 10);
   const maxCantidad = Math.max(1, ...topProductos.map(([, v]) => v.cantidad));
   const MEDALLAS = ['🥇', '🥈', '🥉'];
+
+  const topPorDia = dias.map(([dia]) => {
+    const mapaDia = porProductoYDia.get(dia);
+    if (!mapaDia || mapaDia.size === 0) return { dia, nombre: null, cantidad: 0 };
+    const [nombre, cantidad] = [...mapaDia.entries()].sort((a, b) => b[1] - a[1])[0];
+    return { dia, nombre, cantidad };
+  });
+  const maxCantidadDia = Math.max(1, ...topPorDia.map((d) => d.cantidad));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
@@ -85,6 +105,43 @@ export function ReportesView() {
                       borderRadius: 4,
                     }}
                   />
+                  <span style={{ fontSize: 10, color: 'var(--text-dim)', textAlign: 'center' }}>{dia}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card card-pad">
+            <div className="field-label" style={{ marginBottom: 12 }}>
+              Lo más vendido por día
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 150, overflowX: 'auto' }}>
+              {topPorDia.map(({ dia, nombre, cantidad }) => (
+                <div key={dia} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, minWidth: 72 }}>
+                  <span style={{ fontSize: 10.5, color: 'var(--text-dim)' }}>{nombre ? `${cantidad} un.` : '—'}</span>
+                  <div
+                    style={{
+                      width: 26,
+                      height: Math.max(4, (cantidad / maxCantidadDia) * 90),
+                      background: 'var(--terracota)',
+                      borderRadius: 4,
+                    }}
+                  />
+                  <span
+                    title={nombre ?? ''}
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 600,
+                      color: 'var(--brown-dark)',
+                      textAlign: 'center',
+                      maxWidth: 72,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {nombre ?? '—'}
+                  </span>
                   <span style={{ fontSize: 10, color: 'var(--text-dim)', textAlign: 'center' }}>{dia}</span>
                 </div>
               ))}
