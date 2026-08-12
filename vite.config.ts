@@ -13,9 +13,20 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       workbox: {
-        // NetworkFirst para el shell/HTML: mientras haya conexión siempre
-        // trae la versión más nueva; si no hay conexión, cae al cache.
-        // Sin esto la app ni siquiera abre sin internet.
+        // skipWaiting + clientsClaim: el service worker nuevo toma control
+        // apenas se instala, sin esperar a que se cierren todas las
+        // pestañas viejas -- sin esto, un deploy nuevo podía quedar
+        // "pegado" sirviendo el bundle anterior indefinidamente (lo vi
+        // pasar en producción probando esto mismo).
+        skipWaiting: true,
+        clientsClaim: true,
+        // index.html NO se precachea: si quedara en el precache, el SW lo
+        // serviría directo sin ni siquiera intentar la red, y esa versión
+        // vieja del HTML apunta a hashes de JS que ya no existen. Con
+        // NetworkFirst se pide de red primero siempre que haya conexión;
+        // recién si no hay conexión cae al cache.
+        navigateFallback: null,
+        globIgnores: ['**/index.html'],
         runtimeCaching: [
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
