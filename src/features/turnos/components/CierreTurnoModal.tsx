@@ -226,11 +226,11 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
             <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                 <span style={{ color: 'var(--text-dim)' }}>Fondo inicial</span>
-                <span>{fmt.format(efectivoApertura)}</span>
+                <span style={{ color: 'var(--text)' }}>{fmt.format(efectivoApertura)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                 <span style={{ color: 'var(--text-dim)' }}>+ Efectivo cobrado</span>
-                <span>{fmt.format(efectivoCobrado)}</span>
+                <span style={{ color: 'var(--text)' }}>{fmt.format(efectivoCobrado)}</span>
               </div>
               <div
                 style={{
@@ -238,6 +238,7 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
                   justifyContent: 'space-between',
                   fontSize: 13,
                   fontWeight: 700,
+                  color: 'var(--text)',
                   borderTop: '1px dashed var(--border)',
                   paddingTop: 6,
                 }}
