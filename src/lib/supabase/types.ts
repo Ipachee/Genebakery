@@ -873,13 +873,6 @@ export type Database = {
         }
         Relationships: []
       }
-      turnos_publico: {
-        Row: {
-          estado: string | null
-          etiqueta: string | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       fn_cobrar_pedido: {
@@ -960,6 +953,13 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      fn_turnos_publico: {
+        Args: never
+        Returns: {
+          estado: string
+          etiqueta: string
+        }[]
       }
       is_active_staff: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }

@@ -1,11 +1,13 @@
 import { supabase } from '../../lib/supabase/client';
 import { ESTADOS_PEDIDO_ACTIVO } from '../../lib/pedidoConstantes';
 
-// Visible sin login (RLS bypaseado a proposito en la vista): solo etiqueta +
-// estado, para mostrar en la pantalla de inicio de sesion cual turno esta
-// abierto antes de que nadie se loguee.
+// Visible sin login: solo etiqueta + estado, para mostrar en la pantalla de
+// inicio de sesion cual turno esta abierto antes de que nadie se loguee.
+// Función security definer (no una vista) para que el auditor de seguridad
+// de Supabase no la marque como "Security Definer View" -- ver
+// fn_turnos_publico en supabase/migrations.
 export async function fetchTurnosPublico() {
-  const { data, error } = await supabase.from('turnos_publico').select('*');
+  const { data, error } = await supabase.rpc('fn_turnos_publico');
   if (error) throw error;
   return data;
 }
