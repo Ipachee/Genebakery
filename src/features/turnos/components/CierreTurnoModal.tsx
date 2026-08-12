@@ -33,6 +33,7 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
   const [email, setEmail] = useState('');
   const [envioOk, setEnvioOk] = useState(false);
   const [envioError, setEnvioError] = useState<string | null>(null);
+  const [efectivoContado, setEfectivoContado] = useState('');
 
   // Mañana y Tarde siempre pueden pasarle mesas pendientes al siguiente
   // turno (aunque ese dia no se termine usando Noche, la mesa queda
@@ -50,6 +51,16 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
     porMetodo.set(v.metodo_pago, (porMetodo.get(v.metodo_pago) ?? 0) + Number(v.total));
   }
 
+  // Arqueo: fondo con el que abrió + lo cobrado en efectivo este turno es
+  // lo que "debería" haber en la caja. Los pagos divididos ya quedan como
+  // una fila de ventas por método (ver fn_cobrar_pedido), así que sumar
+  // "Efectivo" acá ya incluye la parte en efectivo de un cobro dividido.
+  const efectivoApertura = Number(turno.efectivo_apertura ?? 0);
+  const efectivoCobrado = porMetodo.get('Efectivo') ?? 0;
+  const efectivoEsperado = efectivoApertura + efectivoCobrado;
+  const efectivoContadoNum = efectivoContado.trim() === '' ? null : Number(efectivoContado);
+  const diferenciaCaja = efectivoContadoNum != null ? efectivoContadoNum - efectivoEsperado : null;
+
   function nombreArchivo() {
     return `cierre-turno-${turno.etiqueta.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
   }
@@ -62,6 +73,7 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
       facturado,
       mesasPendientes: mesasPendientes ?? [],
       insumosBajo: insumosBajo ?? [],
+      efectivoContado: efectivoContadoNum,
     });
   }
 
@@ -209,6 +221,58 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
 
           <div>
             <div className="field-label" style={{ marginBottom: 8 }}>
+              Arqueo de caja
+            </div>
+            <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: 'var(--text-dim)' }}>Fondo inicial</span>
+                <span>{fmt.format(efectivoApertura)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                <span style={{ color: 'var(--text-dim)' }}>+ Efectivo cobrado</span>
+                <span>{fmt.format(efectivoCobrado)}</span>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  borderTop: '1px dashed var(--border)',
+                  paddingTop: 6,
+                }}
+              >
+                <span>= Debería haber</span>
+                <span>{fmt.format(efectivoEsperado)}</span>
+              </div>
+              <TextInput
+                type="number"
+                min={0}
+                placeholder="Contá el efectivo de la caja y poné el monto acá (opcional)"
+                value={efectivoContado}
+                onChange={(e) => setEfectivoContado(e.target.value)}
+              />
+              {diferenciaCaja != null && (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    color: diferenciaCaja === 0 ? 'var(--green)' : Math.abs(diferenciaCaja) <= 50 ? 'var(--text-dim)' : 'var(--red)',
+                  }}
+                >
+                  {diferenciaCaja === 0
+                    ? '✓ Coincide exacto.'
+                    : diferenciaCaja > 0
+                      ? `Sobran ${fmt.format(diferenciaCaja)}.`
+                      : `Faltan ${fmt.format(-diferenciaCaja)}.`}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <div className="field-label" style={{ marginBottom: 8 }}>
               Resumen en PDF
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 8px' }}>
@@ -259,7 +323,7 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
               variant="danger"
               disabled={bloqueaCierre || cerrar.isPending || !online}
               onClick={async () => {
-                await cerrar.mutateAsync();
+                await cerrar.mutateAsync(efectivoContadoNum);
                 onClose();
                 // Termina la sesión de este turno y vuelve a la pantalla de
                 // login para que se pueda elegir el turno siguiente.

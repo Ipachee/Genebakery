@@ -103,8 +103,9 @@ export function generarPdfCierre(params: {
   facturado: number;
   mesasPendientes: { mesa_id: number | null; estado: string; mesas: { label: string | null } | null }[];
   insumosBajo: Insumo[];
+  efectivoContado: number | null;
 }): Blob {
-  const { turno, perfil, ventas, facturado, mesasPendientes, insumosBajo } = params;
+  const { turno, perfil, ventas, facturado, mesasPendientes, insumosBajo, efectivoContado } = params;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const nombreNegocio = perfil?.nombre_fiscal || 'ComandaCafé';
 
@@ -170,6 +171,45 @@ export function generarPdfCierre(params: {
     });
     doc.setTextColor(...COLOR.brownDark);
     y += 60 + 10;
+  }
+
+  // --- Arqueo de caja (solo si se registró fondo inicial o conteo final) ---
+  if (turno.efectivo_apertura != null || efectivoContado != null) {
+    const efectivoCobrado = porMetodo.get('Efectivo') ?? 0;
+    const efectivoApertura = Number(turno.efectivo_apertura ?? 0);
+    const efectivoEsperado = efectivoApertura + efectivoCobrado;
+    const filas: [string, string, boolean][] = [
+      ['Fondo inicial', fmt.format(efectivoApertura), false],
+      ['+ Efectivo cobrado', fmt.format(efectivoCobrado), false],
+      ['= Debería haber', fmt.format(efectivoEsperado), true],
+    ];
+    if (efectivoContado != null) {
+      const diferencia = efectivoContado - efectivoEsperado;
+      filas.push(['Contado', fmt.format(efectivoContado), false]);
+      filas.push([
+        diferencia === 0 ? 'Coincide' : diferencia > 0 ? 'Sobran' : 'Faltan',
+        fmt.format(Math.abs(diferencia)),
+        true,
+      ]);
+    }
+    const alto = 6 + filas.length * 7;
+    y = ensureSpace(doc, y, alto + 12);
+    y = seccionHeader(doc, 'Arqueo de caja', y, COLOR.amber);
+    doc.setFillColor(...COLOR.cream);
+    doc.roundedRect(MARGIN, y, CONTENT_W, alto, 2, 2, 'F');
+    let fy = y + 8;
+    filas.forEach(([label, valor, destacado], i) => {
+      const esUltima = i === filas.length - 1 && efectivoContado != null;
+      doc.setFont('helvetica', destacado ? 'bold' : 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...COLOR.brownDark);
+      doc.text(label, MARGIN + 5, fy);
+      doc.setTextColor(...(esUltima ? (efectivoContado! - efectivoEsperado < 0 ? COLOR.red : COLOR.terracotaDark) : COLOR.brownDark));
+      doc.text(valor, MARGIN + CONTENT_W - 5, fy, { align: 'right' });
+      fy += 7;
+    });
+    doc.setTextColor(...COLOR.brownDark);
+    y += alto + 10;
   }
 
   // --- Detalle de ventas ---

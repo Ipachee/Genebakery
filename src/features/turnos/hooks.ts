@@ -10,6 +10,7 @@ import {
   fetchTurnosPublico,
   fetchVentasDelTurno,
   reabrirTurno,
+  registrarAperturaCaja,
   resolverTurno,
 } from './api';
 
@@ -115,7 +116,15 @@ export function useFacturadoTurno(turnoId: number | null) {
 export function useCerrarTurno(turnoId: number | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => cerrarTurno(turnoId!),
+    mutationFn: (efectivoContado: number | null) => cerrarTurno(turnoId!, efectivoContado),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['turno', turnoId] }),
+  });
+}
+
+export function useRegistrarAperturaCaja(turnoId: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (monto: number) => registrarAperturaCaja(turnoId!, monto),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['turno', turnoId] }),
   });
 }

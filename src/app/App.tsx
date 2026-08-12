@@ -9,6 +9,7 @@ import { ComanderaView } from '../features/comandera/components/ComanderaView';
 import { AjustesView } from '../features/ajustes/components/AjustesView';
 import { TurnoProvider } from '../features/turnos/TurnoContext';
 import { TurnoBadge } from '../features/turnos/components/TurnoBadge';
+import { AperturaCajaModal } from '../features/turnos/components/AperturaCajaModal';
 import { useTurnoActual } from '../features/turnos/useTurnoActual';
 import { useNuevaVersion } from './useNuevaVersion';
 import { useOnlineStatus } from './useOnlineStatus';
@@ -140,11 +141,16 @@ type Vista = 'salon' | 'comandera' | 'admin' | 'ajustes';
 
 function Shell() {
   const { session, profile, signOut, puedeVolverATurno, volverATurno } = useAuth();
-  const { error: turnoError, reintentar: reintentarTurno } = useTurnoActual();
+  const { turno, error: turnoError, reintentar: reintentarTurno } = useTurnoActual();
   const [vista, setVista] = useState<Vista>('salon');
+  const [omitirAperturaCaja, setOmitirAperturaCaja] = useState(false);
   const iniciales = (profile?.nombre ?? session?.user.email ?? '?').slice(0, 1).toUpperCase();
   const esAdmin = profile?.rol === 'admin';
   const bloqueadoPorTurno = profile?.rol === 'mozo' && !!turnoError;
+  // Se pide una sola vez por turno recién creado (efectivo_apertura arranca
+  // en null) -- si ya se registró, o el mozo la omite, no vuelve a
+  // aparecer hasta el próximo turno nuevo.
+  const pedirAperturaCaja = !!turno && turno.estado === 'abierto' && turno.efectivo_apertura == null && !omitirAperturaCaja;
 
   return (
     <div>
@@ -217,6 +223,7 @@ function Shell() {
           </>
         )}
       </main>
+      {pedirAperturaCaja && <AperturaCajaModal turno={turno!} onClose={() => setOmitirAperturaCaja(true)} />}
     </div>
   );
 }

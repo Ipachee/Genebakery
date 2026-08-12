@@ -14,7 +14,7 @@ export async function fetchVentasDesde(desde: string) {
 export async function fetchProductoMasVendido(desde: string) {
   const { data, error } = await supabase
     .from('pedido_items')
-    .select('cantidad, productos(nombre), pedidos!inner(created_at, estado, deleted_at)')
+    .select('cantidad, precio_unitario, productos(nombre), pedidos!inner(created_at, estado, deleted_at)')
     .gte('pedidos.created_at', desde)
     .eq('pedidos.estado', 'cobrado')
     .is('pedidos.deleted_at', null);

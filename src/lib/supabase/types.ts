@@ -745,6 +745,8 @@ export type Database = {
           abierto_at: string
           abierto_por: string
           cerrado_at: string | null
+          efectivo_apertura: number | null
+          efectivo_cierre_contado: number | null
           estado: string
           etiqueta: string
           id: number
@@ -753,6 +755,8 @@ export type Database = {
           abierto_at?: string
           abierto_por: string
           cerrado_at?: string | null
+          efectivo_apertura?: number | null
+          efectivo_cierre_contado?: number | null
           estado?: string
           etiqueta?: string
           id?: never
@@ -761,6 +765,8 @@ export type Database = {
           abierto_at?: string
           abierto_por?: string
           cerrado_at?: string | null
+          efectivo_apertura?: number | null
+          efectivo_cierre_contado?: number | null
           estado?: string
           etiqueta?: string
           id?: never
@@ -942,6 +948,8 @@ export type Database = {
           abierto_at: string
           abierto_por: string
           cerrado_at: string | null
+          efectivo_apertura: number | null
+          efectivo_cierre_contado: number | null
           estado: string
           etiqueta: string
           id: number

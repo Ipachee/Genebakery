@@ -33,10 +33,21 @@ export async function reabrirTurno(id: number) {
   return data;
 }
 
-export async function cerrarTurno(id: number) {
+export async function cerrarTurno(id: number, efectivoContado: number | null) {
   const { data, error } = await supabase
     .from('turnos')
-    .update({ estado: 'cerrado', cerrado_at: new Date().toISOString() })
+    .update({ estado: 'cerrado', cerrado_at: new Date().toISOString(), efectivo_cierre_contado: efectivoContado })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function registrarAperturaCaja(id: number, monto: number) {
+  const { data, error } = await supabase
+    .from('turnos')
+    .update({ efectivo_apertura: monto })
     .eq('id', id)
     .select()
     .single();
