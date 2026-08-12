@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { onlineManager, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   cerrarTurno,
   enviarResumenPorMail,
@@ -47,6 +47,16 @@ export function useResolverTurno(etiqueta: string | null, userId: string | null)
         setResolviendo(false);
       })
       .catch((e) => {
+        // Sin conexión no es lo mismo que "bloqueado por regla de
+        // negocio" -- ni siquiera se pudo preguntar. El banner de "sin
+        // conexión" ya avisa de esto; no hace falta además mostrar la
+        // pantalla de turno bloqueado con un mensaje de red confuso
+        // ("Failed to fetch"). Se reintenta solo apenas vuelve la red
+        // (ver el efecto de abajo).
+        if (!onlineManager.isOnline()) {
+          setResolviendo(false);
+          return;
+        }
         // El error de una llamada RPC de Supabase es un PostgrestError
         // (objeto plano con .message), no necesariamente un Error nativo.
         // El mensaje de la función SQL se muestra tal cual, es un texto
@@ -68,6 +78,15 @@ export function useResolverTurno(etiqueta: string | null, userId: string | null)
     intentar(etiqueta, userId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [etiqueta, userId]);
+
+  useEffect(() => {
+    return onlineManager.subscribe((isOnline) => {
+      if (isOnline && etiqueta && userId && turnoId == null && !error) {
+        intentar(etiqueta, userId);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etiqueta, userId, turnoId, error]);
 
   return {
     turnoId,

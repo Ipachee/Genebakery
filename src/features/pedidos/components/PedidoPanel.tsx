@@ -6,6 +6,7 @@ import { pedidoMesaKey, usePedidoDeMesa, usePedidoMutations, useProductos, type 
 import { useClientes } from '../../clientes/hooks';
 import { useMesas, useEstadoDeMesas } from '../../salon/hooks';
 import { usePerfilNegocio } from '../../negocio/hooks';
+import { useOnlineStatus } from '../../../app/useOnlineStatus';
 import { agruparEnviados, partirLineas, type GrupoEnviado } from '../transferencia';
 import { useConfirm } from '../../../components/ConfirmDialog';
 import { Cronometro } from './Cronometro';
@@ -46,6 +47,7 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const colaRef = useRef<Promise<void>>(Promise.resolve());
   const { confirm, dialog } = useConfirm();
   const [recibo, setRecibo] = useState<ReciboCobro | null>(null);
+  const online = useOnlineStatus();
 
   const [categoria, setCategoria] = useState<Producto['categoria']>('bebida');
   const [cobrando, setCobrando] = useState(false);
@@ -328,6 +330,7 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                     itemsCount={items.length}
                     hayPendientesDeCocina={hayPendientesDeCocina}
                     enviando={enviando}
+                    offline={!online}
                     onEnviarCocina={handleEnviarCocina}
                     onMarcarEntregado={() => pedido && mutations.marcarEntregado.mutate(pedido.id)}
                     onCobrar={() => setCobrando(true)}

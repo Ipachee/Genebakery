@@ -11,6 +11,7 @@ import { TurnoProvider } from '../features/turnos/TurnoContext';
 import { TurnoBadge } from '../features/turnos/components/TurnoBadge';
 import { useTurnoActual } from '../features/turnos/useTurnoActual';
 import { useNuevaVersion } from './useNuevaVersion';
+import { useOnlineStatus } from './useOnlineStatus';
 import { Button } from '../components/Button';
 import './shell.css';
 
@@ -23,6 +24,7 @@ export function App() {
 
   return (
     <>
+      <BannerOffline />
       {!session ? (
         <LoginScreen />
       ) : (
@@ -32,6 +34,32 @@ export function App() {
       )}
       <BannerNuevaVersion />
     </>
+  );
+}
+
+function BannerOffline() {
+  const online = useOnlineStatus();
+  if (online) return null;
+  // Sin position:fixed a propósito: el header ya es sticky (relativo a su
+  // posición en el flujo normal), así que este banner tiene que vivir
+  // ARRIBA de él en el documento para empujarlo hacia abajo en vez de
+  // taparlo.
+  return (
+    <div
+      style={{
+        background: 'var(--red)',
+        color: '#fff',
+        padding: '8px 16px',
+        textAlign: 'center',
+        fontSize: 12.5,
+        fontWeight: 600,
+        position: 'relative',
+        zIndex: 250,
+      }}
+    >
+      📡 Sin conexión — se ve el último plano guardado. Cobrar, enviar a cocina y transferir quedan pausados hasta
+      que vuelva internet.
+    </div>
   );
 }
 

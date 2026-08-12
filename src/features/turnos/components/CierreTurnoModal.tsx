@@ -13,6 +13,7 @@ import { generarPdfCierre } from '../cierrePdf';
 import { Button } from '../../../components/Button';
 import { TextInput } from '../../../components/Field';
 import { fmtMoney as fmt } from '../../../lib/format';
+import { useOnlineStatus } from '../../../app/useOnlineStatus';
 import type { Database } from '../../../lib/supabase/types';
 
 type Turno = Database['public']['Tables']['turnos']['Row'];
@@ -21,6 +22,7 @@ const EMAIL_VALIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: () => void }) {
   const { signOut } = useAuth();
+  const online = useOnlineStatus();
   const { data: ventas } = useVentasDelTurno(turno.id);
   const { data: facturado = 0 } = useFacturadoTurno(turno.id);
   const { data: mesasPendientes } = useMesasPendientesDelTurno(turno.id);
@@ -248,9 +250,14 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
           )}
 
           <div style={{ display: 'flex', gap: 8 }}>
+            {!online && (
+              <p style={{ color: 'var(--red)', fontSize: 12, margin: 0 }}>
+                📡 Sin conexión: necesitás internet para cerrar el turno.
+              </p>
+            )}
             <Button
               variant="danger"
-              disabled={bloqueaCierre || cerrar.isPending}
+              disabled={bloqueaCierre || cerrar.isPending || !online}
               onClick={async () => {
                 await cerrar.mutateAsync();
                 onClose();
