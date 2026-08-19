@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePedidosComandera, type TicketComandera } from '../hooks';
 import { marcarRondaEntregada } from '../api';
@@ -23,6 +23,17 @@ export function ComanderaView() {
   const { data: tickets, isLoading } = usePedidosComandera();
   const qc = useQueryClient();
   const [imprimiendo, setImprimiendo] = useState<TicketComandera | null>(null);
+  // null = todavía no se cargaron comandas por primera vez. Los tickets que
+  // ya estaban ahí en esa primera carga se dan por "vistos" sin imprimirlos
+  // solos (si se recarga esta pantalla a mitad del día, no hace falta
+  // reimprimir todo lo que ya está en curso) -- de ahí en más, cualquier
+  // ticket nuevo que aparezca en un refetch se imprime automático, sin que
+  // nadie tenga que tocar el botón. Se guarda en memoria (no localStorage) a
+  // propósito: si esta pantalla se recarga, es preferible arrancar de cero
+  // (como mucho reimprime algo que ya salió) a arrastrar un registro viejo
+  // para siempre.
+  const impresosRef = useRef<Set<string> | null>(null);
+  const colaRef = useRef<TicketComandera[]>([]);
 
   const marcar = useMutation({
     mutationFn: (t: { pedidoId: number; ronda: number }) => marcarRondaEntregada(t.pedidoId, t.ronda),
@@ -34,13 +45,26 @@ export function ComanderaView() {
   });
 
   useEffect(() => {
+    if (!tickets) return;
+    if (impresosRef.current === null) {
+      impresosRef.current = new Set(tickets.map((t) => t.key));
+      return;
+    }
+    const nuevos = tickets.filter((t) => !impresosRef.current!.has(t.key));
+    if (nuevos.length === 0) return;
+    for (const t of nuevos) impresosRef.current.add(t.key);
+    colaRef.current.push(...nuevos);
+    setImprimiendo((actual) => actual ?? colaRef.current.shift() ?? null);
+  }, [tickets]);
+
+  useEffect(() => {
     if (!imprimiendo) return;
     const id = requestAnimationFrame(() => window.print());
-    const limpiar = () => setImprimiendo(null);
-    window.addEventListener('afterprint', limpiar);
+    const siguiente = () => setImprimiendo(colaRef.current.shift() ?? null);
+    window.addEventListener('afterprint', siguiente);
     return () => {
       cancelAnimationFrame(id);
-      window.removeEventListener('afterprint', limpiar);
+      window.removeEventListener('afterprint', siguiente);
     };
   }, [imprimiendo]);
 

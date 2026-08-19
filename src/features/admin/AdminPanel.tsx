@@ -7,6 +7,7 @@ import { VentasView } from '../ventas/components/VentasView';
 import { MovimientosView } from '../movimientos/components/MovimientosView';
 import { ClientesView } from '../clientes/components/ClientesView';
 import { EmpleadosView } from '../empleados/components/EmpleadosView';
+import { ProveedoresView } from '../proveedores/components/ProveedoresView';
 import { PapeleraView } from '../papelera/components/PapeleraView';
 
 const TABS = [
@@ -18,6 +19,7 @@ const TABS = [
   { id: 'movimientos', label: 'Movimientos', Componente: MovimientosView },
   { id: 'clientes', label: 'Clientes', Componente: ClientesView },
   { id: 'empleados', label: 'Empleados', Componente: EmpleadosView },
+  { id: 'proveedores', label: 'Proveedores', Componente: ProveedoresView },
   { id: 'papelera', label: 'Papelera', Componente: PapeleraView },
 ] as const;
 

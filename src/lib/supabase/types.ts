@@ -213,6 +213,54 @@ export type Database = {
           },
         ]
       }
+      facturas_proveedor: {
+        Row: {
+          cargado_por: string | null
+          created_at: string
+          deleted_at: string | null
+          fecha: string
+          id: number
+          monto: number
+          numero_factura: string | null
+          proveedor_id: number
+        }
+        Insert: {
+          cargado_por?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha: string
+          id?: never
+          monto: number
+          numero_factura?: string | null
+          proveedor_id: number
+        }
+        Update: {
+          cargado_por?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          fecha?: string
+          id?: never
+          monto?: number
+          numero_factura?: string | null
+          proveedor_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_proveedor_cargado_por_fkey"
+            columns: ["cargado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_proveedor_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gastos: {
         Row: {
           cantidad: number
@@ -665,6 +713,36 @@ export type Database = {
           id?: string
           nombre?: string
           rol?: string
+        }
+        Relationships: []
+      }
+      proveedores: {
+        Row: {
+          created_at: string
+          cuit: string | null
+          deleted_at: string | null
+          email: string | null
+          id: number
+          nombre: string
+          telefono: string | null
+        }
+        Insert: {
+          created_at?: string
+          cuit?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          id?: never
+          nombre: string
+          telefono?: string | null
+        }
+        Update: {
+          created_at?: string
+          cuit?: string | null
+          deleted_at?: string | null
+          email?: string | null
+          id?: never
+          nombre?: string
+          telefono?: string | null
         }
         Relationships: []
       }

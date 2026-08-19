@@ -61,6 +61,15 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
   const efectivoContadoNum = efectivoContado.trim() === '' ? null : Number(efectivoContado);
   const diferenciaCaja = efectivoContadoNum != null ? efectivoContadoNum - efectivoEsperado : null;
 
+  // El dueño quiere que sí o sí quede un conteo de caja y un mail de
+  // contacto antes de poder cerrar -- no hace falta que el mail se haya
+  // mandado de verdad (eso depende de un servicio externo, no queremos que
+  // un problema de Resend le impida a alguien cerrar su turno), alcanza con
+  // que los dos campos estén completos y con formato válido.
+  const faltaArqueo = efectivoContadoNum == null;
+  const faltaEmail = !emailValido;
+  const faltanObligatorios = faltaArqueo || faltaEmail;
+
   function nombreArchivo() {
     return `cierre-turno-${turno.etiqueta.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
   }
@@ -221,7 +230,7 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
 
           <div>
             <div className="field-label" style={{ marginBottom: 8 }}>
-              Arqueo de caja
+              Arqueo de caja <span style={{ color: 'var(--red)' }}>*</span>
             </div>
             <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
@@ -249,7 +258,7 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
               <TextInput
                 type="number"
                 min={0}
-                placeholder="Contá el efectivo de la caja y poné el monto acá (opcional)"
+                placeholder="Contá el efectivo de la caja y poné el monto acá"
                 value={efectivoContado}
                 onChange={(e) => setEfectivoContado(e.target.value)}
               />
@@ -274,11 +283,12 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
 
           <div>
             <div className="field-label" style={{ marginBottom: 8 }}>
-              Resumen en PDF
+              Resumen en PDF <span style={{ color: 'var(--red)' }}>*</span>
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 8px' }}>
               Incluye membrete del negocio, gráfico de ventas por medio de pago y el detalle completo. Se manda de
-              verdad por mail (no abre tu programa de correo).
+              verdad por mail (no abre tu programa de correo). El mail de abajo es obligatorio para poder cerrar el
+              turno, aunque no llegues a apretar "Enviar por mail".
             </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <Button variant="secondary" onClick={descargarPdf}>
@@ -314,6 +324,12 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
             </p>
           )}
 
+          {!bloqueaCierre && faltanObligatorios && (
+            <p style={{ color: 'var(--red)', fontSize: 13, background: 'var(--red-soft)', padding: '10px 12px', borderRadius: 'var(--radius-sm)', margin: 0 }}>
+              Antes de cerrar hace falta completar: {[faltaArqueo && 'el efectivo contado en el arqueo de caja', faltaEmail && 'un mail válido'].filter(Boolean).join(' y ')}.
+            </p>
+          )}
+
           <div style={{ display: 'flex', gap: 8 }}>
             {!online && (
               <p style={{ color: 'var(--red)', fontSize: 12, margin: 0 }}>
@@ -322,7 +338,7 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
             )}
             <Button
               variant="danger"
-              disabled={bloqueaCierre || cerrar.isPending || !online}
+              disabled={bloqueaCierre || faltanObligatorios || cerrar.isPending || !online}
               onClick={async () => {
                 await cerrar.mutateAsync(efectivoContadoNum);
                 onClose();
