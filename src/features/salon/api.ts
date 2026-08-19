@@ -56,6 +56,14 @@ export async function renombrarSalon(id: number, nombre: string) {
   if (error) throw error;
 }
 
+// Label queda null para volver al número de toda la vida (mesa.label ??
+// mesa.id) -- útil para locales que usan nombres propios en vez de
+// números para separar mesas de gente conocida.
+export async function renombrarMesa(id: number, label: string) {
+  const { error } = await supabase.from('mesas').update({ label: label || null }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function crearSalon(nombre: string) {
   const { error } = await supabase
     .from('salones')

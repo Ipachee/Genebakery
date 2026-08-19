@@ -448,7 +448,18 @@ function PanelEdicion({
   if (mesa) {
     return (
       <div className="card card-pad" style={boxStyle}>
-        <strong style={{ fontSize: 14 }}>Mesa {mesa.label ?? mesa.id}</strong>
+        <div>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>Mesa #{mesa.id}</div>
+          <TextInput
+            key={mesa.id}
+            defaultValue={mesa.label ?? ''}
+            placeholder={`Mesa ${mesa.id}`}
+            onBlur={(e) => e.target.value !== (mesa.label ?? '') && mutations.renombrarMesa.mutate({ id: mesa.id, label: e.target.value })}
+          />
+          <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginTop: 4 }}>
+            Para separar mesas de gente conocida, poné un nombre en vez del número.
+          </div>
+        </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <Button
             size="sm"

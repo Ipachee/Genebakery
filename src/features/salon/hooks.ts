@@ -42,6 +42,7 @@ export function useSalonMutations() {
   return {
     moverMesa: useMutation({ mutationFn: (v: { id: number; x: number; y: number }) => api.moverMesa(v.id, v.x, v.y), onSuccess: invalidar }),
     redimensionarMesa: useMutation({ mutationFn: (v: { id: number; w: number; h: number }) => api.redimensionarMesa(v.id, v.w, v.h), onSuccess: invalidar }),
+    renombrarMesa: useMutation({ mutationFn: (v: { id: number; label: string }) => api.renombrarMesa(v.id, v.label), onSuccess: invalidar }),
     moverSalon: useMutation({ mutationFn: (v: { id: number; x: number; y: number }) => api.moverSalon(v.id, v.x, v.y), onSuccess: invalidar }),
     redimensionarSalon: useMutation({ mutationFn: (v: { id: number; w: number; h: number }) => api.redimensionarSalon(v.id, v.w, v.h), onSuccess: invalidar }),
     renombrarSalon: useMutation({ mutationFn: (v: { id: number; nombre: string }) => api.renombrarSalon(v.id, v.nombre), onSuccess: invalidar }),
