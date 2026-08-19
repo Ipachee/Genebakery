@@ -245,7 +245,14 @@ export function SalonView() {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+      {/* position: relative + el panel en position: absolute a propósito:
+          si el panel formara parte del flujo normal (flex/grid), el plano
+          tendría que achicarse para dejarle lugar cada vez que se
+          selecciona una mesa/salón -- eso se sentía tosco (el plano
+          "saltaba" de tamaño con cada click). Así el plano SIEMPRE mide lo
+          mismo, elegido algo o no, y el panel flota al costado sin mover
+          nada. */}
+      <div style={{ position: 'relative', width: '100%', maxWidth: 1120 }}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${maxX} ${maxY}`}
@@ -253,14 +260,7 @@ export function SalonView() {
           aria-label="Plano del salón"
           className="card"
           style={{
-            // flex + minWidth: 0 en vez de "width: 100%, maxWidth: 1120" a
-            // secas -- así el plano se ACHICA para dejarle lugar al panel
-            // de edición al costado, en vez de que el panel se vaya abajo
-            // (y haya que scrollear) cuando no entran los dos uno al lado
-            // del otro con su ancho "natural".
-            flex: '1 1 auto',
-            minWidth: 0,
-            maxWidth: 1120,
+            width: '100%',
             height: 'auto',
             padding: 4,
             touchAction: editando ? 'none' : 'auto',
@@ -407,7 +407,7 @@ export function SalonView() {
         </svg>
 
         {editando && (mesaSeleccionada || salonSeleccionado) && (
-          <div style={{ flex: '0 0 220px', position: 'sticky', top: 'var(--space-4)' }}>
+          <div style={{ position: 'absolute', top: 4, left: '100%', marginLeft: 'var(--space-4)', width: 220, zIndex: 5 }}>
             <PanelEdicion
               mesa={mesaSeleccionada}
               salon={salonSeleccionado}
