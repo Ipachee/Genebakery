@@ -45,6 +45,7 @@ const BARRA = { x: 760, y: 205, w: 340, h: 16 };
 
 type Seleccion = { tipo: 'mesa' | 'salon'; id: number } | null;
 type Drag = { tipo: 'mesa' | 'salon'; id: number; dx: number; dy: number } | null;
+type Redim = { id: number; startX: number; startY: number; startW: number; startH: number } | null;
 
 export function SalonView() {
   const { profile } = useAuth();
@@ -58,6 +59,8 @@ export function SalonView() {
   const [seleccion, setSeleccion] = useState<Seleccion>(null);
   const [drag, setDrag] = useState<Drag>(null);
   const [posOverride, setPosOverride] = useState<Record<string, { x: number; y: number }>>({});
+  const [redim, setRedim] = useState<Redim>(null);
+  const [sizeOverride, setSizeOverride] = useState<Record<number, { w: number; h: number }>>({});
   const [mesaParaPedido, setMesaParaPedido] = useState<Mesa | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const { confirm, dialog } = useConfirm();
@@ -83,8 +86,16 @@ export function SalonView() {
   const mesasOcupadasCount = mesasVisibles.filter((m) => estadoDeMesas?.has(m.id)).length;
   const mesasLibresCount = mesasVisibles.length - mesasOcupadasCount;
 
-  const maxX = Math.max(...salones.map((s) => s.x + s.w), BARRA.x + BARRA.w) + 20;
-  const maxY = Math.max(...salones.map((s) => s.y + s.h)) + 20;
+  function sizeDe(salon: Salon) {
+    return sizeOverride[salon.id] ?? { w: salon.w, h: salon.h };
+  }
+
+  // Usa el tamaño EN VIVO (con el override del arrastre de la esquina, si
+  // hay uno en curso) para que el lienzo crezca a medida que se agranda un
+  // salón -- si usara solo el tamaño guardado en la base, el salón se vería
+  // recortado por el viewBox mientras se lo agranda, hasta soltar.
+  const maxX = Math.max(...salones.map((s) => s.x + sizeDe(s).w), BARRA.x + BARRA.w) + 20;
+  const maxY = Math.max(...salones.map((s) => s.y + sizeDe(s).h)) + 20;
 
   function posDe(tipo: 'mesa' | 'salon', item: Mesa | Salon) {
     const key = `${tipo}-${item.id}`;
@@ -114,12 +125,19 @@ export function SalonView() {
 
   function moverDrag(e: ReactPointerEvent) {
     if (!drag) return;
+    const item = drag.tipo === 'mesa' ? todasLasMesas.find((m) => m.id === drag.id) : salones?.find((s) => s.id === drag.id);
+    if (!item) return;
     const p = puntoSvg(e);
     const key = `${drag.tipo}-${drag.id}`;
-    setPosOverride((prev) => ({
-      ...prev,
-      [key]: { x: Math.round(p.x - drag.dx), y: Math.round(p.y - drag.dy) },
-    }));
+    // Arrastrar una mesa o salón fuera del lienzo (x/y negativos, o pasado
+    // maxX/maxY) lo saca del viewBox del SVG -- como el SVG recorta lo que
+    // queda afuera, la mesa "desaparece" (sigue existiendo con esa posición
+    // inválida, invisible, hasta que alguien la encuentre a ciegas o se
+    // resetee el plano). Se acota para que el rectángulo entero (no solo la
+    // esquina) quede siempre dentro del área visible.
+    const x = Math.min(Math.max(Math.round(p.x - drag.dx), 0), Math.max(0, maxX - item.w));
+    const y = Math.min(Math.max(Math.round(p.y - drag.dy), 0), Math.max(0, maxY - item.h));
+    setPosOverride((prev) => ({ ...prev, [key]: { x, y } }));
   }
 
   function soltarDrag() {
@@ -131,6 +149,34 @@ export function SalonView() {
       else mutations.moverSalon.mutate({ id: drag.id, x: pos.x, y: pos.y });
     }
     setDrag(null);
+  }
+
+  // Agarrar y arrastrar la esquina inferior derecha de un salón para
+  // cambiarle el tamaño a mano, en vez de solo los botones de +/- tamaño de
+  // a pasos fijos -- separado del arrastre normal (que mueve, no
+  // redimensiona) con su propio estado.
+  function iniciarRedimSalon(e: ReactPointerEvent, salon: Salon) {
+    if (!editando) return;
+    e.stopPropagation();
+    const p = puntoSvg(e);
+    setSeleccion({ tipo: 'salon', id: salon.id });
+    setRedim({ id: salon.id, startX: p.x, startY: p.y, startW: salon.w, startH: salon.h });
+    (e.target as Element).setPointerCapture(e.pointerId);
+  }
+
+  function moverRedim(e: ReactPointerEvent) {
+    if (!redim) return;
+    const p = puntoSvg(e);
+    const w = Math.max(80, Math.round(redim.startW + (p.x - redim.startX)));
+    const h = Math.max(60, Math.round(redim.startH + (p.y - redim.startY)));
+    setSizeOverride((prev) => ({ ...prev, [redim.id]: { w, h } }));
+  }
+
+  function soltarRedim() {
+    if (!redim) return;
+    const size = sizeOverride[redim.id];
+    if (size) mutations.redimensionarSalon.mutate({ id: redim.id, w: size.w, h: size.h });
+    setRedim(null);
   }
 
   const mesaSeleccionada =
@@ -213,19 +259,26 @@ export function SalonView() {
             padding: 4,
             touchAction: editando ? 'none' : 'auto',
           }}
-          onPointerMove={moverDrag}
-          onPointerUp={soltarDrag}
+          onPointerMove={(e) => {
+            moverDrag(e);
+            moverRedim(e);
+          }}
+          onPointerUp={() => {
+            soltarDrag();
+            soltarRedim();
+          }}
           onClick={() => setSeleccion(null)}
         >
           {salones.map((salon) => {
             const p = posDe('salon', salon);
+            const s = sizeDe(salon);
             return (
               <g key={salon.id}>
                 <rect
                   x={p.x}
                   y={p.y}
-                  width={salon.w}
-                  height={salon.h}
+                  width={s.w}
+                  height={s.h}
                   fill="var(--surface-sunken)"
                   fillOpacity={0.4}
                   stroke={seleccion?.tipo === 'salon' && seleccion.id === salon.id ? 'var(--terracota)' : 'var(--brown-mid)'}
@@ -238,14 +291,14 @@ export function SalonView() {
                   {salon.nombre.toUpperCase()}
                 </text>
                 {salon.tag && (
-                  <text x={p.x + salon.w - 10} y={p.y + 18} fontSize="10" fill="var(--text-dim)" textAnchor="end">
+                  <text x={p.x + s.w - 10} y={p.y + 18} fontSize="10" fill="var(--text-dim)" textAnchor="end">
                     {salon.tag}
                   </text>
                 )}
                 {editando && (
                   <text
-                    x={p.x + salon.w - 10}
-                    y={p.y + salon.h - 10}
+                    x={p.x + s.w - 26}
+                    y={p.y + s.h - 10}
                     fontSize="15"
                     textAnchor="end"
                     style={{ cursor: 'pointer' }}
@@ -256,6 +309,21 @@ export function SalonView() {
                   >
                     ➕
                   </text>
+                )}
+                {editando && (
+                  <g
+                    onPointerDown={(e) => iniciarRedimSalon(e, salon)}
+                    style={{ cursor: 'nwse-resize' }}
+                    aria-label={`Redimensionar ${salon.nombre}`}
+                  >
+                    <rect x={p.x + s.w - 14} y={p.y + s.h - 14} width={14} height={14} fill="transparent" />
+                    <path
+                      d={`M ${p.x + s.w - 2} ${p.y + s.h - 9} L ${p.x + s.w - 9} ${p.y + s.h - 2} M ${p.x + s.w - 2} ${p.y + s.h - 5} L ${p.x + s.w - 5} ${p.y + s.h - 2}`}
+                      stroke="var(--brown-mid)"
+                      strokeWidth={1.4}
+                      strokeLinecap="round"
+                    />
+                  </g>
                 )}
               </g>
             );
