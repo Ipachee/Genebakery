@@ -245,7 +245,7 @@ export function SalonView() {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${maxX} ${maxY}`}
@@ -253,7 +253,13 @@ export function SalonView() {
           aria-label="Plano del salón"
           className="card"
           style={{
-            width: '100%',
+            // flex + minWidth: 0 en vez de "width: 100%, maxWidth: 1120" a
+            // secas -- así el plano se ACHICA para dejarle lugar al panel
+            // de edición al costado, en vez de que el panel se vaya abajo
+            // (y haya que scrollear) cuando no entran los dos uno al lado
+            // del otro con su ancho "natural".
+            flex: '1 1 auto',
+            minWidth: 0,
             maxWidth: 1120,
             height: 'auto',
             padding: 4,
@@ -401,12 +407,14 @@ export function SalonView() {
         </svg>
 
         {editando && (mesaSeleccionada || salonSeleccionado) && (
-          <PanelEdicion
-            mesa={mesaSeleccionada}
-            salon={salonSeleccionado}
-            mutations={mutations}
-            onCerrar={() => setSeleccion(null)}
-          />
+          <div style={{ flex: '0 0 220px', position: 'sticky', top: 'var(--space-4)' }}>
+            <PanelEdicion
+              mesa={mesaSeleccionada}
+              salon={salonSeleccionado}
+              mutations={mutations}
+              onCerrar={() => setSeleccion(null)}
+            />
+          </div>
         )}
       </div>
 
