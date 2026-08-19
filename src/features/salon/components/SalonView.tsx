@@ -273,7 +273,12 @@ export function SalonView() {
             const p = posDe('salon', salon);
             const s = sizeDe(salon);
             return (
-              <g key={salon.id}>
+              // El click en el svg de afuera deselecciona todo (para poder
+              // tocar el fondo vacío y cerrar el panel de edición) -- sin
+              // frenar acá la propagación, ese mismo click "de soltar" el
+              // mouse sobre el salón burbujeaba hasta ahí y deshacía la
+              // selección que se acababa de hacer al apretar.
+              <g key={salon.id} onClick={(e) => e.stopPropagation()}>
                 <rect
                   x={p.x}
                   y={p.y}
@@ -347,8 +352,12 @@ export function SalonView() {
                 key={mesa.id}
                 onPointerDown={(e) => iniciarDrag(e, 'mesa', mesa)}
                 onClick={(e) => {
-                  if (editando) return;
+                  // Frenar la propagación siempre, edición o no -- si no,
+                  // el click "de soltar" el mouse llega al svg de afuera y
+                  // deselecciona la mesa que se acaba de elegir (mismo
+                  // problema que en los salones, ver más arriba).
                   e.stopPropagation();
+                  if (editando) return;
                   setMesaParaPedido(mesa);
                 }}
               >
