@@ -10,6 +10,7 @@ export function useProveedorMutations() {
   const invalidar = () => qc.invalidateQueries({ queryKey: ['proveedores'] });
   return {
     crear: useMutation({ mutationFn: api.crearProveedor, onSuccess: invalidar }),
+    actualizar: useMutation({ mutationFn: api.actualizarProveedor, onSuccess: invalidar }),
     borrar: useMutation({ mutationFn: api.borrarProveedor, onSuccess: invalidar }),
   };
 }

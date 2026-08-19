@@ -16,6 +16,19 @@ export async function crearProveedor(v: { nombre: string; cuit: string; telefono
   if (error) throw error;
 }
 
+export async function actualizarProveedor(v: { id: number; nombre: string; cuit: string; telefono: string; email: string }) {
+  const { error } = await supabase
+    .from('proveedores')
+    .update({
+      nombre: v.nombre,
+      cuit: v.cuit || null,
+      telefono: v.telefono || null,
+      email: v.email || null,
+    })
+    .eq('id', v.id);
+  if (error) throw error;
+}
+
 export async function borrarProveedor(id: number) {
   const { error } = await supabase.from('proveedores').update({ deleted_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;
