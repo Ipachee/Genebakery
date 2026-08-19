@@ -21,6 +21,11 @@ insert into categorias (nombre, orden) values
   ('Pastelería', 3),
   ('Noche', 4);
 
+-- El check constraint viejo solo permite las 4 claves originales en
+-- minúscula -- hay que sacarlo ANTES de escribir los nombres nuevos, si no
+-- el update de abajo lo viola.
+alter table productos drop constraint productos_categoria_check;
+
 -- Los productos ya cargados usaban las claves viejas en minúscula sin
 -- tilde -- se migran a los nombres canónicos nuevos para que quede una
 -- sola fuente de verdad (el texto que se guarda es el mismo que se
@@ -29,8 +34,6 @@ update productos set categoria = 'Bebidas' where categoria = 'bebida';
 update productos set categoria = 'Comidas' where categoria = 'comida';
 update productos set categoria = 'Pastelería' where categoria = 'pasteleria';
 update productos set categoria = 'Noche' where categoria = 'noche';
-
-alter table productos drop constraint productos_categoria_check;
 
 alter table categorias enable row level security;
 

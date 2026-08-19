@@ -1,14 +1,8 @@
 import { fmtMoney as fmt } from '../../../lib/format';
+import { useCategorias } from '../../categorias/hooks';
 import type { Database } from '../../../lib/supabase/types';
 
 type Producto = Database['public']['Tables']['productos']['Row'];
-
-const CATEGORIAS: { id: Producto['categoria']; label: string }[] = [
-  { id: 'bebida', label: 'Bebidas' },
-  { id: 'comida', label: 'Comidas' },
-  { id: 'pasteleria', label: 'Pastelería' },
-  { id: 'noche', label: 'Noche' },
-];
 
 export function PedidoMenu({
   productos,
@@ -21,12 +15,13 @@ export function PedidoMenu({
   onCategoria: (c: Producto['categoria']) => void;
   onAgregar: (p: Producto) => void;
 }) {
+  const { data: categorias } = useCategorias();
   return (
     <div className="pedido-menu">
       <div className="pedido-cat-tabs">
-        {CATEGORIAS.map((c) => (
-          <button key={c.id} className={`pedido-cat-tab ${categoria === c.id ? 'active' : ''}`} onClick={() => onCategoria(c.id)}>
-            {c.label}
+        {categorias?.map((c) => (
+          <button key={c.id} className={`pedido-cat-tab ${categoria === c.nombre ? 'active' : ''}`} onClick={() => onCategoria(c.nombre)}>
+            {c.nombre}
           </button>
         ))}
       </div>

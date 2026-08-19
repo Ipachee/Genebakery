@@ -6,6 +6,7 @@ import { pedidoMesaKey, usePedidoDeMesa, usePedidoMutations, useProductos, type 
 import { useClientes } from '../../clientes/hooks';
 import { useMesas, useEstadoDeMesas } from '../../salon/hooks';
 import { usePerfilNegocio } from '../../negocio/hooks';
+import { useCategorias } from '../../categorias/hooks';
 import { useOnlineStatus } from '../../../app/useOnlineStatus';
 import { agruparEnviados, partirLineas, type GrupoEnviado } from '../transferencia';
 import { useConfirm } from '../../../components/ConfirmDialog';
@@ -42,6 +43,7 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const { data: todasMesas } = useMesas();
   const { data: estadoDeMesas } = useEstadoDeMesas();
   const { data: perfilNegocio } = usePerfilNegocio();
+  const { data: categorias } = useCategorias();
   const mutations = usePedidoMutations(mesa.id);
   const qc = useQueryClient();
   const colaRef = useRef<Promise<void>>(Promise.resolve());
@@ -49,7 +51,13 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const [recibo, setRecibo] = useState<ReciboCobro | null>(null);
   const online = useOnlineStatus();
 
-  const [categoria, setCategoria] = useState<Producto['categoria']>('bebida');
+  // Arranca vacío en vez de una categoría fija a mano -- las categorías
+  // ahora son editables desde Administración, así que no hay ningún
+  // nombre que se pueda dar por sentado que va a existir siempre.
+  const [categoria, setCategoria] = useState<Producto['categoria']>('');
+  useEffect(() => {
+    if (!categoria && categorias?.length) setCategoria(categorias[0].nombre);
+  }, [categoria, categorias]);
   const [cobrando, setCobrando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [clienteId, setClienteId] = useState<number | ''>('');

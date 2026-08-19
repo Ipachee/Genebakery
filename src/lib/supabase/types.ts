@@ -39,6 +39,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      categorias: {
+        Row: {
+          deleted_at: string | null
+          id: number
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          deleted_at?: string | null
+          id?: never
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          deleted_at?: string | null
+          id?: never
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
       clientes: {
         Row: {
           apellido: string

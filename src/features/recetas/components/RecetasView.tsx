@@ -1,21 +1,16 @@
 import { useState } from 'react';
 import { useCrearProducto, useInsumos, useProductos, useRecetaDeProducto, useRecetaMutations } from '../hooks';
+import { useCategorias } from '../../categorias/hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '../../../components/Button';
 import { Field, Select, TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
 import { Card } from '../../../components/Card';
 
-const CATEGORIAS: { id: 'bebida' | 'comida' | 'pasteleria' | 'noche'; label: string }[] = [
-  { id: 'bebida', label: 'Bebida' },
-  { id: 'comida', label: 'Cocina' },
-  { id: 'pasteleria', label: 'Pastelería' },
-  { id: 'noche', label: 'Noche' },
-];
-
 export function RecetasView() {
   const { data: productos } = useProductos();
   const { data: insumos } = useInsumos();
+  const { data: categorias } = useCategorias();
   const [productoId, setProductoId] = useState<number | null>(null);
   const { data: receta } = useRecetaDeProducto(productoId);
   const mutations = useRecetaMutations(productoId);
@@ -25,19 +20,19 @@ export function RecetasView() {
   const [cantidad, setCantidad] = useState('');
 
   const [creandoProducto, setCreandoProducto] = useState(false);
-  const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', categoria: 'comida' as 'bebida' | 'comida' | 'pasteleria' | 'noche', precio: '' });
+  const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', categoria: '', precio: '' });
 
   const insumosUsados = new Set(receta?.map((r) => r.insumo_id));
 
   async function crearYSeleccionar() {
-    if (!nuevoProducto.nombre || !nuevoProducto.precio) return;
+    if (!nuevoProducto.nombre || !nuevoProducto.categoria || !nuevoProducto.precio) return;
     const creado = await crearProducto.mutateAsync({
       nombre: nuevoProducto.nombre,
       categoria: nuevoProducto.categoria,
       precio: Number(nuevoProducto.precio),
     });
     setProductoId(creado.id);
-    setNuevoProducto({ nombre: '', categoria: 'comida', precio: '' });
+    setNuevoProducto({ nombre: '', categoria: '', precio: '' });
     setCreandoProducto(false);
   }
 
@@ -69,15 +64,15 @@ export function RecetasView() {
             />
           </Field>
           <Field label="Categoría">
-            <div style={{ display: 'flex', gap: 6 }}>
-              {CATEGORIAS.map((c) => (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {categorias?.map((c) => (
                 <Button
                   key={c.id}
                   size="sm"
-                  variant={nuevoProducto.categoria === c.id ? 'primary' : 'secondary'}
-                  onClick={() => setNuevoProducto({ ...nuevoProducto, categoria: c.id })}
+                  variant={nuevoProducto.categoria === c.nombre ? 'primary' : 'secondary'}
+                  onClick={() => setNuevoProducto({ ...nuevoProducto, categoria: c.nombre })}
                 >
-                  {c.label}
+                  {c.nombre}
                 </Button>
               ))}
             </div>

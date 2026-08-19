@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { InsumosView } from '../insumos/components/InsumosView';
+import { CategoriasView } from '../categorias/components/CategoriasView';
 import { RecetasView } from '../recetas/components/RecetasView';
 import { ElaboradosView } from '../elaborados/components/ElaboradosView';
 import { GastosView } from '../gastos/components/GastosView';
@@ -12,6 +13,7 @@ import { PapeleraView } from '../papelera/components/PapeleraView';
 
 const TABS = [
   { id: 'insumos', label: 'Insumos', Componente: InsumosView },
+  { id: 'categorias', label: 'Categorías', Componente: CategoriasView },
   { id: 'recetas', label: 'Recetas', Componente: RecetasView },
   { id: 'elaborados', label: 'Elaborados', Componente: ElaboradosView },
   { id: 'gastos', label: 'Gastos', Componente: GastosView },

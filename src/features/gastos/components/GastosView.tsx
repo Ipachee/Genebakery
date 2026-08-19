@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
 import { useGastoMutations, useGastos, useInsumos } from '../hooks';
+import { useProveedores } from '../../proveedores/hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable } from '../../../components/DataTable';
 import { Button } from '../../../components/Button';
@@ -12,6 +13,7 @@ export function GastosView() {
   const { session } = useAuth();
   const { data: gastos, isLoading } = useGastos();
   const { data: insumos } = useInsumos();
+  const { data: proveedores } = useProveedores();
   const { registrar } = useGastoMutations();
 
   const [form, setForm] = useState({ insumoId: '', cantidad: '', costoTotal: '', proveedor: '' });
@@ -49,7 +51,14 @@ export function GastosView() {
         </Select>
         <TextInput placeholder="Cantidad" type="number" value={form.cantidad} onChange={(e) => setForm({ ...form, cantidad: e.target.value })} style={{ width: 100 }} />
         <TextInput placeholder="Costo total $" type="number" value={form.costoTotal} onChange={(e) => setForm({ ...form, costoTotal: e.target.value })} style={{ width: 130 }} />
-        <TextInput placeholder="Proveedor" value={form.proveedor} onChange={(e) => setForm({ ...form, proveedor: e.target.value })} style={{ minWidth: 160 }} />
+        <Select value={form.proveedor} onChange={(e) => setForm({ ...form, proveedor: e.target.value })} style={{ minWidth: 160 }}>
+          <option value="">Proveedor…</option>
+          {proveedores?.map((p) => (
+            <option key={p.id} value={p.nombre}>
+              {p.nombre}
+            </option>
+          ))}
+        </Select>
         <Button variant="primary" onClick={submit}>
           + Registrar gasto
         </Button>
