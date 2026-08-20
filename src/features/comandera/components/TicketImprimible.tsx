@@ -14,7 +14,11 @@ export function TicketImprimible({
   const anchoPx = cfg.ancho === 58 ? 210 : 280;
   const fontFamily = cfg.fuente === 'mono' ? 'ui-monospace, Consolas, monospace' : 'Arial, sans-serif';
   const ahora = horaIso ? new Date(horaIso) : new Date();
-  const raya = '-'.repeat(cfg.ancho === 58 ? 30 : 40);
+  // hr en vez de repetir el caracter "-" a mano: con letra mucho más
+  // grande, un número fijo de guiones se hace mucho más ancho que el
+  // papel real. El hr siempre estira al 100% del ancho, sin importar el
+  // tamaño de letra.
+  const raya = <hr style={{ border: 'none', borderTop: '1px dashed #000', margin: '4px 0' }} />;
 
   return (
     <div
@@ -32,24 +36,24 @@ export function TicketImprimible({
           en vez de tirar el largo de rollo que tenga de default (eso era
           lo que salía en blanco). */}
       <style>{`@page { size: ${cfg.ancho}mm auto; margin: 2mm; }`}</style>
-      <div style={{ fontWeight: 700 }}>COCINA/BARRA</div>
-      <div>
-        Fecha: {ahora.toLocaleDateString('es-AR')}
-      </div>
-      <div>
+      <div style={{ fontWeight: 700, fontSize: cfg.tamano + 10 }}>COCINA/BARRA</div>
+      <div style={{ fontSize: cfg.tamano + 3, marginTop: 4 }}>Fecha: {ahora.toLocaleDateString('es-AR')}</div>
+      <div style={{ fontSize: cfg.tamano + 3 }}>
         Hora: {ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
       </div>
-      <div>Mesa: {mesaLabel}</div>
-      <div>{raya}</div>
-      {items.map((it) => (
-        <div key={it.id}>
-          <div>
+      <div style={{ fontSize: cfg.tamano + 3 }}>Mesa: {mesaLabel}</div>
+      {raya}
+      {items.map((it, i) => (
+        <div key={it.id} style={{ marginTop: i > 0 ? 8 : 0 }}>
+          <div style={{ fontWeight: 700, fontSize: cfg.tamano + 8 }}>
             {it.cantidad}x {it.productos?.nombre ?? `Producto #${it.producto_id}`}
           </div>
-          {it.nota && <div style={{ paddingLeft: 10, fontStyle: 'italic' }}>· {it.nota}</div>}
+          {it.nota && (
+            <div style={{ paddingLeft: 22, fontSize: cfg.tamano + 2, fontStyle: 'italic' }}>* {it.nota}</div>
+          )}
         </div>
       ))}
-      <div>{raya}</div>
+      {raya}
     </div>
   );
 }
