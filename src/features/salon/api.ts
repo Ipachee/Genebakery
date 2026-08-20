@@ -20,6 +20,15 @@ export async function fetchMesas() {
   return data;
 }
 
+export async function fetchElementosDecorativos() {
+  const { data, error } = await supabase
+    .from('elementos_decorativos')
+    .select('*')
+    .is('deleted_at', null);
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchEstadoDeMesas() {
   const { data, error } = await supabase
     .from('pedidos')
@@ -53,6 +62,30 @@ export async function redimensionarSalon(id: number, w: number, h: number) {
 
 export async function renombrarSalon(id: number, nombre: string) {
   const { error } = await supabase.from('salones').update({ nombre }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function moverElemento(id: number, x: number, y: number) {
+  const { error } = await supabase.from('elementos_decorativos').update({ x, y }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function redimensionarElemento(id: number, w: number, h: number) {
+  const { error } = await supabase.from('elementos_decorativos').update({ w, h }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function crearElemento(tipo: 'puerta' | 'barra', x: number, y: number) {
+  const tam = tipo === 'barra' ? { w: 150, h: 16 } : { w: 6, h: 26 };
+  const { error } = await supabase.from('elementos_decorativos').insert({ tipo, x, y, ...tam });
+  if (error) throw error;
+}
+
+export async function borrarElemento(id: number) {
+  const { error } = await supabase
+    .from('elementos_decorativos')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id);
   if (error) throw error;
 }
 
@@ -161,6 +194,17 @@ const MESAS_ORIGINALES: Record<number, { x: number; y: number; w: number; h: num
   12: { x: 165, y: 240, w: 55, h: 55 },
 };
 
+// Mismo orden en el que se insertaron en la migración (20260821010000), o
+// sea las mismas posiciones que tenía el array ELEMENTOS_ORIGINALES viejo.
+const ELEMENTOS_ORIGINALES: Record<number, { x: number; y: number; w: number; h: number }> = {
+  1: { x: 298, y: 95, w: 6, h: 26 },
+  2: { x: 653, y: 95, w: 6, h: 26 },
+  3: { x: 140, y: 203, w: 26, h: 6 },
+  4: { x: 55, y: 318, w: 26, h: 6 },
+  5: { x: 55, y: 403, w: 26, h: 6 },
+  6: { x: 760, y: 205, w: 340, h: 16 },
+};
+
 export async function restablecerPlano() {
   await Promise.all([
     ...Object.entries(SALONES_ORIGINALES).map(([id, pos]) =>
@@ -168,6 +212,9 @@ export async function restablecerPlano() {
     ),
     ...Object.entries(MESAS_ORIGINALES).map(([id, pos]) =>
       supabase.from('mesas').update(pos).eq('id', Number(id))
+    ),
+    ...Object.entries(ELEMENTOS_ORIGINALES).map(([id, pos]) =>
+      supabase.from('elementos_decorativos').update(pos).eq('id', Number(id))
     ),
   ]);
 }

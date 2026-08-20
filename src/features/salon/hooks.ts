@@ -9,6 +9,10 @@ export function useMesas() {
   return useQuery({ queryKey: ['mesas'], queryFn: api.fetchMesas });
 }
 
+export function useElementosDecorativos() {
+  return useQuery({ queryKey: ['elementos-decorativos'], queryFn: api.fetchElementosDecorativos });
+}
+
 export type EstadoMesa = 'abierto' | 'enviado_cocina' | 'entregado';
 
 export function useEstadoDeMesas() {
@@ -37,6 +41,7 @@ export function useSalonMutations() {
   const invalidar = () => {
     qc.invalidateQueries({ queryKey: ['salones'] });
     qc.invalidateQueries({ queryKey: ['mesas'] });
+    qc.invalidateQueries({ queryKey: ['elementos-decorativos'] });
   };
 
   return {
@@ -53,5 +58,9 @@ export function useSalonMutations() {
     dividirMesa: useMutation({ mutationFn: api.dividirMesa, onSuccess: invalidar }),
     unirMesa: useMutation({ mutationFn: (mesaPadreId: number) => api.unirMesa(mesaPadreId), onSuccess: invalidar }),
     restablecerPlano: useMutation({ mutationFn: api.restablecerPlano, onSuccess: invalidar }),
+    moverElemento: useMutation({ mutationFn: (v: { id: number; x: number; y: number }) => api.moverElemento(v.id, v.x, v.y), onSuccess: invalidar }),
+    redimensionarElemento: useMutation({ mutationFn: (v: { id: number; w: number; h: number }) => api.redimensionarElemento(v.id, v.w, v.h), onSuccess: invalidar }),
+    crearElemento: useMutation({ mutationFn: (v: { tipo: 'puerta' | 'barra'; x: number; y: number }) => api.crearElemento(v.tipo, v.x, v.y), onSuccess: invalidar }),
+    borrarElemento: useMutation({ mutationFn: (id: number) => api.borrarElemento(id), onSuccess: invalidar }),
   };
 }

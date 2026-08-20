@@ -184,6 +184,36 @@ export type Database = {
           },
         ]
       }
+      elementos_decorativos: {
+        Row: {
+          deleted_at: string | null
+          h: number
+          id: number
+          tipo: string
+          w: number
+          x: number
+          y: number
+        }
+        Insert: {
+          deleted_at?: string | null
+          h: number
+          id?: never
+          tipo: string
+          w: number
+          x: number
+          y: number
+        }
+        Update: {
+          deleted_at?: string | null
+          h?: number
+          id?: never
+          tipo?: string
+          w?: number
+          x?: number
+          y?: number
+        }
+        Relationships: []
+      }
       empleados: {
         Row: {
           apellido: string

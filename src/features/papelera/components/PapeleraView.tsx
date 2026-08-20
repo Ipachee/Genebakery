@@ -17,6 +17,10 @@ const TIPO_LABEL: Record<string, string> = {
   pedido: 'Pedido',
   venta: 'Venta',
   gasto: 'Gasto',
+  proveedor: 'Proveedor',
+  factura_proveedor: 'Factura',
+  categoria: 'Categoría',
+  elemento_decorativo: 'Elemento del plano',
 };
 
 export function PapeleraView() {

@@ -1,6 +1,6 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useAuth } from '../../../auth/useAuth';
-import { useMesas, useEstadoDeMesas, useSalonMutations, useSalones, type EstadoMesa } from '../hooks';
+import { useElementosDecorativos, useMesas, useEstadoDeMesas, useSalonMutations, useSalones, type EstadoMesa } from '../hooks';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
 import { PedidoPanel } from '../../pedidos/components/PedidoPanel';
 import { Button } from '../../../components/Button';
@@ -12,6 +12,7 @@ import type { Database } from '../../../lib/supabase/types';
 
 type Mesa = Database['public']['Tables']['mesas']['Row'];
 type Salon = Database['public']['Tables']['salones']['Row'];
+type Elemento = Database['public']['Tables']['elementos_decorativos']['Row'];
 
 // Antes "abierto" (armando el pedido) era rojo y "entregado" (esperando
 // cobro) era verde con etiquetas distintas -- para el que mira el plano de
@@ -31,26 +32,15 @@ const LEYENDA: { label: string; color: string }[] = [
   { label: 'Cobrando', color: 'var(--amber)' },
 ];
 
-// Elementos puramente decorativos del plano real del local: marcas de puertas
-// entre ambientes y la barra de Salón 1. No son editables (igual que en el
-// prototipo original), son solo referencia visual.
-const DOORS = [
-  { x: 298, y: 95, w: 6, h: 26 },
-  { x: 653, y: 95, w: 6, h: 26 },
-  { x: 140, y: 203, w: 26, h: 6 },
-  { x: 55, y: 318, w: 26, h: 6 },
-  { x: 55, y: 403, w: 26, h: 6 },
-];
-const BARRA = { x: 760, y: 205, w: 340, h: 16 };
-
-type Seleccion = { tipo: 'mesa' | 'salon'; id: number } | null;
-type Drag = { tipo: 'mesa' | 'salon'; id: number; dx: number; dy: number } | null;
-type Redim = { id: number; startX: number; startY: number; startW: number; startH: number } | null;
+type Seleccion = { tipo: 'mesa' | 'salon' | 'elemento'; id: number } | null;
+type Drag = { tipo: 'mesa' | 'salon' | 'elemento'; id: number; dx: number; dy: number } | null;
+type Redim = { tipo: 'salon' | 'elemento'; id: number; startX: number; startY: number; startW: number; startH: number } | null;
 
 export function SalonView() {
   const { profile } = useAuth();
   const { data: salones, isLoading: loadingSalones, error: errorSalones } = useSalones();
   const { data: mesas, isLoading: loadingMesas, error: errorMesas } = useMesas();
+  const { data: elementos, isLoading: loadingElementos, error: errorElementos } = useElementosDecorativos();
   const { data: estadoDeMesas } = useEstadoDeMesas();
   const { turno, facturado } = useTurnoActual();
   const mutations = useSalonMutations();
@@ -60,15 +50,15 @@ export function SalonView() {
   const [drag, setDrag] = useState<Drag>(null);
   const [posOverride, setPosOverride] = useState<Record<string, { x: number; y: number }>>({});
   const [redim, setRedim] = useState<Redim>(null);
-  const [sizeOverride, setSizeOverride] = useState<Record<number, { w: number; h: number }>>({});
+  const [sizeOverride, setSizeOverride] = useState<Record<string, { w: number; h: number }>>({});
   const [mesaParaPedido, setMesaParaPedido] = useState<Mesa | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const { confirm, dialog } = useConfirm();
 
   const esAdmin = profile?.rol === 'admin';
 
-  if (loadingSalones || loadingMesas) return <EmptyState>Cargando salón…</EmptyState>;
-  if (errorSalones || errorMesas) {
+  if (loadingSalones || loadingMesas || loadingElementos) return <EmptyState>Cargando salón…</EmptyState>;
+  if (errorSalones || errorMesas || errorElementos) {
     return <EmptyState>No se pudo leer el salón desde Supabase. Reintentá recargando la página.</EmptyState>;
   }
   if (!salones?.length) {
@@ -86,18 +76,26 @@ export function SalonView() {
   const mesasOcupadasCount = mesasVisibles.filter((m) => estadoDeMesas?.has(m.id)).length;
   const mesasLibresCount = mesasVisibles.length - mesasOcupadasCount;
 
-  function sizeDe(salon: Salon) {
-    return sizeOverride[salon.id] ?? { w: salon.w, h: salon.h };
+  function sizeDe(tipo: 'salon' | 'elemento', item: { id: number; w: number; h: number }) {
+    return sizeOverride[`${tipo}-${item.id}`] ?? { w: item.w, h: item.h };
   }
 
   // Usa el tamaño EN VIVO (con el override del arrastre de la esquina, si
   // hay uno en curso) para que el lienzo crezca a medida que se agranda un
-  // salón -- si usara solo el tamaño guardado en la base, el salón se vería
-  // recortado por el viewBox mientras se lo agranda, hasta soltar.
-  const maxX = Math.max(...salones.map((s) => s.x + sizeDe(s).w), BARRA.x + BARRA.w) + 20;
-  const maxY = Math.max(...salones.map((s) => s.y + sizeDe(s).h)) + 20;
+  // salón o elemento -- si usara solo el tamaño guardado en la base, se
+  // vería recortado por el viewBox mientras se lo agranda, hasta soltar.
+  const maxX =
+    Math.max(
+      ...salones.map((s) => s.x + sizeDe('salon', s).w),
+      ...(elementos ?? []).map((el) => el.x + sizeDe('elemento', el).w)
+    ) + 20;
+  const maxY =
+    Math.max(
+      ...salones.map((s) => s.y + sizeDe('salon', s).h),
+      ...(elementos ?? []).map((el) => el.y + sizeDe('elemento', el).h)
+    ) + 20;
 
-  function posDe(tipo: 'mesa' | 'salon', item: Mesa | Salon) {
+  function posDe(tipo: 'mesa' | 'salon' | 'elemento', item: Mesa | Salon | Elemento) {
     const key = `${tipo}-${item.id}`;
     return posOverride[key] ?? { x: item.x, y: item.y };
   }
@@ -114,7 +112,7 @@ export function SalonView() {
     return { x: local.x, y: local.y };
   }
 
-  function iniciarDrag(e: ReactPointerEvent, tipo: 'mesa' | 'salon', item: Mesa | Salon) {
+  function iniciarDrag(e: ReactPointerEvent, tipo: 'mesa' | 'salon' | 'elemento', item: Mesa | Salon | Elemento) {
     if (!editando) return;
     e.stopPropagation();
     setSeleccion({ tipo, id: item.id });
@@ -125,7 +123,12 @@ export function SalonView() {
 
   function moverDrag(e: ReactPointerEvent) {
     if (!drag) return;
-    const item = drag.tipo === 'mesa' ? todasLasMesas.find((m) => m.id === drag.id) : salones?.find((s) => s.id === drag.id);
+    const item =
+      drag.tipo === 'mesa'
+        ? todasLasMesas.find((m) => m.id === drag.id)
+        : drag.tipo === 'salon'
+          ? salones?.find((s) => s.id === drag.id)
+          : elementos?.find((el) => el.id === drag.id);
     if (!item) return;
     const p = puntoSvg(e);
     const key = `${drag.tipo}-${drag.id}`;
@@ -146,36 +149,42 @@ export function SalonView() {
     const pos = posOverride[key];
     if (pos) {
       if (drag.tipo === 'mesa') mutations.moverMesa.mutate({ id: drag.id, x: pos.x, y: pos.y });
-      else mutations.moverSalon.mutate({ id: drag.id, x: pos.x, y: pos.y });
+      else if (drag.tipo === 'salon') mutations.moverSalon.mutate({ id: drag.id, x: pos.x, y: pos.y });
+      else mutations.moverElemento.mutate({ id: drag.id, x: pos.x, y: pos.y });
     }
     setDrag(null);
   }
 
-  // Agarrar y arrastrar la esquina inferior derecha de un salón para
-  // cambiarle el tamaño a mano, en vez de solo los botones de +/- tamaño de
-  // a pasos fijos -- separado del arrastre normal (que mueve, no
+  // Agarrar y arrastrar la esquina inferior derecha de un salón o elemento
+  // para cambiarle el tamaño a mano, en vez de solo los botones de +/-
+  // tamaño de a pasos fijos -- separado del arrastre normal (que mueve, no
   // redimensiona) con su propio estado.
-  function iniciarRedimSalon(e: ReactPointerEvent, salon: Salon) {
+  function iniciarRedim(e: ReactPointerEvent, tipo: 'salon' | 'elemento', item: { id: number; w: number; h: number }) {
     if (!editando) return;
     e.stopPropagation();
     const p = puntoSvg(e);
-    setSeleccion({ tipo: 'salon', id: salon.id });
-    setRedim({ id: salon.id, startX: p.x, startY: p.y, startW: salon.w, startH: salon.h });
+    setSeleccion({ tipo, id: item.id });
+    setRedim({ tipo, id: item.id, startX: p.x, startY: p.y, startW: item.w, startH: item.h });
     (e.target as Element).setPointerCapture(e.pointerId);
   }
 
   function moverRedim(e: ReactPointerEvent) {
     if (!redim) return;
     const p = puntoSvg(e);
-    const w = Math.max(80, Math.round(redim.startW + (p.x - redim.startX)));
-    const h = Math.max(60, Math.round(redim.startH + (p.y - redim.startY)));
-    setSizeOverride((prev) => ({ ...prev, [redim.id]: { w, h } }));
+    const minW = redim.tipo === 'elemento' ? 4 : 80;
+    const minH = redim.tipo === 'elemento' ? 4 : 60;
+    const w = Math.max(minW, Math.round(redim.startW + (p.x - redim.startX)));
+    const h = Math.max(minH, Math.round(redim.startH + (p.y - redim.startY)));
+    setSizeOverride((prev) => ({ ...prev, [`${redim.tipo}-${redim.id}`]: { w, h } }));
   }
 
   function soltarRedim() {
     if (!redim) return;
-    const size = sizeOverride[redim.id];
-    if (size) mutations.redimensionarSalon.mutate({ id: redim.id, w: size.w, h: size.h });
+    const size = sizeOverride[`${redim.tipo}-${redim.id}`];
+    if (size) {
+      if (redim.tipo === 'salon') mutations.redimensionarSalon.mutate({ id: redim.id, w: size.w, h: size.h });
+      else mutations.redimensionarElemento.mutate({ id: redim.id, w: size.w, h: size.h });
+    }
     setRedim(null);
   }
 
@@ -183,6 +192,8 @@ export function SalonView() {
     seleccion?.tipo === 'mesa' ? todasLasMesas.find((m) => m.id === seleccion.id) : null;
   const salonSeleccionado =
     seleccion?.tipo === 'salon' ? salones.find((s) => s.id === seleccion.id) : null;
+  const elementoSeleccionado =
+    seleccion?.tipo === 'elemento' ? (elementos ?? []).find((el) => el.id === seleccion.id) : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -227,6 +238,12 @@ export function SalonView() {
               <>
                 <Button variant="secondary" size="sm" onClick={() => mutations.crearSalon.mutate('Nuevo salón')}>
                   + Salón
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => mutations.crearElemento.mutate({ tipo: 'puerta', x: 20, y: 20 })}>
+                  + Puerta
+                </Button>
+                <Button variant="secondary" size="sm" onClick={() => mutations.crearElemento.mutate({ tipo: 'barra', x: 20, y: 20 })}>
+                  + Barra
                 </Button>
                 <Button
                   variant="secondary"
@@ -277,7 +294,7 @@ export function SalonView() {
         >
           {salones.map((salon) => {
             const p = posDe('salon', salon);
-            const s = sizeDe(salon);
+            const s = sizeDe('salon', salon);
             return (
               // El click en el svg de afuera deselecciona todo (para poder
               // tocar el fondo vacío y cerrar el panel de edición) -- sin
@@ -323,7 +340,7 @@ export function SalonView() {
                 )}
                 {editando && (
                   <g
-                    onPointerDown={(e) => iniciarRedimSalon(e, salon)}
+                    onPointerDown={(e) => iniciarRedim(e, 'salon', salon)}
                     style={{ cursor: 'nwse-resize' }}
                     aria-label={`Redimensionar ${salon.nombre}`}
                   >
@@ -340,10 +357,44 @@ export function SalonView() {
             );
           })}
 
-          {DOORS.map((d, i) => (
-            <rect key={i} x={d.x} y={d.y} width={d.w} height={d.h} fill="var(--bg)" stroke="var(--brown-mid)" strokeWidth={0.5} />
-          ))}
-          <rect x={BARRA.x} y={BARRA.y} width={BARRA.w} height={BARRA.h} rx={3} fill="var(--amber)" opacity={0.45} />
+          {(elementos ?? []).map((el) => {
+            const p = posDe('elemento', el);
+            const s = sizeDe('elemento', el);
+            const seleccionado = seleccion?.tipo === 'elemento' && seleccion.id === el.id;
+            const esBarra = el.tipo === 'barra';
+            return (
+              <g key={`elemento-${el.id}`} onClick={(e) => e.stopPropagation()}>
+                <rect
+                  x={p.x}
+                  y={p.y}
+                  width={s.w}
+                  height={s.h}
+                  rx={esBarra ? 3 : 0}
+                  fill={esBarra ? 'var(--amber)' : 'var(--bg)'}
+                  opacity={esBarra ? 0.45 : 1}
+                  stroke={seleccionado ? 'var(--terracota)' : esBarra ? 'none' : 'var(--brown-mid)'}
+                  strokeWidth={seleccionado ? 2 : 0.5}
+                  style={{ cursor: editando ? 'grab' : 'default' }}
+                  onPointerDown={(e) => iniciarDrag(e, 'elemento', el)}
+                />
+                {editando && (
+                  <g
+                    onPointerDown={(e) => iniciarRedim(e, 'elemento', el)}
+                    style={{ cursor: 'nwse-resize' }}
+                    aria-label={`Redimensionar ${esBarra ? 'barra' : 'puerta'} #${el.id}`}
+                  >
+                    <rect x={p.x + s.w - 10} y={p.y + s.h - 10} width={10} height={10} fill="transparent" />
+                    <path
+                      d={`M ${p.x + s.w - 1} ${p.y + s.h - 5} L ${p.x + s.w - 5} ${p.y + s.h - 1}`}
+                      stroke="var(--brown-mid)"
+                      strokeWidth={1.2}
+                      strokeLinecap="round"
+                    />
+                  </g>
+                )}
+              </g>
+            );
+          })}
 
           {mesasVisibles.map((mesa) => {
             const p = posDe('mesa', mesa);
@@ -406,11 +457,12 @@ export function SalonView() {
           })}
         </svg>
 
-        {editando && (mesaSeleccionada || salonSeleccionado) && (
+        {editando && (mesaSeleccionada || salonSeleccionado || elementoSeleccionado) && (
           <div style={{ position: 'absolute', top: 4, left: '100%', marginLeft: 'var(--space-4)', width: 220, zIndex: 5 }}>
             <PanelEdicion
               mesa={mesaSeleccionada}
               salon={salonSeleccionado}
+              elemento={elementoSeleccionado}
               mutations={mutations}
               onCerrar={() => setSeleccion(null)}
             />
@@ -429,11 +481,13 @@ export function SalonView() {
 function PanelEdicion({
   mesa,
   salon,
+  elemento,
   mutations,
   onCerrar,
 }: {
   mesa?: Mesa | null;
   salon?: Salon | null;
+  elemento?: Elemento | null;
   mutations: ReturnType<typeof useSalonMutations>;
   onCerrar: () => void;
 }) {
@@ -528,6 +582,44 @@ function PanelEdicion({
           }}
         >
           🗑 Borrar salón
+        </Button>
+      </div>
+    );
+  }
+
+  if (elemento) {
+    return (
+      <div className="card card-pad" style={boxStyle}>
+        <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+          {elemento.tipo === 'barra' ? 'Barra' : 'Puerta'} #{elemento.id}
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <Button
+            size="sm"
+            block
+            onClick={() =>
+              mutations.redimensionarElemento.mutate({ id: elemento.id, w: Math.max(4, elemento.w - 10), h: Math.max(4, elemento.h - 10) })
+            }
+          >
+            − tamaño
+          </Button>
+          <Button
+            size="sm"
+            block
+            onClick={() => mutations.redimensionarElemento.mutate({ id: elemento.id, w: elemento.w + 10, h: elemento.h + 10 })}
+          >
+            + tamaño
+          </Button>
+        </div>
+        <Button
+          variant="danger"
+          size="sm"
+          onClick={() => {
+            mutations.borrarElemento.mutate(elemento.id);
+            onCerrar();
+          }}
+        >
+          🗑 Borrar
         </Button>
       </div>
     );

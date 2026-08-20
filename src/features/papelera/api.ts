@@ -21,6 +21,7 @@ const TABLA_POR_TIPO: Record<string, TablaSoftDelete> = {
   proveedor: 'proveedores',
   factura_proveedor: 'facturas_proveedor',
   categoria: 'categorias',
+  elemento_decorativo: 'elementos_decorativos',
 };
 
 export async function fetchPapelera() {
