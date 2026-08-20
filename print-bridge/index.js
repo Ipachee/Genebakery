@@ -1,0 +1,177 @@
+// Bridge de impresión de ComandaCafé -- corre en la compu que tiene la
+// impresora térmica conectada por USB. Revisa la base de datos cada tanto
+// buscando comandas nuevas ("enviado a cocina") y las manda directo en
+// ESC/POS -- el lenguaje nativo de la impresora -- salteando por completo
+// el driver de Windows que venía rompiendo el diseño de la página web.
+//
+// Cómo manda los datos: arma el ticket en un archivo temporal con los
+// comandos ESC/POS ya calculados, y usa el propio "copy /b" de Windows
+// para mandarlo en crudo (RAW) al recurso compartido de la impresora --
+// así no hace falta ningún paquete de npm con compilación nativa (se
+// probó con el paquete "printer" y falla al compilar en Windows sin
+// herramientas de desarrollo instaladas).
+//
+// Requisito de Windows: la impresora tiene que estar COMPARTIDA (ver
+// README.md) -- por eso PRINTER_SHARE_NAME en config.js.
+//
+// Se queda corriendo en la terminal (o en segundo plano si se configura
+// para arrancar solo, ver el README). Para cerrarlo: Ctrl+C.
+const os = require('os');
+const path = require('path');
+const fs = require('fs');
+const { exec } = require('child_process');
+const util = require('util');
+const { createClient } = require('@supabase/supabase-js');
+const { printer: ThermalPrinter, types: PrinterTypes } = require('node-thermal-printer');
+const config = require('./config');
+
+const execAsync = util.promisify(exec);
+const supabase = createClient(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
+
+// Se van guardando acá los tickets ya impresos (pedido-ronda) para no
+// repetir -- vive solo en memoria, se reinicia si se reinicia el programa
+// (mismo criterio que ya usa la Comandera de la página web).
+const impresos = new Set();
+
+async function imprimir(ticket) {
+  const tempPath = path.join(os.tmpdir(), `comandacafe-${Date.now()}-${Math.random().toString(36).slice(2)}.prn`);
+
+  const printer = new ThermalPrinter({
+    type: PrinterTypes.EPSON,
+    interface: tempPath,
+    width: config.ANCHO_CARACTERES,
+    removeSpecialCharacters: false,
+  });
+
+  printer.alignCenter();
+  printer.setTextDoubleHeight();
+  printer.bold(true);
+  printer.println('COCINA/BARRA');
+  printer.bold(false);
+  printer.setTextNormal();
+  printer.alignLeft();
+  printer.println(`${ticket.fecha}   ${ticket.hora}`);
+  printer.println(`Mesa: ${ticket.mesaLabel}`);
+  printer.drawLine();
+
+  for (const item of ticket.items) {
+    printer.setTextDoubleHeight();
+    printer.bold(true);
+    printer.println(`${item.cantidad}x ${item.nombre}`);
+    printer.bold(false);
+    printer.setTextNormal();
+    if (item.nota) {
+      printer.println(`  * ${item.nota}`);
+    }
+  }
+
+  printer.drawLine();
+  printer.cut();
+
+  try {
+    // Esto solo escribe el archivo temporal con los bytes ESC/POS -- no
+    // manda nada a la impresora todavía.
+    await printer.execute();
+
+    // "copy /b" en modo binario, al recurso compartido -- Windows lo
+    // manda tal cual (RAW) sin que ningún driver intente "interpretarlo"
+    // como una página con diseño.
+    const destino = `\\\\localhost\\${config.PRINTER_SHARE_NAME}`;
+    await execAsync(`copy /b "${tempPath}" "${destino}"`, { shell: 'cmd.exe' });
+    return true;
+  } catch (err) {
+    console.error('⚠ Error mandando el ticket a imprimir:', err.message);
+    return false;
+  } finally {
+    fs.unlink(tempPath, () => {});
+  }
+}
+
+async function traerPedidosActivos() {
+  const { data, error } = await supabase
+    .from('pedidos')
+    .select('id, mesa_id, mesas(label), pedido_items(id, cantidad, nota, ronda, enviado_cocina_at, productos(nombre))')
+    .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
+    .is('deleted_at', null);
+  if (error) {
+    console.error('⚠ Error leyendo pedidos:', error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+// Agrupa por ronda, igual que la Comandera de la web -- cada tanda de
+// "Enviar a cocina" es un ticket aparte.
+function agruparPorRonda(pedidos) {
+  const tickets = [];
+  for (const pedido of pedidos) {
+    const porRonda = new Map();
+    for (const it of pedido.pedido_items) {
+      if (it.ronda == null) continue;
+      if (!porRonda.has(it.ronda)) porRonda.set(it.ronda, []);
+      porRonda.get(it.ronda).push(it);
+    }
+    for (const [ronda, items] of porRonda) {
+      tickets.push({
+        key: `${pedido.id}-${ronda}`,
+        mesaLabel: pedido.mesas?.label ?? String(pedido.mesa_id ?? '?'),
+        enviadoAt: items[0]?.enviado_cocina_at ?? null,
+        items: items.map((it) => ({
+          cantidad: it.cantidad,
+          nombre: it.productos?.nombre ?? `Producto #${it.id}`,
+          nota: it.nota,
+        })),
+      });
+    }
+  }
+  return tickets;
+}
+
+async function revisar() {
+  const pedidos = await traerPedidosActivos();
+  const tickets = agruparPorRonda(pedidos);
+  const nuevos = tickets.filter((t) => !impresos.has(t.key));
+
+  for (const t of nuevos) {
+    impresos.add(t.key);
+    const fecha = new Date(t.enviadoAt ?? Date.now());
+    const ok = await imprimir({
+      mesaLabel: t.mesaLabel,
+      fecha: fecha.toLocaleDateString('es-AR'),
+      hora: fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+      items: t.items,
+    });
+    console.log(ok ? `✓ Impreso: mesa ${t.mesaLabel} (${t.key})` : `✗ Falló: mesa ${t.mesaLabel} (${t.key})`);
+  }
+}
+
+async function inicializar() {
+  console.log('ComandaCafé — bridge de impresión');
+  console.log(`Recurso compartido configurado: \\\\localhost\\${config.PRINTER_SHARE_NAME}`);
+
+  const { error: loginError } = await supabase.auth.signInWithPassword({
+    email: config.LOGIN_EMAIL,
+    password: config.LOGIN_PASSWORD,
+  });
+  if (loginError) {
+    console.error(`⚠ No se pudo iniciar sesión (${loginError.message}). Revisá LOGIN_EMAIL/LOGIN_PASSWORD en config.js.`);
+    process.exit(1);
+  }
+  console.log(`Sesión iniciada como ${config.LOGIN_EMAIL}.`);
+
+  const pedidos = await traerPedidosActivos();
+  const tickets = agruparPorRonda(pedidos);
+  // Todo lo que ya estaba pendiente al arrancar se marca como "visto" sin
+  // imprimirlo -- si se reinicia este programa a mitad del día, no
+  // reimprime de golpe todo lo que ya está en curso.
+  for (const t of tickets) impresos.add(t.key);
+  console.log(`Listo. ${tickets.length} comanda(s) ya en curso marcadas como vistas.`);
+  console.log(`Revisando comandas nuevas cada ${config.INTERVALO_MS / 1000}s... (Ctrl+C para cerrar)`);
+}
+
+(async () => {
+  await inicializar();
+  setInterval(() => {
+    revisar().catch((err) => console.error('⚠ Error inesperado:', err.message));
+  }, config.INTERVALO_MS);
+})();

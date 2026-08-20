@@ -1,0 +1,15 @@
+{
+  "name": "comandacafe-print-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Programa chico que corre en la compu con la impresora térmica conectada por USB, y manda las comandas directo en ESC/POS -- sin pasar por el driver de Windows.",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "node-thermal-printer": "^4.4.4"
+  }
+}
