@@ -13,6 +13,7 @@ export function PedidoCarrito({
   cantidadesTransferir,
   onToggleFila,
   onCambiarCantidadFila,
+  onQuitarGrupo,
 }: {
   isLoading: boolean;
   items: ItemConProducto[];
@@ -22,6 +23,7 @@ export function PedidoCarrito({
   cantidadesTransferir: Map<string, number>;
   onToggleFila: (fila: GrupoEnviado, index: number, shiftKey: boolean) => void;
   onCambiarCantidadFila: (fila: GrupoEnviado, nueva: number) => void;
+  onQuitarGrupo: (grupo: GrupoEnviado) => void;
 }) {
   if (isLoading) return <EmptyState>Cargando…</EmptyState>;
   if (items.length === 0) return <EmptyState>Todavía no agregaste nada.</EmptyState>;
@@ -45,7 +47,7 @@ export function PedidoCarrito({
   return (
     <>
       {agruparEnviados(items).map((g) => (
-        <ItemGrupoFila key={g.key} grupo={g} />
+        <ItemGrupoFila key={g.key} grupo={g} onQuitar={() => onQuitarGrupo(g)} />
       ))}
       {items
         .filter((it) => !it.enviado_cocina)
@@ -56,7 +58,7 @@ export function PedidoCarrito({
   );
 }
 
-function ItemGrupoFila({ grupo }: { grupo: GrupoEnviado }) {
+function ItemGrupoFila({ grupo, onQuitar }: { grupo: GrupoEnviado; onQuitar: () => void }) {
   return (
     <div className="pedido-item">
       <div className="pedido-item-top">
@@ -66,7 +68,12 @@ function ItemGrupoFila({ grupo }: { grupo: GrupoEnviado }) {
             <Badge tone={grupo.entregado ? 'good' : 'info'}>{grupo.entregado ? 'entregado' : 'en cocina'}</Badge>
           </span>
         </span>
-        <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>x{grupo.cantidad}</span>
+        <div className="pedido-item-controls">
+          <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>x{grupo.cantidad}</span>
+          <button className="btn-danger btn-icon" title="Quitar (ej: se canceló o lo devolvieron)" onClick={onQuitar}>
+            🗑
+          </button>
+        </div>
       </div>
     </div>
   );

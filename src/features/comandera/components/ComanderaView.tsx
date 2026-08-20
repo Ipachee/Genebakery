@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePedidosComandera, type TicketComandera } from '../hooks';
-import { marcarRondaEntregada } from '../api';
+import { desmarcarRondaEntregada, marcarRondaEntregada } from '../api';
 import { TicketImprimible } from './TicketImprimible';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '../../../components/Button';
@@ -35,13 +35,18 @@ export function ComanderaView() {
   const impresosRef = useRef<Set<string> | null>(null);
   const colaRef = useRef<TicketComandera[]>([]);
 
+  const invalidarTodo = () => {
+    qc.invalidateQueries({ queryKey: ['comandera'] });
+    qc.invalidateQueries({ queryKey: ['mesas-ocupadas'] });
+    qc.invalidateQueries({ queryKey: ['pedido-mesa'] });
+  };
   const marcar = useMutation({
     mutationFn: (t: { pedidoId: number; ronda: number }) => marcarRondaEntregada(t.pedidoId, t.ronda),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['comandera'] });
-      qc.invalidateQueries({ queryKey: ['mesas-ocupadas'] });
-      qc.invalidateQueries({ queryKey: ['pedido-mesa'] });
-    },
+    onSuccess: invalidarTodo,
+  });
+  const desmarcar = useMutation({
+    mutationFn: (t: { pedidoId: number; ronda: number }) => desmarcarRondaEntregada(t.pedidoId, t.ronda),
+    onSuccess: invalidarTodo,
   });
 
   useEffect(() => {
@@ -86,6 +91,7 @@ export function ComanderaView() {
               key={t.key}
               ticket={t}
               onMarcarEntregado={() => marcar.mutate({ pedidoId: t.pedidoId, ronda: t.ronda })}
+              onDesmarcarEntregado={() => desmarcar.mutate({ pedidoId: t.pedidoId, ronda: t.ronda })}
               onImprimir={() => setImprimiendo(t)}
             />
           ))}
@@ -102,10 +108,12 @@ export function ComanderaView() {
 function TicketComanda({
   ticket,
   onMarcarEntregado,
+  onDesmarcarEntregado,
   onImprimir,
 }: {
   ticket: TicketComandera;
   onMarcarEntregado: () => void;
+  onDesmarcarEntregado: () => void;
   onImprimir: () => void;
 }) {
   const tiempo = useCronometro(ticket.enviadoAt);
@@ -132,9 +140,13 @@ function TicketComanda({
         <Button size="sm" onClick={onImprimir}>
           🖨️ Imprimir
         </Button>
-        {!ticket.entregado && (
+        {!ticket.entregado ? (
           <Button size="sm" variant="secondary" onClick={onMarcarEntregado}>
             ✅ Entregado
+          </Button>
+        ) : (
+          <Button size="sm" variant="ghost" onClick={onDesmarcarEntregado}>
+            ↩ Deshacer
           </Button>
         )}
       </div>

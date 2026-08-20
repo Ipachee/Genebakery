@@ -1,21 +1,45 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useClienteMutations, useClientes } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable } from '../../../components/DataTable';
 import { Button } from '../../../components/Button';
-import { TextInput } from '../../../components/Field';
+import { Select, TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
+
+const ORDEN_OPCIONES = {
+  nombre: 'Nombre (A-Z)',
+  visitas: 'Más visitas',
+  gastado: 'Más gastado',
+} as const;
 
 export function ClientesView() {
   const { data: clientes, isLoading } = useClientes();
   const { crear, borrar } = useClienteMutations();
   const [form, setForm] = useState({ nombre: '', apellido: '', dni: '', cuit: '', direccion: '', condicionFiscal: '', email: '', descuentoPct: '' });
+  const [busqueda, setBusqueda] = useState('');
+  const [orden, setOrden] = useState<keyof typeof ORDEN_OPCIONES>('nombre');
 
   function submit() {
     if (!form.nombre || !form.apellido) return;
     crear.mutate({ ...form, descuentoPct: Number(form.descuentoPct) || 0 });
     setForm({ nombre: '', apellido: '', dni: '', cuit: '', direccion: '', condicionFiscal: '', email: '', descuentoPct: '' });
   }
+
+  const clientesFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    const filtrados = (clientes ?? []).filter((c) => {
+      if (!q) return true;
+      return `${c.nombre} ${c.apellido}`.toLowerCase().includes(q) || (c.dni ?? '').includes(q) || (c.cuit ?? '').includes(q);
+    });
+    switch (orden) {
+      case 'visitas':
+        return [...filtrados].sort((a, b) => Number(b.visitas) - Number(a.visitas));
+      case 'gastado':
+        return [...filtrados].sort((a, b) => Number(b.total_gastado) - Number(a.total_gastado));
+      default:
+        return [...filtrados].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    }
+  }, [clientes, busqueda, orden]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
@@ -33,10 +57,30 @@ export function ClientesView() {
         </Button>
       </div>
 
+      {clientes?.length ? (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          <TextInput
+            placeholder="🔍 Buscar por nombre o DNI/CUIT…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{ maxWidth: 260 }}
+          />
+          <Select value={orden} onChange={(e) => setOrden(e.target.value as keyof typeof ORDEN_OPCIONES)} style={{ minWidth: 170 }}>
+            {Object.entries(ORDEN_OPCIONES).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </div>
+      ) : null}
+
       {isLoading ? (
         <EmptyState>Cargando…</EmptyState>
       ) : !clientes?.length ? (
         <EmptyState>Todavía no cargaste clientes.</EmptyState>
+      ) : !clientesFiltrados.length ? (
+        <EmptyState>No hay clientes que coincidan con la búsqueda.</EmptyState>
       ) : (
         <DataTable>
           <thead>
@@ -51,7 +95,7 @@ export function ClientesView() {
             </tr>
           </thead>
           <tbody>
-            {clientes.map((c) => (
+            {clientesFiltrados.map((c) => (
               <tr key={c.id}>
                 <td>
                   {c.nombre} {c.apellido}

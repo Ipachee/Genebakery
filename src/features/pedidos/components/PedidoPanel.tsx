@@ -325,6 +325,18 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     }
   }
 
+  // Quitar un producto ya enviado a cocina (o ya entregado) -- por ejemplo
+  // si el cliente lo canceló o lo devolvió. A diferencia de "Cancelar
+  // pedido" (que borra la mesa entera), esto saca solo ese producto puntual
+  // -- se borran todas las líneas de ese grupo (puede haber más de una si
+  // se agregó en rondas distintas).
+  async function handleQuitarGrupo(grupo: GrupoEnviado) {
+    if (!(await confirm(`¿Quitar "${grupo.nombre}" (x${grupo.cantidad}) de esta mesa?`))) return;
+    for (const linea of grupo.lineas) {
+      await mutations.quitarItem.mutateAsync(linea.id);
+    }
+  }
+
   return (
     <div className="pedido-overlay" onClick={handleClose}>
       <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
@@ -355,6 +367,7 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                   cantidadesTransferir={cantidadesTransferir}
                   onToggleFila={toggleSeleccionFila}
                   onCambiarCantidadFila={cambiarCantidadFila}
+                  onQuitarGrupo={handleQuitarGrupo}
                 />
               </div>
 

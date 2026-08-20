@@ -18,3 +18,9 @@ export async function marcarRondaEntregada(pedidoId: number, ronda: number) {
   const { error } = await supabase.rpc('fn_marcar_ronda_entregada', { p_pedido_id: pedidoId, p_ronda: ronda });
   if (error) throw error;
 }
+
+// Por si se apretó "Entregado" por error.
+export async function desmarcarRondaEntregada(pedidoId: number, ronda: number) {
+  const { error } = await supabase.rpc('fn_desmarcar_ronda_entregada', { p_pedido_id: pedidoId, p_ronda: ronda });
+  if (error) throw error;
+}

@@ -989,6 +989,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_desmarcar_ronda_entregada: {
+        Args: { p_pedido_id: number; p_ronda: number }
+        Returns: undefined
+      }
       fn_enviar_a_cocina: { Args: { p_pedido_id: number }; Returns: undefined }
       fn_estado_credenciales_facturacion: {
         Args: never

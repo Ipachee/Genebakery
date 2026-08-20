@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
 import { useGastoMutations, useGastos, useInsumos } from '../hooks';
 import { useProveedores } from '../../proveedores/hooks';
@@ -18,6 +18,8 @@ export function GastosView() {
 
   const [form, setForm] = useState({ insumoId: '', cantidad: '', costoTotal: '', proveedor: '' });
   const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [orden, setOrden] = useState<'reciente' | 'antiguo'>('reciente');
 
   async function submit() {
     if (!session || !form.insumoId || !form.cantidad || !form.costoTotal) return;
@@ -35,6 +37,18 @@ export function GastosView() {
       setError(e instanceof Error ? e.message : 'No se pudo registrar el gasto');
     }
   }
+
+  const gastosFiltrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase();
+    const filtrados = (gastos ?? []).filter((g) => {
+      if (!q) return true;
+      return (g.insumos?.nombre ?? '').toLowerCase().includes(q) || (g.proveedor ?? '').toLowerCase().includes(q);
+    });
+    return [...filtrados].sort((a, b) => {
+      const diff = new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
+      return orden === 'reciente' ? diff : -diff;
+    });
+  }, [gastos, busqueda, orden]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
@@ -67,10 +81,27 @@ export function GastosView() {
         <p style={{ color: 'var(--red)', fontSize: 13, background: 'var(--red-soft)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>{error}</p>
       )}
 
+      {gastos?.length ? (
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+          <TextInput
+            placeholder="🔍 Buscar por insumo o proveedor…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{ maxWidth: 260 }}
+          />
+          <Select value={orden} onChange={(e) => setOrden(e.target.value as 'reciente' | 'antiguo')} style={{ minWidth: 170 }}>
+            <option value="reciente">Más recientes primero</option>
+            <option value="antiguo">Más antiguos primero</option>
+          </Select>
+        </div>
+      ) : null}
+
       {isLoading ? (
         <EmptyState>Cargando…</EmptyState>
       ) : !gastos?.length ? (
         <EmptyState>Todavía no hay gastos registrados.</EmptyState>
+      ) : !gastosFiltrados.length ? (
+        <EmptyState>No hay gastos que coincidan con la búsqueda.</EmptyState>
       ) : (
         <DataTable>
           <thead>
@@ -83,7 +114,7 @@ export function GastosView() {
             </tr>
           </thead>
           <tbody>
-            {gastos.map((g) => (
+            {gastosFiltrados.map((g) => (
               <tr key={g.id}>
                 <td>{g.fecha}</td>
                 <td>{g.insumos?.nombre}</td>
