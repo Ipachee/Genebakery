@@ -17,8 +17,26 @@
   }
   .ticket-print {
     display: block;
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
+  }
+  /* visibility:hidden esconde el resto de la app pero NO le saca el
+     espacio que ocupa en el documento (a diferencia de display:none) --
+     por eso, aunque el ticket "diga" que mide poco, el resto de la app
+     (todo lo que hay atrás, invisible) seguía contando para el alto total
+     de la página y la impresora seguía tirando de más. Colapsando html/body
+     a alto 0 durante la impresión, y con el ticket en position:fixed (que
+     no depende del alto de sus ancestros para ubicarse), el alto real que
+     ve la impresora pasa a ser solo el del ticket.
+     No se puede usar display:none en vez de visibility:hidden para ocultar
+     el resto -- .ticket-print vive anidado adentro del árbol de React, y
+     display:none en un ancestro se lleva puesto a los hijos también (acá
+     hace falta poder "reveer" solo el ticket adentro de todo lo demás
+     oculto, y eso solo lo permite visibility). */
+  html,
+  body {
+    height: 0 !important;
+    overflow: hidden !important;
   }
 }
