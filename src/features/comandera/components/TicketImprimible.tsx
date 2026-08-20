@@ -18,7 +18,7 @@ export function TicketImprimible({
   // grande, un número fijo de guiones se hace mucho más ancho que el
   // papel real. El hr siempre estira al 100% del ancho, sin importar el
   // tamaño de letra.
-  const raya = <hr style={{ border: 'none', borderTop: '1px dashed #000', margin: '4px 0' }} />;
+  const raya = <hr style={{ border: 'none', borderTop: '1px dashed #000', margin: '3px 0' }} />;
 
   return (
     <div
@@ -27,6 +27,7 @@ export function TicketImprimible({
         width: anchoPx,
         fontFamily,
         fontSize: cfg.tamano,
+        lineHeight: 1.15,
         color: '#000',
         padding: '2px 4px',
       }}
@@ -37,14 +38,14 @@ export function TicketImprimible({
           lo que salía en blanco). */}
       <style>{`@page { size: ${cfg.ancho}mm auto; margin: 2mm; }`}</style>
       <div style={{ fontWeight: 700, fontSize: cfg.tamano + 10 }}>COCINA/BARRA</div>
-      <div style={{ fontSize: cfg.tamano + 3, marginTop: 4 }}>Fecha: {ahora.toLocaleDateString('es-AR')}</div>
-      <div style={{ fontSize: cfg.tamano + 3 }}>
-        Hora: {ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: cfg.tamano + 3, marginTop: 2 }}>
+        <span>{ahora.toLocaleDateString('es-AR')}</span>
+        <span>{ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
       <div style={{ fontSize: cfg.tamano + 3 }}>Mesa: {mesaLabel}</div>
       {raya}
       {items.map((it, i) => (
-        <div key={it.id} style={{ marginTop: i > 0 ? 8 : 0 }}>
+        <div key={it.id} style={{ marginTop: i > 0 ? 4 : 0 }}>
           <div style={{ fontWeight: 700, fontSize: cfg.tamano + 8 }}>
             {it.cantidad}x {it.productos?.nombre ?? `Producto #${it.producto_id}`}
           </div>
