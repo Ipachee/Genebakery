@@ -3,9 +3,11 @@
 }
 
 @media print {
-  @page {
-    margin: 4mm;
-  }
+  /* El tamaño de página (ancho x alto) se define por componente, ver el
+     <style> con @page que arma cada ticket -- acá solo queda lo genérico.
+     Sin un @page con "alto: auto", la impresora usa el largo de página por
+     default del driver (a veces un rollo larguísimo) y sigue tirando papel
+     en blanco después del contenido real. */
   body * {
     visibility: hidden;
   }

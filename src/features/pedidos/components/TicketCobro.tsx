@@ -52,6 +52,10 @@ export function TicketCobro({
         borderRadius: 8,
       }}
     >
+      {/* size: <ancho>mm auto -- sin esto la impresora térmica usa el
+          largo de rollo por default del driver y tira papel en blanco
+          después del contenido real (mismo bug que en TicketImprimible). */}
+      <style>{`@page { size: ${cfg.ancho}mm auto; margin: 2mm; }`}</style>
       <div style={{ textAlign: 'center' }}>
         <div
           style={{
