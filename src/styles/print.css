@@ -7,7 +7,18 @@
      <style> con @page que arma cada ticket -- acá solo queda lo genérico.
      Sin un @page con "alto: auto", la impresora usa el largo de página por
      default del driver (a veces un rollo larguísimo) y sigue tirando papel
-     en blanco después del contenido real. */
+     en blanco después del contenido real.
+
+     Se probó además colapsar html/body a alto 0 para recortar el espacio
+     que el resto de la app (oculta con visibility:hidden, pero sin sacarle
+     el lugar que ocupa) seguía sumando al alto de la página -- pero eso
+     hizo que algunos navegadores/drivers directamente no imprimieran nada
+     (interpretan alto 0 como "no hay nada que imprimir"). Se revierte esa
+     parte: mejor que tire un poco de papel de más a que no imprima nada.
+     Si el sobrante de papel molesta, conviene revisar la configuración de
+     "avance antes de cortar" del driver de esa impresora en Windows, en
+     vez de seguir ajustando esto a ciegas sin poder probarlo en la
+     impresora real. */
   body * {
     visibility: hidden;
   }
@@ -17,26 +28,8 @@
   }
   .ticket-print {
     display: block;
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
-  }
-  /* visibility:hidden esconde el resto de la app pero NO le saca el
-     espacio que ocupa en el documento (a diferencia de display:none) --
-     por eso, aunque el ticket "diga" que mide poco, el resto de la app
-     (todo lo que hay atrás, invisible) seguía contando para el alto total
-     de la página y la impresora seguía tirando de más. Colapsando html/body
-     a alto 0 durante la impresión, y con el ticket en position:fixed (que
-     no depende del alto de sus ancestros para ubicarse), el alto real que
-     ve la impresora pasa a ser solo el del ticket.
-     No se puede usar display:none en vez de visibility:hidden para ocultar
-     el resto -- .ticket-print vive anidado adentro del árbol de React, y
-     display:none en un ancestro se lleva puesto a los hijos también (acá
-     hace falta poder "reveer" solo el ticket adentro de todo lo demás
-     oculto, y eso solo lo permite visibility). */
-  html,
-  body {
-    height: 0 !important;
-    overflow: hidden !important;
   }
 }
