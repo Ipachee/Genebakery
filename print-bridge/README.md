@@ -22,10 +22,11 @@ Esto es necesario porque el truco que usa este programa para mandar los datos "e
 
 ## Paso 2 — Configurar
 
-Abrí `config.js` con el Bloc de notas y revisá:
+Copiá `config.example.js` y renombrá la copia a `config.js` (este archivo, con la clave real adentro, no se sube a GitHub a propósito -- por eso no viene ya creado). Abrilo con el Bloc de notas y completá:
 
 - `PRINTER_SHARE_NAME`: tiene que ser **exactamente** el nombre que le pusiste en el paso 1.
-- El resto (usuario/clave, dirección de la base) ya viene configurado, no hace falta tocarlo.
+- `LOGIN_PASSWORD`: el PIN de las cuentas (450422, o el que esté usando el local en ese momento).
+- El resto (dirección de la base) ya viene configurado, no hace falta tocarlo.
 
 ## Paso 3 — Instalar e iniciar
 

@@ -14,13 +14,13 @@ module.exports = {
   // silencio, sin imprimir nunca nada y sin avisar por qué). Se usa la
   // cuenta de admin con el mismo PIN que ya usan las 4 cuentas del local.
   LOGIN_EMAIL: 'admin@comandacafe.local',
-  LOGIN_PASSWORD: '450422',
+  LOGIN_PASSWORD: 'PONÉ_ACÁ_EL_PIN_REAL',
 
   // Nombre del RECURSO COMPARTIDO de la impresora en Windows (no
   // necesariamente el mismo que el nombre que se ve en "Impresoras y
   // escáneres" -- ver el README para cómo compartirla y qué nombre
   // ponerle). Por default se deja igual al nombre de la impresora.
-  PRINTER_SHARE_NAME: 'CONTROL',
+  PRINTER_SHARE_NAME: 'PONÉ_ACÁ_EL_NOMBRE_COMPARTIDO',
 
   // Cada cuántos milisegundos revisa si hay comandas nuevas.
   INTERVALO_MS: 8000,

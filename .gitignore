@@ -32,3 +32,5 @@ supabase/.temp/
 
 .vercel
 .env*
+
+print-bridge/config.js
