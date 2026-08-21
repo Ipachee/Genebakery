@@ -24,6 +24,16 @@ export async function fetchTurnoPorId(id: number) {
   return data;
 }
 
+// Para admin: no tiene turno propio (no es mozo), así que en vez de
+// resolver/abrir uno se engancha al que ya esté abierto -- fn_resolver_turno
+// garantiza que nunca hay más de uno a la vez, así que esto siempre trae
+// como mucho una fila.
+export async function fetchTurnoAbierto() {
+  const { data, error } = await supabase.from('turnos').select('*').eq('estado', 'abierto').maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 export async function cerrarTurno(id: number, efectivoContado: number | null) {
   const { data, error } = await supabase
     .from('turnos')

@@ -1,0 +1,186 @@
+/* Shell nuevo: lateral agrupado + topbar fina. Reemplaza .shell-header +
+   la fila de pestañas de AdminPanel. Sigue sticky (no un layout de 100vh
+   con scroll interno aparte) para no cambiar cómo scrollea la página --
+   más simple y más predecible en el navegador del celu/tablet. */
+
+.app-shell { display: flex; align-items: flex-start; min-height: 100vh; background: var(--bg); }
+
+.app-shell-scrim { display: none; }
+
+.app-sidebar {
+  flex-shrink: 0;
+  width: var(--sidebar-w);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--surface-sunken);
+  border-right: 1px solid var(--border);
+  padding: var(--space-3) var(--space-3) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition: width 180ms ease;
+  z-index: 30;
+}
+.app-shell.is-collapsed .app-sidebar { width: var(--sidebar-w-collapsed); }
+
+.app-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 12px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.app-sidebar-nav { display: flex; flex-direction: column; gap: 3px; }
+.app-sidebar-sep { height: 1px; background: var(--border); margin: var(--space-2) 4px; }
+
+.app-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--nav-item-radius);
+  background: transparent;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.app-nav-item:hover:not(.active) { background: rgba(198, 113, 57, 0.1); }
+:root[data-theme="dark"] .app-nav-item:hover:not(.active) { background: rgba(217, 160, 91, 0.1); }
+.app-nav-item.active { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+
+.app-nav-icon { font-size: 15px; line-height: 1; flex-shrink: 0; width: 18px; text-align: center; }
+.app-nav-label { overflow: hidden; text-overflow: ellipsis; }
+
+.app-nav-group-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+.app-nav-group-header .app-nav-label { flex: 1; }
+.app-nav-chevron { display: inline-block; transition: transform 150ms ease; color: var(--text-dim); }
+.app-nav-chevron.open { transform: rotate(90deg); }
+
+.app-nav-group-items { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+.app-nav-item-nested { padding-left: 26px; font-size: 13px; }
+.app-nav-dot { font-size: 19px; color: var(--text-dim); }
+.app-nav-item-nested.active .app-nav-dot { color: var(--accent-ink); }
+
+/* Rail colapsado: solo íconos centrados, título como tooltip nativo. */
+.app-shell.is-collapsed .app-sidebar-brand-label,
+.app-shell.is-collapsed .app-nav-label,
+.app-shell.is-collapsed .app-nav-chevron,
+.app-shell.is-collapsed .app-nav-group-items {
+  display: none;
+}
+.app-shell.is-collapsed .app-nav-item,
+.app-shell.is-collapsed .app-nav-group-header {
+  justify-content: center;
+  padding: 8px;
+}
+
+.app-content-col { flex: 1; min-width: 0; }
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--topbar-h);
+  padding: 0 var(--space-4);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.app-hamburger {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.app-hamburger:hover { background: var(--surface-sunken); }
+
+.app-topbar-title { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.app-topbar-kicker { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+.app-topbar-section { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.app-topbar-right { margin-left: auto; display: flex; align-items: center; gap: var(--space-2); flex-wrap: nowrap; }
+
+.app-theme-toggle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.app-theme-toggle:hover { background: var(--surface-sunken); }
+
+.app-content { padding: var(--space-5) var(--space-6); max-width: 1280px; margin: 0 auto; }
+
+/* El plano de Salón es el único contenido que quiere estirarse con el
+   monitor en vez de quedar centrado en una columna de lectura -- se saca
+   el tope de ancho solo cuando esa pantalla está montada. */
+.app-content:has(.salon-plano-wrap) { max-width: none; }
+
+@media (max-width: 1024px) {
+  /* Lateral off-canvas: no comparte ancho con el contenido, lo tapa como
+     un drawer -- la app no se usa en móvil todavía, pero que al menos no
+     se rompa si alguien la abre desde el celu o una tablet. */
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: min(80vw, 260px);
+    transform: translateX(-100%);
+    transition: transform 200ms ease;
+  }
+  .app-shell.is-collapsed .app-sidebar { width: min(80vw, 260px); }
+  .app-shell.is-collapsed .app-sidebar-brand-label,
+  .app-shell.is-collapsed .app-nav-label,
+  .app-shell.is-collapsed .app-nav-chevron {
+    display: initial;
+  }
+  .app-shell.is-off-canvas-open .app-sidebar { transform: translateX(0); box-shadow: var(--shadow-lg); }
+  .app-shell.is-off-canvas-open .app-shell-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 25;
+  }
+  .app-content { padding: var(--space-4); }
+}
+
+@media (max-width: 560px) {
+  .app-topbar { padding: 0 var(--space-3); gap: var(--space-2); }
+  .app-topbar-section { font-size: 13.5px; }
+  .app-content { padding: var(--space-3); }
+}

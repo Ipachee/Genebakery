@@ -37,6 +37,9 @@ export async function crearPedido(mesaId: number, turnoId: number, mozoId: strin
   return data;
 }
 
+// precioUnitario es solo para el UI optimista -- un trigger server-side
+// (trg_forzar_precio_item_pedido) pisa el valor real con productos.precio
+// antes de guardar, así que lo que se mande acá nunca queda en la fila.
 export async function agregarItem(pedidoId: number, productoId: number, precioUnitario: number, nota: string) {
   const { data, error } = await supabase
     .from('pedido_items')
@@ -182,6 +185,18 @@ export async function transferirItems(
   if ((quedan ?? []).length === 0) {
     await cancelarPedido(origenPedidoId);
   }
+}
+
+// Marca/desmarca la mesa como "cobrando" en el plano compartido -- se
+// llama al abrir el panel de cobro y al cerrarlo (con o sin cobro exitoso),
+// para que alguien mirando el plano desde otro lugar sepa que esa mesa ya
+// no admite pedidos nuevos porque se está por cerrar.
+export async function marcarCobrando(pedidoId: number, activo: boolean) {
+  const { error } = await supabase
+    .from('pedidos')
+    .update({ cobrando_desde: activo ? new Date().toISOString() : null })
+    .eq('id', pedidoId);
+  if (error) throw error;
 }
 
 export async function cobrarPedido(params: {

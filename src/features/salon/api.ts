@@ -32,7 +32,7 @@ export async function fetchElementosDecorativos() {
 export async function fetchEstadoDeMesas() {
   const { data, error } = await supabase
     .from('pedidos')
-    .select('mesa_id, estado')
+    .select('mesa_id, estado, cobrando_desde')
     .in('estado', ESTADOS_PEDIDO_ACTIVO)
     .is('deleted_at', null)
     .not('mesa_id', 'is', null);

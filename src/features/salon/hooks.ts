@@ -13,7 +13,7 @@ export function useElementosDecorativos() {
   return useQuery({ queryKey: ['elementos-decorativos'], queryFn: api.fetchElementosDecorativos });
 }
 
-export type EstadoMesa = 'abierto' | 'enviado_cocina' | 'entregado';
+export type EstadoMesa = 'abierto' | 'enviado_cocina' | 'entregado' | 'cobrando';
 
 export function useEstadoDeMesas() {
   return useQuery({
@@ -29,7 +29,10 @@ export function useEstadoDeMesas() {
     select: (filas) => {
       const map = new Map<number, EstadoMesa>();
       for (const f of filas) {
-        if (f.mesa_id != null) map.set(f.mesa_id, f.estado as EstadoMesa);
+        // cobrando_desde pisa el estado real del pedido -- una mesa
+        // "enviado_cocina" con el panel de cobro abierto se ve "cobrando",
+        // no "pedido enviado", porque eso es lo que importa mostrar afuera.
+        if (f.mesa_id != null) map.set(f.mesa_id, f.cobrando_desde ? 'cobrando' : (f.estado as EstadoMesa));
       }
       return map;
     },

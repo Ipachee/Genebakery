@@ -8,15 +8,22 @@ import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
 import { EmptyState } from '../../../components/EmptyState';
 
+// Umbrales para el color de urgencia del ticket: normal hasta los 8min,
+// ámbar de 8 a 15min, rojo pasados los 15min -- se cuenta desde que se
+// mandó a cocina, no desde que se creó el pedido.
+const SEGUNDOS_AMBAR = 8 * 60;
+const SEGUNDOS_ROJO = 15 * 60;
+
 function useCronometro(desde: string | null) {
   const [ahora, setAhora] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setAhora(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);
-  if (!desde) return '—';
+  if (!desde) return { texto: '—', segundos: 0 };
   const s = Math.max(0, Math.floor((ahora - new Date(desde).getTime()) / 1000));
-  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  const texto = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  return { texto, segundos: s };
 }
 
 export function ComanderaView() {
@@ -116,17 +123,44 @@ function TicketComanda({
   onDesmarcarEntregado: () => void;
   onImprimir: () => void;
 }) {
-  const tiempo = useCronometro(ticket.enviadoAt);
+  const { texto: tiempo, segundos } = useCronometro(ticket.enviadoAt);
+  // La urgencia por tiempo solo tiene sentido mientras el ticket sigue
+  // esperando -- uno ya entregado no necesita llamar la atención aunque
+  // haya tardado.
+  const urgencia = ticket.entregado ? 'normal' : segundos >= SEGUNDOS_ROJO ? 'rojo' : segundos >= SEGUNDOS_AMBAR ? 'ambar' : 'normal';
+  const colorBorde = urgencia === 'rojo' ? 'var(--red)' : urgencia === 'ambar' ? 'var(--amber)' : 'var(--border)';
+  const colorFondo = urgencia === 'rojo' ? 'var(--red-soft)' : urgencia === 'ambar' ? 'var(--amber-soft)' : undefined;
 
   return (
-    <div className="card card-pad" style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+    <div
+      className="card card-pad"
+      style={{
+        display: 'flex',
+        gap: 'var(--space-4)',
+        flexWrap: 'wrap',
+        alignItems: 'flex-start',
+        borderColor: colorBorde,
+        borderWidth: urgencia === 'normal' ? undefined : 2,
+        background: colorFondo,
+      }}
+    >
       <div style={{ minWidth: 90 }}>
         <div style={{ fontWeight: 700, fontSize: 15 }}>Mesa {ticket.mesaLabel}</div>
         {ticket.ronda > 1 && (
           <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>Ronda {ticket.ronda}</div>
         )}
         <Badge tone={ticket.entregado ? 'good' : 'info'}>{ticket.entregado ? 'Entregado' : 'Enviado'}</Badge>
-        <div style={{ marginTop: 6, fontVariantNumeric: 'tabular-nums', fontSize: 12.5, color: 'var(--text-dim)' }}>⏱ {tiempo}</div>
+        <div
+          style={{
+            marginTop: 6,
+            fontVariantNumeric: 'tabular-nums',
+            fontSize: 12.5,
+            fontWeight: urgencia === 'normal' ? undefined : 700,
+            color: urgencia === 'rojo' ? 'var(--red)' : urgencia === 'ambar' ? 'var(--amber)' : 'var(--text-dim)',
+          }}
+        >
+          ⏱ {tiempo}
+        </div>
       </div>
       <div style={{ flex: 1, minWidth: 200, fontSize: 13.5 }}>
         {ticket.items.map((it) => (

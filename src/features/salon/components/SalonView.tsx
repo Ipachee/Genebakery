@@ -9,6 +9,7 @@ import { EmptyState } from '../../../components/EmptyState';
 import { useConfirm } from '../../../components/ConfirmDialog';
 import { fmtMoney } from '../../../lib/format';
 import type { Database } from '../../../lib/supabase/types';
+import './SalonView.css';
 
 type Mesa = Database['public']['Tables']['mesas']['Row'];
 type Salon = Database['public']['Tables']['salones']['Row'];
@@ -19,17 +20,18 @@ type Elemento = Database['public']['Tables']['elementos_decorativos']['Row'];
 // arriba, las dos son básicamente "la mesa está ocupada, no hace falta
 // prestarle atención". Se unifican en un solo verde "Mesa ocupada"; el azul
 // (enviado a cocina, sí necesita seguimiento) se mantiene aparte.
-const ESTADO_INFO: Record<EstadoMesa, { label: string; fill: string; strokeStrong: string }> = {
-  abierto: { label: 'Mesa ocupada', fill: 'var(--green)', strokeStrong: '#2f5b3b' },
-  enviado_cocina: { label: 'Pedido enviado', fill: 'var(--blue)', strokeStrong: '#28495f' },
-  entregado: { label: 'Mesa ocupada', fill: 'var(--green)', strokeStrong: '#2f5b3b' },
+const ESTADO_INFO: Record<EstadoMesa, { label: string; fill: string; strokeStrong: string; ink: string }> = {
+  abierto: { label: 'Mesa ocupada', fill: 'var(--salon-ocupada)', strokeStrong: 'var(--salon-ocupada-strong)', ink: 'var(--salon-ocupada-ink)' },
+  enviado_cocina: { label: 'Pedido enviado', fill: 'var(--salon-enviado)', strokeStrong: 'var(--salon-enviado-strong)', ink: '#fff' },
+  entregado: { label: 'Mesa ocupada', fill: 'var(--salon-ocupada)', strokeStrong: 'var(--salon-ocupada-strong)', ink: 'var(--salon-ocupada-ink)' },
+  cobrando: { label: 'Cobrando', fill: 'var(--salon-ambar)', strokeStrong: 'var(--salon-ambar-strong)', ink: 'var(--salon-ambar-ink)' },
 };
 
 const LEYENDA: { label: string; color: string }[] = [
   { label: 'Libre', color: 'var(--surface)' },
-  { label: 'Mesa ocupada', color: 'var(--green)' },
-  { label: 'Pedido enviado', color: 'var(--blue)' },
-  { label: 'Cobrando', color: 'var(--amber)' },
+  { label: 'Mesa ocupada', color: 'var(--salon-ocupada)' },
+  { label: 'Pedido enviado', color: 'var(--salon-enviado)' },
+  { label: 'Cobrando', color: 'var(--salon-ambar)' },
 ];
 
 type Seleccion = { tipo: 'mesa' | 'salon' | 'elemento'; id: number } | null;
@@ -55,6 +57,36 @@ export function SalonView() {
   const svgRef = useRef<SVGSVGElement>(null);
   const { confirm, dialog } = useConfirm();
 
+  // Panel de edición arrastrable: null = todavía en su posición default
+  // (esquina de la pantalla, ver SalonView.css). Una vez que se arrastra
+  // una vez, se acuerda dónde quedó mientras se sigan editando mesas/
+  // salones -- no vuelve solo a la esquina al cambiar de selección.
+  const [panelPos, setPanelPos] = useState<{ top: number; left: number } | null>(null);
+  const [arrastrePanel, setArrastrePanel] = useState<{ dx: number; dy: number } | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  function iniciarArrastrePanel(e: ReactPointerEvent<HTMLDivElement>) {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    setArrastrePanel({ dx: e.clientX - r.left, dy: e.clientY - r.top });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function moverPanel(e: ReactPointerEvent<HTMLDivElement>) {
+    if (!arrastrePanel) return;
+    const panel = panelRef.current;
+    const w = panel?.offsetWidth ?? 240;
+    const h = panel?.offsetHeight ?? 200;
+    const left = Math.min(Math.max(8, e.clientX - arrastrePanel.dx), window.innerWidth - w - 8);
+    const top = Math.min(Math.max(8, e.clientY - arrastrePanel.dy), window.innerHeight - h - 8);
+    setPanelPos({ top, left });
+  }
+
+  function soltarArrastrePanel() {
+    setArrastrePanel(null);
+  }
+
   const esAdmin = profile?.rol === 'admin';
 
   if (loadingSalones || loadingMesas || loadingElementos) return <EmptyState>Cargando salón…</EmptyState>;
@@ -66,11 +98,14 @@ export function SalonView() {
   }
 
   const todasLasMesas = mesas ?? [];
+  const mesaTakeAway = todasLasMesas.find((m) => m.es_take_away) ?? null;
   const padresConHijos = new Set(
     todasLasMesas.filter((m) => m.mesa_padre_id != null).map((m) => m.mesa_padre_id)
   );
-  const mesasVisibles = todasLasMesas.filter((m) =>
-    m.mesa_padre_id != null ? true : !padresConHijos.has(m.id)
+  // La mesa virtual de take away no se dibuja en el plano ni cuenta para
+  // "mesas libres/ocupadas" -- no es una mesa real del local.
+  const mesasVisibles = todasLasMesas.filter(
+    (m) => !m.es_take_away && (m.mesa_padre_id != null ? true : !padresConHijos.has(m.id))
   );
 
   const mesasOcupadasCount = mesasVisibles.filter((m) => estadoDeMesas?.has(m.id)).length;
@@ -198,10 +233,10 @@ export function SalonView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
       <div className="stat-grid">
-        <StatCard valor={mesasLibresCount} label="Mesas libres" />
-        <StatCard valor={mesasOcupadasCount} label="Mesas ocupadas" />
-        <StatCard valor={mesasOcupadasCount} label="Pedidos en curso" />
-        <StatCard valor={turno ? fmtMoney.format(facturado) : '—'} label="Facturado en este turno" />
+        <StatCard valor={mesasLibresCount} label="Mesas libres" color="var(--salon-stat-1)" />
+        <StatCard valor={mesasOcupadasCount} label="Mesas ocupadas" color="var(--salon-stat-2)" />
+        <StatCard valor={mesasOcupadasCount} label="Pedidos en curso" color="var(--salon-stat-3)" />
+        <StatCard valor={turno ? fmtMoney.format(facturado) : '—'} label="Facturado en este turno" color="var(--salon-stat-4)" />
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
@@ -214,7 +249,7 @@ export function SalonView() {
                   height: 10,
                   borderRadius: 3,
                   background: l.color,
-                  border: l.color === 'var(--surface)' ? '1.5px solid var(--brown)' : 'none',
+                  border: l.color === 'var(--surface)' ? '1.5px solid var(--salon-mesa-border-libre)' : 'none',
                   display: 'inline-block',
                 }}
               />
@@ -222,19 +257,25 @@ export function SalonView() {
             </span>
           ))}
         </div>
-        {esAdmin && (
-          <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-            <Button
-              variant={editando ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => {
-                setEditando((v) => !v);
-                setSeleccion(null);
-              }}
-            >
-              ✏️ {editando ? 'Terminar edición' : 'Editar plano'}
+        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          {mesaTakeAway && !editando && (
+            <Button variant="secondary" size="sm" onClick={() => setMesaParaPedido(mesaTakeAway)}>
+              🛍️ Take away
             </Button>
-            {editando && (
+          )}
+          {esAdmin && (
+            <>
+              <Button
+                variant={editando ? 'primary' : 'secondary'}
+                size="sm"
+                onClick={() => {
+                  setEditando((v) => !v);
+                  setSeleccion(null);
+                }}
+              >
+                ✏️ {editando ? 'Terminar edición' : 'Editar plano'}
+              </Button>
+              {editando && (
               <>
                 <Button variant="secondary" size="sm" onClick={() => mutations.crearSalon.mutate('Nuevo salón')}>
                   + Salón
@@ -257,19 +298,26 @@ export function SalonView() {
                   ↺ Restablecer
                 </Button>
               </>
-            )}
-          </div>
-        )}
+              )}
+            </>
+          )}
+        </div>
       </div>
 
-      {/* position: relative + el panel en position: absolute a propósito:
-          si el panel formara parte del flujo normal (flex/grid), el plano
-          tendría que achicarse para dejarle lugar cada vez que se
-          selecciona una mesa/salón -- eso se sentía tosco (el plano
-          "saltaba" de tamaño con cada click). Así el plano SIEMPRE mide lo
-          mismo, elegido algo o no, y el panel flota al costado sin mover
-          nada. */}
-      <div style={{ position: 'relative', width: '100%', maxWidth: 1120 }}>
+      {/* El panel de edición nunca forma parte del flujo normal (flex/grid):
+          si lo fuera, el plano tendría que achicarse para dejarle lugar
+          cada vez que se selecciona una mesa/salón -- eso se sentía tosco
+          (el plano "saltaba" de tamaño con cada click). Así el plano
+          SIEMPRE mide lo mismo, elegido algo o no. El panel en sí es
+          position:fixed anclado al borde de la pantalla (ver
+          .salon-panel-edicion en SalonView.css) -- no al costado del plano
+          -- para que no haga falta scrollear a la derecha en un salón
+          ancho para llegar a él. Sin maxWidth en el plano a propósito:
+          ocupa todo el ancho disponible del contenido (ver
+          .app-content:has(.salon-plano-wrap) en sidebar.css), no un tope
+          fijo -- así se aprovecha una pantalla grande y se achica solo en
+          una chica. */}
+      <div className="salon-plano-wrap">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${maxX} ${maxY}`}
@@ -309,17 +357,17 @@ export function SalonView() {
                   height={s.h}
                   fill="var(--surface-sunken)"
                   fillOpacity={0.4}
-                  stroke={seleccion?.tipo === 'salon' && seleccion.id === salon.id ? 'var(--terracota)' : 'var(--brown-mid)'}
+                  stroke={seleccion?.tipo === 'salon' && seleccion.id === salon.id ? 'var(--salon-panel-border-selected)' : 'var(--salon-panel-border)'}
                   strokeWidth={seleccion?.tipo === 'salon' && seleccion.id === salon.id ? 2 : 1.2}
                   rx={6}
                   style={{ cursor: editando ? 'grab' : 'default' }}
                   onPointerDown={(e) => iniciarDrag(e, 'salon', salon)}
                 />
-                <text x={p.x + 10} y={p.y + 18} fontSize="11" fill="var(--brown-dark)" fontWeight={700} letterSpacing="0.02em">
+                <text x={p.x + 10} y={p.y + 18} fontSize="11" fill="var(--salon-label-text)" fontWeight={700} letterSpacing="0.02em">
                   {salon.nombre.toUpperCase()}
                 </text>
                 {salon.tag && (
-                  <text x={p.x + s.w - 10} y={p.y + 18} fontSize="10" fill="var(--text-dim)" textAnchor="end">
+                  <text x={p.x + s.w - 10} y={p.y + 18} fontSize="10" fill="var(--salon-label-text)" textAnchor="end">
                     {salon.tag}
                   </text>
                 )}
@@ -347,7 +395,7 @@ export function SalonView() {
                     <rect x={p.x + s.w - 14} y={p.y + s.h - 14} width={14} height={14} fill="transparent" />
                     <path
                       d={`M ${p.x + s.w - 2} ${p.y + s.h - 9} L ${p.x + s.w - 9} ${p.y + s.h - 2} M ${p.x + s.w - 2} ${p.y + s.h - 5} L ${p.x + s.w - 5} ${p.y + s.h - 2}`}
-                      stroke="var(--brown-mid)"
+                      stroke="var(--salon-panel-border)"
                       strokeWidth={1.4}
                       strokeLinecap="round"
                     />
@@ -370,11 +418,10 @@ export function SalonView() {
                   width={s.w}
                   height={s.h}
                   rx={esBarra ? 3 : 0}
-                  fill={esBarra ? 'var(--amber)' : 'var(--bg)'}
-                  opacity={esBarra ? 0.45 : 1}
-                  stroke={seleccionado ? 'var(--terracota)' : esBarra ? 'none' : 'var(--brown-mid)'}
+                  fill={esBarra ? 'var(--salon-ambar)' : 'var(--salon-puerta-fill)'}
+                  stroke={seleccionado ? 'var(--salon-panel-border-selected)' : esBarra ? 'none' : 'var(--salon-panel-border)'}
                   strokeWidth={seleccionado ? 2 : 0.5}
-                  style={{ cursor: editando ? 'grab' : 'default' }}
+                  style={{ cursor: editando ? 'grab' : 'default', opacity: esBarra ? 'var(--salon-barra-opacity)' : 1 }}
                   onPointerDown={(e) => iniciarDrag(e, 'elemento', el)}
                 />
                 {editando && (
@@ -386,7 +433,7 @@ export function SalonView() {
                     <rect x={p.x + s.w - 10} y={p.y + s.h - 10} width={10} height={10} fill="transparent" />
                     <path
                       d={`M ${p.x + s.w - 1} ${p.y + s.h - 5} L ${p.x + s.w - 5} ${p.y + s.h - 1}`}
-                      stroke="var(--brown-mid)"
+                      stroke="var(--salon-panel-border)"
                       strokeWidth={1.2}
                       strokeLinecap="round"
                     />
@@ -402,8 +449,8 @@ export function SalonView() {
             const estado = estadoDeMesas?.get(mesa.id);
             const info = estado ? ESTADO_INFO[estado] : null;
             const fill = info?.fill ?? 'var(--surface)';
-            const textColor = info ? '#fff' : 'var(--brown-dark)';
-            const stroke = seleccionada ? 'var(--brown-dark)' : (info?.strokeStrong ?? 'var(--brown)');
+            const textColor = info?.ink ?? 'var(--salon-mesa-text-libre)';
+            const stroke = seleccionada ? 'var(--salon-mesa-border-selected)' : (info?.strokeStrong ?? 'var(--salon-mesa-border-libre)');
             return (
               <g
                 key={mesa.id}
@@ -458,7 +505,20 @@ export function SalonView() {
         </svg>
 
         {editando && (mesaSeleccionada || salonSeleccionado || elementoSeleccionado) && (
-          <div style={{ position: 'absolute', top: 4, left: '100%', marginLeft: 'var(--space-4)', width: 220, zIndex: 5 }}>
+          <div
+            ref={panelRef}
+            className="salon-panel-edicion"
+            style={panelPos ? { top: panelPos.top, left: panelPos.left, right: 'auto' } : undefined}
+          >
+            <div
+              className="salon-panel-handle"
+              onPointerDown={iniciarArrastrePanel}
+              onPointerMove={moverPanel}
+              onPointerUp={soltarArrastrePanel}
+              title="Arrastrar para mover"
+            >
+              ⠿⠿ Mover
+            </div>
             <PanelEdicion
               mesa={mesaSeleccionada}
               salon={salonSeleccionado}
@@ -500,91 +560,11 @@ function PanelEdicion({
   };
 
   if (mesa) {
-    return (
-      <div className="card card-pad" style={boxStyle}>
-        <div>
-          <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>Mesa #{mesa.id}</div>
-          <TextInput
-            key={mesa.id}
-            defaultValue={mesa.label ?? ''}
-            placeholder={`Mesa ${mesa.id}`}
-            onBlur={(e) => e.target.value !== (mesa.label ?? '') && mutations.renombrarMesa.mutate({ id: mesa.id, label: e.target.value })}
-          />
-          <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginTop: 4 }}>
-            Para separar mesas de gente conocida, poné un nombre en vez del número.
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <Button
-            size="sm"
-            block
-            onClick={() => mutations.redimensionarMesa.mutate({ id: mesa.id, w: Math.max(30, mesa.w - 10), h: Math.max(30, mesa.h - 10) })}
-          >
-            − tamaño
-          </Button>
-          <Button size="sm" block onClick={() => mutations.redimensionarMesa.mutate({ id: mesa.id, w: mesa.w + 10, h: mesa.h + 10 })}>
-            + tamaño
-          </Button>
-        </div>
-        {mesa.mesa_padre_id == null ? (
-          <Button size="sm" onClick={() => mutations.dividirMesa.mutate(mesa)}>
-            Dividir en A / B
-          </Button>
-        ) : (
-          <Button size="sm" onClick={() => mutations.unirMesa.mutate(mesa.mesa_padre_id!)}>
-            Unir mesa
-          </Button>
-        )}
-        {(mutations.dividirMesa.isError || mutations.unirMesa.isError) && (
-          <p style={{ color: 'var(--red)', fontSize: 11.5, margin: 0 }}>
-            {(mutations.dividirMesa.error ?? mutations.unirMesa.error)?.message}
-          </p>
-        )}
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => {
-            mutations.borrarMesa.mutate(mesa.id);
-            onCerrar();
-          }}
-        >
-          🗑 Borrar mesa
-        </Button>
-      </div>
-    );
+    return <PanelMesa key={mesa.id} mesa={mesa} mutations={mutations} onCerrar={onCerrar} boxStyle={boxStyle} />;
   }
 
   if (salon) {
-    return (
-      <div className="card card-pad" style={boxStyle}>
-        <TextInput
-          defaultValue={salon.nombre}
-          onBlur={(e) => e.target.value !== salon.nombre && mutations.renombrarSalon.mutate({ id: salon.id, nombre: e.target.value })}
-        />
-        <div style={{ display: 'flex', gap: 6 }}>
-          <Button
-            size="sm"
-            block
-            onClick={() => mutations.redimensionarSalon.mutate({ id: salon.id, w: Math.max(80, salon.w - 20), h: Math.max(60, salon.h - 20) })}
-          >
-            − tamaño
-          </Button>
-          <Button size="sm" block onClick={() => mutations.redimensionarSalon.mutate({ id: salon.id, w: salon.w + 20, h: salon.h + 20 })}>
-            + tamaño
-          </Button>
-        </div>
-        <Button
-          variant="danger"
-          size="sm"
-          onClick={() => {
-            mutations.borrarSalon.mutate(salon.id);
-            onCerrar();
-          }}
-        >
-          🗑 Borrar salón
-        </Button>
-      </div>
-    );
+    return <PanelSalon key={salon.id} salon={salon} mutations={mutations} onCerrar={onCerrar} boxStyle={boxStyle} />;
   }
 
   if (elemento) {
@@ -614,12 +594,14 @@ function PanelEdicion({
         <Button
           variant="danger"
           size="sm"
+          title={elemento.tipo === 'barra' ? 'Borrar barra' : 'Borrar puerta'}
+          aria-label={elemento.tipo === 'barra' ? 'Borrar barra' : 'Borrar puerta'}
           onClick={() => {
             mutations.borrarElemento.mutate(elemento.id);
             onCerrar();
           }}
         >
-          🗑 Borrar
+          🗑
         </Button>
       </div>
     );
@@ -628,10 +610,145 @@ function PanelEdicion({
   return null;
 }
 
-function StatCard({ valor, label }: { valor: number | string; label: string }) {
+// Nombre con guardado explícito (tilde verde, abajo al lado del tacho), no
+// con onBlur: al tocar afuera para deseleccionar la mesa/salón, el panel se
+// desmonta en el mismo gesto y el cambio se perdía -- el blur no llegaba a
+// tiempo. Separado en su propio componente (no un if adentro de
+// PanelEdicion) porque necesita su propio useState para el borrador del
+// nombre, y los hooks no pueden quedar atrás de un return condicional.
+function PanelMesa({
+  mesa,
+  mutations,
+  onCerrar,
+  boxStyle,
+}: {
+  mesa: Mesa;
+  mutations: ReturnType<typeof useSalonMutations>;
+  onCerrar: () => void;
+  boxStyle: React.CSSProperties;
+}) {
+  const [nombre, setNombre] = useState(mesa.label ?? '');
+  const cambio = nombre !== (mesa.label ?? '');
+  const guardar = () => mutations.renombrarMesa.mutate({ id: mesa.id, label: nombre });
+
   return (
-    <div className="card card-pad stat-card">
-      <div className="stat-card-value">{valor}</div>
+    <div className="card card-pad" style={boxStyle}>
+      <div>
+        <div style={{ fontSize: 11, color: 'var(--text-dim)', marginBottom: 4 }}>Mesa #{mesa.id}</div>
+        <TextInput
+          value={nombre}
+          placeholder={`Mesa ${mesa.id}`}
+          onChange={(e) => setNombre(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && cambio && guardar()}
+        />
+        <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginTop: 4 }}>
+          Para separar mesas de gente conocida, poné un nombre en vez del número.
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <Button
+          size="sm"
+          block
+          onClick={() => mutations.redimensionarMesa.mutate({ id: mesa.id, w: Math.max(30, mesa.w - 10), h: Math.max(30, mesa.h - 10) })}
+        >
+          − tamaño
+        </Button>
+        <Button size="sm" block onClick={() => mutations.redimensionarMesa.mutate({ id: mesa.id, w: mesa.w + 10, h: mesa.h + 10 })}>
+          + tamaño
+        </Button>
+      </div>
+      {mesa.mesa_padre_id == null ? (
+        <Button size="sm" onClick={() => mutations.dividirMesa.mutate(mesa)}>
+          Dividir en A / B
+        </Button>
+      ) : (
+        <Button size="sm" onClick={() => mutations.unirMesa.mutate(mesa.mesa_padre_id!)}>
+          Unir mesa
+        </Button>
+      )}
+      {(mutations.dividirMesa.isError || mutations.unirMesa.isError) && (
+        <p style={{ color: 'var(--red)', fontSize: 11.5, margin: 0 }}>
+          {(mutations.dividirMesa.error ?? mutations.unirMesa.error)?.message}
+        </p>
+      )}
+      <div style={{ display: 'flex', gap: 6 }}>
+        <Button variant="success" size="sm" disabled={!cambio} title="Guardar nombre" aria-label="Guardar nombre" onClick={guardar}>
+          ✓
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          title="Borrar mesa"
+          aria-label="Borrar mesa"
+          onClick={() => {
+            mutations.borrarMesa.mutate(mesa.id);
+            onCerrar();
+          }}
+        >
+          🗑
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function PanelSalon({
+  salon,
+  mutations,
+  onCerrar,
+  boxStyle,
+}: {
+  salon: Salon;
+  mutations: ReturnType<typeof useSalonMutations>;
+  onCerrar: () => void;
+  boxStyle: React.CSSProperties;
+}) {
+  const [nombre, setNombre] = useState(salon.nombre);
+  const cambio = nombre !== salon.nombre;
+  const guardar = () => mutations.renombrarSalon.mutate({ id: salon.id, nombre });
+
+  return (
+    <div className="card card-pad" style={boxStyle}>
+      <TextInput value={nombre} onChange={(e) => setNombre(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && cambio && guardar()} />
+      <div style={{ display: 'flex', gap: 6 }}>
+        <Button
+          size="sm"
+          block
+          onClick={() => mutations.redimensionarSalon.mutate({ id: salon.id, w: Math.max(80, salon.w - 20), h: Math.max(60, salon.h - 20) })}
+        >
+          − tamaño
+        </Button>
+        <Button size="sm" block onClick={() => mutations.redimensionarSalon.mutate({ id: salon.id, w: salon.w + 20, h: salon.h + 20 })}>
+          + tamaño
+        </Button>
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <Button variant="success" size="sm" disabled={!cambio} title="Guardar nombre" aria-label="Guardar nombre" onClick={guardar}>
+          ✓
+        </Button>
+        <Button
+          variant="danger"
+          size="sm"
+          title="Borrar salón"
+          aria-label="Borrar salón"
+          onClick={() => {
+            mutations.borrarSalon.mutate(salon.id);
+            onCerrar();
+          }}
+        >
+          🗑
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ valor, label, color }: { valor: number | string; label: string; color?: string }) {
+  return (
+    <div className="card card-pad stat-card" style={color ? { borderLeftColor: color } : undefined}>
+      <div className="stat-card-value" style={color ? { color } : undefined}>
+        {valor}
+      </div>
       <div className="stat-card-label">{label}</div>
     </div>
   );

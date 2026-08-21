@@ -27,3 +27,15 @@ export async function registrarGasto(v: { insumoId: number; cantidad: number; co
   });
   if (error) throw error;
 }
+
+// Gasto suelto sin insumo (luz, gas, alquiler, etc.) -- no toca stock ni
+// costo promedio de nada, es solo un registro.
+export async function registrarGastoServicio(v: { concepto: string; costoTotal: number; proveedor: string; usuarioId: string }) {
+  const { error } = await supabase.rpc('fn_registrar_gasto_servicio', {
+    p_concepto: v.concepto,
+    p_costo_total: v.costoTotal,
+    p_proveedor: v.proveedor || undefined,
+    p_usuario_id: v.usuarioId,
+  });
+  if (error) throw error;
+}

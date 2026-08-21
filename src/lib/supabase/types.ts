@@ -264,6 +264,82 @@ export type Database = {
           },
         ]
       }
+      facturas_electronicas: {
+        Row: {
+          cae: string | null
+          cae_vencimiento: string | null
+          cliente_id: number | null
+          creado_por: string
+          created_at: string
+          deleted_at: string | null
+          enviada_por_mail_at: string | null
+          error_mensaje: string | null
+          estado: string
+          id: number
+          mail_envio: string
+          numero: number | null
+          pdf_url: string | null
+          tipo_comprobante: string
+          venta_id: number
+        }
+        Insert: {
+          cae?: string | null
+          cae_vencimiento?: string | null
+          cliente_id?: number | null
+          creado_por: string
+          created_at?: string
+          deleted_at?: string | null
+          enviada_por_mail_at?: string | null
+          error_mensaje?: string | null
+          estado?: string
+          id?: never
+          mail_envio: string
+          numero?: number | null
+          pdf_url?: string | null
+          tipo_comprobante?: string
+          venta_id: number
+        }
+        Update: {
+          cae?: string | null
+          cae_vencimiento?: string | null
+          cliente_id?: number | null
+          creado_por?: string
+          created_at?: string
+          deleted_at?: string | null
+          enviada_por_mail_at?: string | null
+          error_mensaje?: string | null
+          estado?: string
+          id?: never
+          mail_envio?: string
+          numero?: number | null
+          pdf_url?: string | null
+          tipo_comprobante?: string
+          venta_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facturas_electronicas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_electronicas_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "facturas_electronicas_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       facturas_proveedor: {
         Row: {
           cargado_por: string | null
@@ -314,33 +390,39 @@ export type Database = {
       }
       gastos: {
         Row: {
-          cantidad: number
+          cantidad: number | null
+          concepto: string | null
           costo_total: number
           deleted_at: string | null
           fecha: string
           id: number
-          insumo_id: number
+          insumo_id: number | null
           proveedor: string | null
+          tipo: string
           usuario_id: string
         }
         Insert: {
-          cantidad: number
+          cantidad?: number | null
+          concepto?: string | null
           costo_total: number
           deleted_at?: string | null
           fecha?: string
           id?: never
-          insumo_id: number
+          insumo_id?: number | null
           proveedor?: string | null
+          tipo?: string
           usuario_id: string
         }
         Update: {
-          cantidad?: number
+          cantidad?: number | null
+          concepto?: string | null
           costo_total?: number
           deleted_at?: string | null
           fecha?: string
           id?: never
-          insumo_id?: number
+          insumo_id?: number | null
           proveedor?: string | null
+          tipo?: string
           usuario_id?: string
         }
         Relationships: [
@@ -396,6 +478,7 @@ export type Database = {
       mesas: {
         Row: {
           deleted_at: string | null
+          es_take_away: boolean
           h: number
           id: number
           label: string | null
@@ -408,6 +491,7 @@ export type Database = {
         }
         Insert: {
           deleted_at?: string | null
+          es_take_away?: boolean
           h: number
           id?: never
           label?: string | null
@@ -420,6 +504,7 @@ export type Database = {
         }
         Update: {
           deleted_at?: string | null
+          es_take_away?: boolean
           h?: number
           id?: never
           label?: string | null
@@ -556,6 +641,7 @@ export type Database = {
         Row: {
           cliente_id: number | null
           cobrado_at: string | null
+          cobrando_desde: string | null
           created_at: string
           deleted_at: string | null
           descuento: number
@@ -573,6 +659,7 @@ export type Database = {
         Insert: {
           cliente_id?: number | null
           cobrado_at?: string | null
+          cobrando_desde?: string | null
           created_at?: string
           deleted_at?: string | null
           descuento?: number
@@ -590,6 +677,7 @@ export type Database = {
         Update: {
           cliente_id?: number | null
           cobrado_at?: string | null
+          cobrando_desde?: string | null
           created_at?: string
           deleted_at?: string | null
           descuento?: number
@@ -1055,6 +1143,15 @@ export type Database = {
           p_cantidad: number
           p_costo_total: number
           p_insumo_id: number
+          p_proveedor?: string
+          p_usuario_id?: string
+        }
+        Returns: undefined
+      }
+      fn_registrar_gasto_servicio: {
+        Args: {
+          p_concepto: string
+          p_costo_total: number
           p_proveedor?: string
           p_usuario_id?: string
         }

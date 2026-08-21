@@ -161,6 +161,10 @@ export function usePedidoMutations(mesaId: number) {
         invalidarSecundarios();
       },
     }),
+    marcarCobrando: useMutation({
+      mutationFn: (v: { pedidoId: number; activo: boolean }) => api.marcarCobrando(v.pedidoId, v.activo),
+      onSuccess: () => invalidarSecundarios(),
+    }),
     transferirMesa: useMutation({
       mutationFn: (v: { pedidoId: number; mesaDestinoId: number }) => api.transferirPedido(v.pedidoId, v.mesaDestinoId),
       onSuccess: () => {

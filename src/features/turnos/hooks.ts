@@ -6,6 +6,7 @@ import {
   fetchFacturadoTurno,
   fetchInsumosStockBajo,
   fetchMesasPendientesDelTurno,
+  fetchTurnoAbierto,
   fetchTurnoPorId,
   fetchTurnosPublico,
   fetchVentasDelTurno,
@@ -94,6 +95,18 @@ export function useResolverTurno(etiqueta: string | null, userId: string | null)
     error,
     reintentar: () => etiqueta && userId && intentar(etiqueta, userId),
   };
+}
+
+// Para admin: se engancha al turno que ya esté abierto (si hay uno) en vez
+// de abrir el suyo -- se re-consulta cada 15s por si un mozo abre/cierra el
+// suyo mientras admin está en pantalla.
+export function useTurnoAbierto(habilitado: boolean) {
+  return useQuery({
+    queryKey: ['turno-abierto'],
+    queryFn: fetchTurnoAbierto,
+    enabled: habilitado,
+    refetchInterval: habilitado ? 15000 : false,
+  });
 }
 
 export function useTurno(turnoId: number | null) {

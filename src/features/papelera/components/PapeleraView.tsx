@@ -21,6 +21,7 @@ const TIPO_LABEL: Record<string, string> = {
   factura_proveedor: 'Factura',
   categoria: 'Categoría',
   elemento_decorativo: 'Elemento del plano',
+  factura_electronica: 'Factura',
 };
 
 export function PapeleraView() {

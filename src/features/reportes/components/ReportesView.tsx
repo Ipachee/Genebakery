@@ -23,6 +23,17 @@ export function ReportesView() {
     porMetodo.set(v.metodo_pago, (porMetodo.get(v.metodo_pago) ?? 0) + Number(v.total));
   }
 
+  const resumenTipo = { mesaCant: 0, mesaTotal: 0, takeAwayCant: 0, takeAwayTotal: 0 };
+  for (const v of ventas ?? []) {
+    if (v.mesas?.es_take_away) {
+      resumenTipo.takeAwayCant++;
+      resumenTipo.takeAwayTotal += Number(v.total);
+    } else {
+      resumenTipo.mesaCant++;
+      resumenTipo.mesaTotal += Number(v.total);
+    }
+  }
+
   const porProducto = new Map<string, { cantidad: number; facturado: number }>();
   // dia -> (nombre de producto -> cantidad), para poder sacar el más
   // vendido de CADA día en vez de solo el del período entero.
@@ -87,6 +98,22 @@ export function ReportesView() {
           <div className="card card-pad">
             <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 2 }}>Total facturado</div>
             <div style={{ fontSize: 26, fontWeight: 700 }}>{fmt.format(totalPeriodo)}</div>
+          </div>
+
+          <div className="card card-pad">
+            <div className="field-label" style={{ marginBottom: 10 }}>
+              Mesa vs. take away
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, minWidth: 160, fontSize: 13 }}>
+                <span>🪑 Mesa ({resumenTipo.mesaCant})</span>
+                <strong>{fmt.format(resumenTipo.mesaTotal)}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', flex: 1, minWidth: 160, fontSize: 13 }}>
+                <span>🛍️ Take away ({resumenTipo.takeAwayCant})</span>
+                <strong>{fmt.format(resumenTipo.takeAwayTotal)}</strong>
+              </div>
+            </div>
           </div>
 
           <div className="card card-pad">

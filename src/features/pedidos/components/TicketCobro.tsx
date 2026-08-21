@@ -25,6 +25,8 @@ export function TicketCobro({
   total,
   metodoPago,
   perfil,
+  fecha,
+  reimpresion,
 }: {
   pedidoId: number;
   mesaLabel: string;
@@ -36,11 +38,17 @@ export function TicketCobro({
   total: number;
   metodoPago: string;
   perfil: PerfilNegocio;
+  /** Fecha/hora a mostrar en el pie -- la del cobro original en una
+   * reimpresión, no el momento en el que se reimprime. Default: ahora. */
+  fecha?: Date;
+  /** Marca "REIMPRESIÓN" en el encabezado, para no confundirlo con el
+   * ticket original si aparecen los dos en papel. */
+  reimpresion?: boolean;
 }) {
   const cfg = getTicketConfig();
   const anchoPx = cfg.ancho === 58 ? 220 : 300;
   const fontFamily = cfg.fuente === 'mono' ? 'ui-monospace, Consolas, monospace' : 'Arial, sans-serif';
-  const ahora = new Date();
+  const ahora = fecha ?? new Date();
   const raya = <hr style={{ border: 'none', borderTop: '1px dashed #000', margin: '4px 0' }} />;
 
   return (
@@ -67,6 +75,7 @@ export function TicketCobro({
         <div style={{ fontSize: cfg.tamano, fontWeight: 700, marginTop: 4 }}>
           COMPROBANTE N.° {String(pedidoId).padStart(8, '0')}
         </div>
+        {reimpresion && <div style={{ fontSize: cfg.tamano - 1, fontWeight: 700 }}>· REIMPRESIÓN ·</div>}
       </div>
 
       <div style={{ fontSize: cfg.tamano }}>

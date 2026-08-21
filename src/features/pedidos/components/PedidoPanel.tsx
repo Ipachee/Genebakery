@@ -58,7 +58,15 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   useEffect(() => {
     if (!categoria && categorias?.length) setCategoria(categorias[0].nombre);
   }, [categoria, categorias]);
-  const [cobrando, setCobrando] = useState(false);
+  const [cobrando, setCobrandoLocal] = useState(false);
+  // Además del estado local (qué footer mostrar acá), esto se persiste en
+  // pedidos.cobrando_desde para que el plano compartido (y cualquiera que lo
+  // esté mirando desde otro lado) sepa que esta mesa está por cerrarse --
+  // antes era invisible fuera de este panel.
+  function setCobrando(activo: boolean) {
+    setCobrandoLocal(activo);
+    if (pedido) mutations.marcarCobrando.mutate({ pedidoId: pedido.id, activo });
+  }
   const [enviando, setEnviando] = useState(false);
   const [clienteId, setClienteId] = useState<number | ''>('');
   const [transfiriendo, setTransfiriendo] = useState(false);
@@ -263,6 +271,10 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
         if (!it.enviado_cocina) mutations.quitarItem.mutate(it.id);
       }
     }
+    // Cerrar con la ✕ mientras el panel de cobro estaba abierto también
+    // tiene que liberar la marca de "cobrando" -- si no, la mesa queda
+    // pintada de ámbar en el plano para siempre aunque nadie la esté cobrando.
+    if (cobrando) setCobrando(false);
     onClose();
   }
 
@@ -339,13 +351,13 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
 
   return (
     <div className="pedido-overlay" onClick={handleClose}>
-      <div className="pedido-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="pedido-modal pedido-modal-tall" onClick={(e) => e.stopPropagation()}>
         <div className="pedido-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h3>Mesa {mesa.label ?? mesa.id}</h3>
+            <h3>{mesa.es_take_away ? '🛍️ Take away' : `Mesa ${mesa.label ?? mesa.id}`}</h3>
             {pedido?.enviado_at && pedido.estado !== 'cobrado' && <Cronometro desde={pedido.enviado_at} />}
           </div>
-          <button className="pedido-close" onClick={handleClose}>
+          <button className="pedido-close" aria-label="Cerrar" onClick={handleClose}>
             ✕
           </button>
         </div>
@@ -394,7 +406,7 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                     onEnviarCocina={handleEnviarCocina}
                     onMarcarEntregado={() => pedido && mutations.marcarEntregado.mutate(pedido.id)}
                     onCobrar={() => setCobrando(true)}
-                    onTransferir={() => setTransfiriendo(true)}
+                    onTransferir={mesa.es_take_away ? undefined : () => setTransfiriendo(true)}
                     onCancelarPedido={handleCancelarPedido}
                   />
                 ) : (

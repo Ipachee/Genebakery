@@ -12,3 +12,11 @@ export function useGuardarCredenciales() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['credenciales-facturacion'] }),
   });
 }
+
+export function useCrearFacturaPendiente() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.crearFacturaPendiente,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ventas'] }),
+  });
+}

@@ -111,7 +111,7 @@ export function RecetasView() {
               <span>
                 {r.insumos?.nombre} — <strong>{r.cantidad}</strong> {r.insumos?.unidad}
               </span>
-              <Button variant="danger" size="sm" onClick={() => mutations.quitar.mutate(r.id)}>
+              <Button variant="danger" size="sm" aria-label={`Quitar ${r.insumos?.nombre} de la receta`} onClick={() => mutations.quitar.mutate(r.id)}>
                 🗑
               </Button>
             </div>

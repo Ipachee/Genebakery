@@ -53,7 +53,111 @@
   --font-sans: -apple-system, "Segoe UI", system-ui, Roboto, sans-serif;
   --font-display: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
 
+  /* ancho/alto del shell nuevo (sidebar + topbar) -- variables acá para que
+     sidebar.css y el resto del layout compartan el mismo valor. */
+  --sidebar-w: 218px;
+  --sidebar-w-collapsed: 62px;
+  --topbar-h: 54px;
+  --nav-item-radius: 999px;
+
+  /* Plano de Salón: tokens propios (no compartidos con badges/botones de
+     otras pantallas) para poder afinarle el tema oscuro sin tocar nada más
+     -- acá en claro son solo un alias de lo que ya se usaba, así que no
+     cambia nada a simple vista en modo claro. */
+  --salon-panel-border: var(--brown-mid);
+  --salon-panel-border-selected: var(--terracota);
+  --salon-mesa-border-libre: var(--brown);
+  --salon-mesa-border-selected: var(--brown-dark);
+  --salon-mesa-text-libre: var(--brown-dark);
+  --salon-label-text: var(--brown-dark);
+  --salon-ocupada: var(--green);
+  --salon-ocupada-ink: #ffffff;
+  --salon-enviado: var(--blue);
+  --salon-ocupada-strong: #2f5b3b;
+  --salon-enviado-strong: #28495f;
+  --salon-ambar: var(--amber);
+  --salon-ambar-strong: #a86a1e;
+  --salon-ambar-ink: var(--brown-dark);
+  --salon-barra-opacity: 0.45;
+  --salon-puerta-fill: var(--bg);
+  --salon-stat-1: var(--terracota-dark);
+  --salon-stat-2: var(--terracota-dark);
+  --salon-stat-3: var(--terracota-dark);
+  --salon-stat-4: var(--terracota-dark);
+
   color-scheme: light;
+}
+
+/* Piel "Espresso" (modo oscuro) del shell nuevo -- pensada como una capa
+   aparte, no como un reemplazo de la paleta Organic: solo se pisan los
+   tokens SEMÁNTICOS (bg/surface/text/border/accent/estados) que consumen
+   los componentes compartidos (botones, cards, tablas, badges, tabs,
+   inputs). --brown-dark queda sin tocar a propósito (lo sigue usando el
+   toast de nueva versión y el login como color de marca fijo, no depende
+   del tema); el plano de Salón tiene su propia paleta abajo, ver
+   --salon-*. */
+:root[data-theme="dark"] {
+  --bg: #17120f;
+  --surface: #241d19;
+  --surface-raised: #2a221d;
+  --surface-sunken: #1c1613;
+  --text: #f2e9df;
+  --text-dim: #c9b7a6;
+  --text-faint: #8c7c70;
+  --border: #33291f;
+  --border-strong: #3a2f25;
+
+  --accent: #d9a05b;
+  --accent-ink: #231913;
+  --focus-ring: rgba(217, 160, 91, 0.35);
+
+  --red: #e0776a;
+  --red-soft: rgba(224, 119, 106, 0.16);
+  --green: #93b57e;
+  --green-soft: rgba(147, 181, 126, 0.16);
+  --amber: #e0b06a;
+  --amber-soft: rgba(224, 176, 106, 0.16);
+  --blue: #82abcf;
+  --teal: #74b8a7;
+  --teal-soft: rgba(116, 184, 167, 0.16);
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-sans: "DM Sans", -apple-system, "Segoe UI", system-ui, Roboto, sans-serif;
+
+  --nav-item-radius: 10px;
+
+  /* Plano de Salón en oscuro -- paleta "Carbón cálido" (handoff de Claude
+     Design), valores OKLCH exactos. El fondo/borde base ya salían bien con
+     los tokens semánticos de arriba (--surface/--border); lo que rompía
+     era usar acá los colores CRUDOS de la piel clara (--brown, --brown-mid,
+     --terracota) sin convertir -- daban ese marrón-anaranjado apagado y de
+     bajo contraste. Estos SÍ tienen su propio valor en oscuro. */
+  --salon-panel-border: oklch(0.34 0.01 45);
+  --salon-panel-border-selected: var(--accent);
+  --salon-mesa-border-libre: oklch(0.40 0.014 45);
+  --salon-mesa-border-selected: var(--accent);
+  --salon-mesa-text-libre: oklch(0.72 0.008 45);
+  --salon-label-text: oklch(0.56 0.01 45);
+  --salon-ocupada: oklch(0.55 0.12 140);
+  --salon-ocupada-ink: oklch(0.98 0.01 140);
+  --salon-enviado: oklch(0.55 0.12 240);
+  --salon-ocupada-strong: oklch(0.55 0.12 140);
+  --salon-enviado-strong: oklch(0.55 0.12 240);
+  --salon-ambar: oklch(0.63 0.13 70);
+  --salon-ambar-strong: oklch(0.50 0.13 70);
+  --salon-ambar-ink: oklch(0.98 0.01 70);
+  --salon-barra-opacity: 1;
+  --salon-puerta-fill: oklch(0.25 0.01 45);
+  --salon-stat-1: oklch(0.68 0.12 140);
+  --salon-stat-2: oklch(0.65 0.12 240);
+  --salon-stat-3: oklch(0.68 0.12 140);
+  --salon-stat-4: oklch(0.68 0.13 70);
+
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -67,7 +171,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4 { margin: 0; color: var(--brown-dark); font-weight: 700; }
+/* var(--text), no var(--brown-dark): --brown-dark queda fijo (lo sigue
+   usando el toast de nueva versión y el login como color de marca), pero
+   el texto de los títulos sí tiene que aclararse en modo oscuro. */
+h1, h2, h3, h4 { margin: 0; color: var(--text); font-weight: 700; }
 
 button {
   font-family: inherit;

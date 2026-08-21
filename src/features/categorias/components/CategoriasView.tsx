@@ -5,6 +5,7 @@ import { DataTable } from '../../../components/DataTable';
 import { Button } from '../../../components/Button';
 import { TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
+import { useConfirm } from '../../../components/ConfirmDialog';
 import type { Database } from '../../../lib/supabase/types';
 
 type Categoria = Database['public']['Tables']['categorias']['Row'];
@@ -13,6 +14,7 @@ export function CategoriasView() {
   const { data: categorias, isLoading } = useCategorias();
   const { crear, actualizar, borrar } = useCategoriaMutations();
   const [nombre, setNombre] = useState('');
+  const { confirm, dialog } = useConfirm();
 
   function submit() {
     if (!nombre.trim()) return;
@@ -50,11 +52,19 @@ export function CategoriasView() {
           </thead>
           <tbody>
             {categorias.map((c) => (
-              <FilaCategoria key={c.id} categoria={c} onGuardar={(v) => actualizar.mutate(v)} onBorrar={() => borrar.mutate(c.id)} />
+              <FilaCategoria
+                key={c.id}
+                categoria={c}
+                onGuardar={(v) => actualizar.mutate(v)}
+                onBorrar={async () => {
+                  if (await confirm(`¿Borrar la categoría "${c.nombre}"?`)) borrar.mutate(c.id);
+                }}
+              />
             ))}
           </tbody>
         </DataTable>
       )}
+      {dialog}
     </div>
   );
 }
@@ -111,7 +121,7 @@ function FilaCategoria({
         <Button size="sm" variant="secondary" onClick={empezarEdicion}>
           ✏️ Editar
         </Button>
-        <Button variant="danger" size="sm" onClick={onBorrar}>
+        <Button variant="danger" size="sm" aria-label={`Borrar categoría ${categoria.nombre}`} onClick={onBorrar}>
           🗑
         </Button>
       </td>

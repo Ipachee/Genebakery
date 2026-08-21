@@ -20,5 +20,9 @@ export function useGastoMutations() {
         qc.invalidateQueries({ queryKey: ['insumos-gastos'] });
       },
     }),
+    registrarServicio: useMutation({
+      mutationFn: api.registrarGastoServicio,
+      onSuccess: () => qc.invalidateQueries({ queryKey: ['gastos'] }),
+    }),
   };
 }

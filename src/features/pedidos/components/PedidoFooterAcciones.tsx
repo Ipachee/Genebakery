@@ -26,7 +26,7 @@ export function PedidoFooterAcciones({
   onEnviarCocina: () => void;
   onMarcarEntregado: () => void;
   onCobrar: () => void;
-  onTransferir: () => void;
+  onTransferir?: () => void;
   onCancelarPedido: () => void;
 }) {
   return (
@@ -55,9 +55,11 @@ export function PedidoFooterAcciones({
         </Button>
       </div>
       <div className="pedido-actions">
-        <Button variant="secondary" size="sm" block disabled={!pedido || offline} onClick={onTransferir}>
-          🔀 Transferir
-        </Button>
+        {onTransferir && (
+          <Button variant="secondary" size="sm" block disabled={!pedido || offline} onClick={onTransferir}>
+            🔀 Transferir
+          </Button>
+        )}
         <Button variant="danger" size="sm" block disabled={!pedido} onClick={onCancelarPedido}>
           🗑 Cancelar pedido
         </Button>

@@ -1,8 +1,8 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import type { CSSProperties, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
 
-export function Field({ label, children }: { label?: string; children: ReactNode }) {
+export function Field({ label, style, children }: { label?: string; style?: CSSProperties; children: ReactNode }) {
   return (
-    <div className="field">
+    <div className="field" style={style}>
       {label && <label className="field-label">{label}</label>}
       {children}
     </div>

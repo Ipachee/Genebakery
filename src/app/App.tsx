@@ -1,10 +1,20 @@
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
 import { useAuth } from '../auth/useAuth';
-import { RequireRole } from '../auth/RequireRole';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { AdminUnlock } from '../features/auth/components/AdminUnlock';
 import { SalonView } from '../features/salon/components/SalonView';
-import { AdminPanel } from '../features/admin/AdminPanel';
+import { InsumosView } from '../features/insumos/components/InsumosView';
+import { MovimientosView } from '../features/movimientos/components/MovimientosView';
+import { ProveedoresView } from '../features/proveedores/components/ProveedoresView';
+import { CategoriasView } from '../features/categorias/components/CategoriasView';
+import { RecetasView } from '../features/recetas/components/RecetasView';
+import { ElaboradosView } from '../features/elaborados/components/ElaboradosView';
+import { VentasView } from '../features/ventas/components/VentasView';
+import { GastosView } from '../features/gastos/components/GastosView';
+import { ReportesView } from '../features/reportes/components/ReportesView';
+import { EmpleadosView } from '../features/empleados/components/EmpleadosView';
+import { ClientesView } from '../features/clientes/components/ClientesView';
+import { PapeleraView } from '../features/papelera/components/PapeleraView';
 import { ComanderaView } from '../features/comandera/components/ComanderaView';
 import { AjustesView } from '../features/ajustes/components/AjustesView';
 import { TurnoProvider } from '../features/turnos/TurnoContext';
@@ -15,7 +25,28 @@ import { useNuevaVersion } from './useNuevaVersion';
 import { useOnlineStatus } from './useOnlineStatus';
 import { useCobrosPendientes } from '../features/pedidos/hooks';
 import { Button } from '../components/Button';
+import { AppShell } from './AppShell';
+import { idVisiblePara, type Rol, type SeccionId } from './nav';
+import { useTheme } from './useTheme';
 import './shell.css';
+
+const REGISTRO: Record<SeccionId, ComponentType> = {
+  salon: SalonView,
+  comandera: ComanderaView,
+  insumos: InsumosView,
+  movimientos: MovimientosView,
+  proveedores: ProveedoresView,
+  categorias: CategoriasView,
+  recetas: RecetasView,
+  elaborados: ElaboradosView,
+  ventas: VentasView,
+  gastos: GastosView,
+  reportes: ReportesView,
+  empleados: EmpleadosView,
+  clientes: ClientesView,
+  ajustes: AjustesView,
+  papelera: PapeleraView,
+};
 
 export function App() {
   const { session, loading } = useAuth();
@@ -137,94 +168,96 @@ function BannerNuevaVersion() {
   );
 }
 
-type Vista = 'salon' | 'comandera' | 'admin' | 'ajustes';
-
 function Shell() {
   const { session, profile, signOut, puedeVolverATurno, volverATurno } = useAuth();
   const { turno, error: turnoError, reintentar: reintentarTurno } = useTurnoActual();
-  const [vista, setVista] = useState<Vista>('salon');
+  const [seccion, setSeccion] = useState<SeccionId>('salon');
   const [omitirAperturaCaja, setOmitirAperturaCaja] = useState(false);
   const iniciales = (profile?.nombre ?? session?.user.email ?? '?').slice(0, 1).toUpperCase();
-  const esAdmin = profile?.rol === 'admin';
+  // El sistema hoy solo tiene estos dos roles (ver auth/RequireRole) -- el
+  // 'cajero' de la matriz de permisos del handoff todavía no existe como
+  // rol real, queda para cuando el campo Puesto de Empleados pase a select.
+  const rol: Rol = profile?.rol === 'admin' ? 'admin' : 'mozo';
   const bloqueadoPorTurno = profile?.rol === 'mozo' && !!turnoError;
+  // Cuando está bloqueado por turno no se renderiza el AppShell (no hay
+  // sidebar ni contenido real que mostrar todavía), así que el toggle de
+  // tema -- que vive en el topbar de AppShell -- se pierde justo en esta
+  // pantalla. Se repite acá suelto para que no haga falta quedarse en modo
+  // claro forzado hasta resolver el bloqueo.
+  const { theme, toggleTheme } = useTheme();
   // Se pide una sola vez por turno recién creado (efectivo_apertura arranca
   // en null) -- si ya se registró, o el mozo la omite, no vuelve a
   // aparecer hasta el próximo turno nuevo.
   const pedirAperturaCaja = !!turno && turno.estado === 'abierto' && turno.efectivo_apertura == null && !omitirAperturaCaja;
 
+  // Defensivo: el filtrado por rol vive en el árbol de navegación (así no
+  // se ve el ítem), pero si por lo que sea `seccion` termina apuntando a
+  // algo que este rol no puede ver (ej. quedó guardado de una sesión admin
+  // anterior en la misma pestaña), no renderiza esa pantalla igual --
+  // el permiso real de todos modos lo valida cada policy de Supabase.
+  const seccionValida = idVisiblePara(rol, seccion);
+  const Contenido = REGISTRO[seccionValida ? seccion : 'salon'];
+
   return (
-    <div>
-      <header className="shell-header">
-        <div className="shell-brand">☕ ComandaCafé</div>
-
-        <div className="shell-right">
-          <nav className="shell-nav">
-            <button className={vista === 'salon' ? 'active' : ''} onClick={() => setVista('salon')}>
-              Salón
-            </button>
-            <button className={vista === 'comandera' ? 'active' : ''} onClick={() => setVista('comandera')}>
-              Comandera
-            </button>
-            <RequireRole rol="admin">
-              <button className={vista === 'admin' ? 'active' : ''} onClick={() => setVista('admin')}>
-                Administración
-              </button>
-            </RequireRole>
-          </nav>
-
-          <RequireRole rol="admin">
+    <>
+      {bloqueadoPorTurno ? (
+        <main className="app-content" style={{ maxWidth: 1280, margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--space-3)' }}>
             <button
-              className="shell-signout"
-              title="Ajustes"
-              aria-label="Ajustes"
-              onClick={() => setVista('ajustes')}
-              style={{ background: vista === 'ajustes' ? 'rgba(255,255,255,0.18)' : undefined }}
+              className="app-theme-toggle"
+              onClick={toggleTheme}
+              title={theme === 'light' ? 'Cambiar a modo oscuro (Espresso)' : 'Cambiar a modo claro (Organic)'}
+              aria-label="Cambiar tema"
             >
-              ⚙️
+              {theme === 'light' ? '☀️' : '🌙'}
             </button>
-          </RequireRole>
-
-          {profile?.rol === 'mozo' && !puedeVolverATurno && <AdminUnlock onSuccess={() => setVista('admin')} />}
-
-          {puedeVolverATurno && (
-            <button
-              className="shell-signout"
-              onClick={async () => {
-                await volverATurno();
-                setVista('salon');
-              }}
-            >
-              ↩ Volver a mi turno
-            </button>
-          )}
-
-          <TurnoBadge />
-
-          <div className="shell-user">
-            <span className="shell-user-avatar">{iniciales}</span>
-            <span>{profile?.nombre ?? session?.user.email}</span>
-            <span className="shell-role">{profile?.rol ?? '…'}</span>
           </div>
-
-          <button className="shell-signout" onClick={signOut}>
-            Salir
-          </button>
-        </div>
-      </header>
-      <main className="shell-main">
-        {bloqueadoPorTurno ? (
           <TurnoBloqueado mensaje={turnoError!} onReintentar={reintentarTurno} onVolverATurnos={signOut} />
-        ) : (
-          <>
-            {vista === 'admin' && esAdmin && <AdminPanel />}
-            {vista === 'ajustes' && esAdmin && <AjustesView />}
-            {vista === 'comandera' && <ComanderaView />}
-            {(vista === 'salon' || (!esAdmin && (vista === 'admin' || vista === 'ajustes'))) && <SalonView />}
-          </>
-        )}
-      </main>
+        </main>
+      ) : (
+        <AppShell
+          rol={rol}
+          activo={seccionValida ? seccion : 'salon'}
+          onNavigate={setSeccion}
+          topbarRight={
+            <>
+              {profile?.rol === 'mozo' && !puedeVolverATurno && <AdminUnlock onSuccess={() => setSeccion('insumos')} />}
+
+              {puedeVolverATurno && (
+                <button
+                  className="shell-signout"
+                  onClick={async () => {
+                    const { error } = await volverATurno();
+                    if (error) {
+                      alert(`No se pudo volver al turno (${error}). Probá de nuevo; si sigue igual, cerrá sesión y volvé a entrar con la clave del turno.`);
+                      return;
+                    }
+                    setSeccion('salon');
+                  }}
+                >
+                  ↩ Volver a mi turno
+                </button>
+              )}
+
+              <TurnoBadge />
+
+              <div className="shell-user">
+                <span className="shell-user-avatar">{iniciales}</span>
+                <span>{profile?.nombre ?? session?.user.email}</span>
+                <span className="shell-role">{profile?.rol ?? '…'}</span>
+              </div>
+
+              <button className="shell-signout" onClick={signOut}>
+                Salir
+              </button>
+            </>
+          }
+        >
+          <Contenido />
+        </AppShell>
+      )}
       {pedirAperturaCaja && <AperturaCajaModal turno={turno!} onClose={() => setOmitirAperturaCaja(true)} />}
-    </div>
+    </>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMovimientos } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
-import { DataTable } from '../../../components/DataTable';
+import { DataTable, ThOrdenable, useOrdenTabla } from '../../../components/DataTable';
 import { Badge } from '../../../components/Badge';
 import { Select, TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
@@ -20,11 +20,13 @@ const TIPO_TONE: Record<string, 'good' | 'accent' | 'info' | 'neutral'> = {
   ajuste: 'neutral',
 };
 
+type ColumnaOrden = 'fecha' | 'item' | 'cantidad' | 'stock';
+
 export function MovimientosView() {
   const { data: movimientos, isLoading } = useMovimientos();
   const [busqueda, setBusqueda] = useState('');
   const [tipo, setTipo] = useState('todos');
-  const [orden, setOrden] = useState<'reciente' | 'antiguo'>('reciente');
+  const { orden, alClickear } = useOrdenTabla<ColumnaOrden>('fecha', 'desc');
 
   const movimientosFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
@@ -34,9 +36,18 @@ export function MovimientosView() {
       const item = (m.insumos?.nombre ?? m.elaborados?.nombre ?? '').toLowerCase();
       return item.includes(q) || (m.ref ?? '').toLowerCase().includes(q);
     });
+    const dir = orden.dir === 'asc' ? 1 : -1;
     return [...filtrados].sort((a, b) => {
-      const diff = new Date(b.fecha).getTime() - new Date(a.fecha).getTime();
-      return orden === 'reciente' ? diff : -diff;
+      switch (orden.col) {
+        case 'item':
+          return dir * (a.insumos?.nombre ?? a.elaborados?.nombre ?? '').localeCompare(b.insumos?.nombre ?? b.elaborados?.nombre ?? '');
+        case 'cantidad':
+          return dir * (Number(a.cantidad) - Number(b.cantidad));
+        case 'stock':
+          return dir * (Number(a.stock_resultante) - Number(b.stock_resultante));
+        default:
+          return dir * (new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+      }
     });
   }, [movimientos, busqueda, tipo, orden]);
 
@@ -60,10 +71,6 @@ export function MovimientosView() {
               </option>
             ))}
           </Select>
-          <Select value={orden} onChange={(e) => setOrden(e.target.value as 'reciente' | 'antiguo')} style={{ minWidth: 170 }}>
-            <option value="reciente">Más recientes primero</option>
-            <option value="antiguo">Más antiguos primero</option>
-          </Select>
         </div>
       ) : null}
 
@@ -77,11 +84,19 @@ export function MovimientosView() {
         <DataTable>
           <thead>
             <tr>
-              <th>Fecha</th>
+              <ThOrdenable col="fecha" orden={orden} onOrdenar={alClickear}>
+                Fecha
+              </ThOrdenable>
               <th>Tipo</th>
-              <th>Ítem</th>
-              <th>Cantidad</th>
-              <th>Stock resultante</th>
+              <ThOrdenable col="item" orden={orden} onOrdenar={alClickear}>
+                Ítem
+              </ThOrdenable>
+              <ThOrdenable col="cantidad" orden={orden} onOrdenar={alClickear}>
+                Cantidad
+              </ThOrdenable>
+              <ThOrdenable col="stock" orden={orden} onOrdenar={alClickear}>
+                Stock resultante
+              </ThOrdenable>
               <th>Ref</th>
             </tr>
           </thead>

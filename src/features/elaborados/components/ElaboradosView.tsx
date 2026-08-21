@@ -1,34 +1,25 @@
 import { useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
-import { useElaboradoMutations, useElaborados, useProductosSinElaborado } from '../hooks';
+import { useElaboradoMutations, useElaborados } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '../../../components/Button';
-import { Select, TextInput } from '../../../components/Field';
+import { TextInput } from '../../../components/Field';
 import { Badge } from '../../../components/Badge';
 import { EmptyState } from '../../../components/EmptyState';
+import { useConfirm } from '../../../components/ConfirmDialog';
 import { Card } from '../../../components/Card';
 import { fmtMoneyDecimal as fmt } from '../../../lib/format';
+import { NuevoElaboradoModal } from './NuevoElaboradoModal';
 
 export function ElaboradosView() {
   const { session } = useAuth();
   const { data: elaborados, isLoading } = useElaborados();
-  const { data: productosDisponibles } = useProductosSinElaborado();
   const mutations = useElaboradoMutations();
 
-  const [form, setForm] = useState({ nombre: '', productoId: '', porcionesPorUnidad: '', porcionesMin: '' });
   const [producciones, setProducciones] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
-
-  function crear() {
-    if (!form.nombre || !form.productoId || !form.porcionesPorUnidad) return;
-    mutations.crear.mutate({
-      nombre: form.nombre,
-      productoId: Number(form.productoId),
-      porcionesPorUnidad: Number(form.porcionesPorUnidad),
-      porcionesMin: Number(form.porcionesMin) || 0,
-    });
-    setForm({ nombre: '', productoId: '', porcionesPorUnidad: '', porcionesMin: '' });
-  }
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const { confirm, dialog } = useConfirm();
 
   async function producir(elaboradoId: number) {
     if (!session) return;
@@ -45,24 +36,15 @@ export function ElaboradosView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Elaborados" subtitle="Se producen en unidades (ej. una torta entera) y se venden por porción." />
-
-      <div className="toolbar-form">
-        <TextInput placeholder="Nombre (ej: Torta de chocolate)" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} style={{ minWidth: 200 }} />
-        <Select value={form.productoId} onChange={(e) => setForm({ ...form, productoId: e.target.value })} style={{ minWidth: 200 }}>
-          <option value="">Producto del menú vinculado…</option>
-          {productosDisponibles?.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </Select>
-        <TextInput placeholder="Porciones por unidad" type="number" value={form.porcionesPorUnidad} onChange={(e) => setForm({ ...form, porcionesPorUnidad: e.target.value })} style={{ width: 150 }} />
-        <TextInput placeholder="Porciones mínimas" type="number" value={form.porcionesMin} onChange={(e) => setForm({ ...form, porcionesMin: e.target.value })} style={{ width: 140 }} />
-        <Button variant="primary" onClick={crear}>
-          + Agregar
-        </Button>
-      </div>
+      <PageHeader
+        title="Elaborados"
+        subtitle="Se producen en unidades (ej. una torta entera) y se venden por porción."
+        action={
+          <Button variant="primary" onClick={() => setModalAbierto(true)}>
+            + Nuevo elaborado
+          </Button>
+        }
+      />
 
       {error && (
         <p style={{ color: 'var(--red)', fontSize: 13, background: 'var(--red-soft)', padding: '8px 12px', borderRadius: 'var(--radius-sm)' }}>{error}</p>
@@ -98,7 +80,14 @@ export function ElaboradosView() {
                   <Button variant="success" size="sm" onClick={() => producir(e.id)}>
                     Registrar producción
                   </Button>
-                  <Button variant="danger" size="sm" onClick={() => mutations.borrar.mutate(e.id)}>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    aria-label={`Borrar ${e.nombre}`}
+                    onClick={async () => {
+                      if (await confirm(`¿Borrar el elaborado "${e.nombre}"?`)) mutations.borrar.mutate(e.id);
+                    }}
+                  >
                     🗑
                   </Button>
                 </div>
@@ -107,6 +96,9 @@ export function ElaboradosView() {
           })}
         </div>
       )}
+
+      {modalAbierto && <NuevoElaboradoModal onClose={() => setModalAbierto(false)} />}
+      {dialog}
     </div>
   );
 }

@@ -119,7 +119,7 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
       <div className="pedido-modal" style={{ width: 640 }} onClick={(e) => e.stopPropagation()}>
         <div className="pedido-modal-header">
           <h3>🔒 Cierre de turno</h3>
-          <button className="pedido-close" onClick={onClose}>
+          <button className="pedido-close" aria-label="Cerrar" onClick={onClose}>
             ✕
           </button>
         </div>

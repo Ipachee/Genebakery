@@ -10,22 +10,32 @@
   padding: var(--space-4);
 }
 
-/* height fija (no max-height): antes el modal medía lo que ocupara su
-   contenido, así que al cambiar de categoría en el menú -- ej. de "Bebidas"
-   (muchas opciones, panel alto) a "Cocina" (pocas, panel bajo) -- el modal
-   entero se achicaba y, al estar centrado con align-items:center, se veía
-   "saltar" hacia el medio de la pantalla. Con height fija el recuadro
-   siempre mide lo mismo y el contenido interno scrollea si hace falta. */
+/* .pedido-modal es la base compartida por VARIOS modales (este panel de
+   pedido, Fondo de caja, Cierre de turno) -- por default mide lo que
+   ocupe su contenido (max-height, no height), así un modal chico (ej.
+   "Fondo de caja", un párrafo y un input) queda compacto y centrado en
+   vez de ocupar casi toda la pantalla vacía. */
 .pedido-modal {
   background: var(--surface-raised);
   border-radius: var(--radius-lg);
   width: 760px;
   max-width: 100%;
-  height: 90svh;
+  max-height: 90svh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
+}
+
+/* Modificador propio del panel de pedido (menú + carrito): acá SÍ hace
+   falta height fija en vez de max-height -- si no, al cambiar de
+   categoría en el menú (ej. "Bebidas", muchas opciones, panel alto ->
+   "Cocina", pocas, panel bajo) el modal se achicaba y, al estar centrado
+   con align-items:center, se veía "saltar" hacia el medio de la pantalla.
+   Con height fija el recuadro siempre mide lo mismo y el contenido
+   interno scrollea si hace falta. */
+.pedido-modal-tall {
+  height: 90svh;
 }
 
 .pedido-modal-header {
@@ -59,7 +69,13 @@
    la fila SÍ le da una altura definida a cada columna. */
 .pedido-body { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0; }
 
-.pedido-menu { padding: var(--space-4); border-right: 1px solid var(--border); overflow-y: auto; min-height: 0; }
+/* overflow-x: hidden explícito a propósito: si solo se declara overflow-y,
+   la regla de CSS que hace que "el otro eje visible pase a auto cuando uno
+   de los dos no es visible" le agregaba un scroll horizontal a TODO el
+   panel (aparecía pegado abajo del todo, feo) nada más porque la fila de
+   pestañas de categoría no entraba en el ancho -- el scroll horizontal
+   ahora vive solo en .pedido-cat-tabs, donde tiene sentido. */
+.pedido-menu { padding: var(--space-4); border-right: 1px solid var(--border); overflow-y: auto; overflow-x: hidden; min-height: 0; }
 .pedido-cart { padding: var(--space-4); display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .pedido-cart-items { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); }
 
@@ -70,14 +86,25 @@
 
 @media (max-width: 560px) {
   .pedido-overlay { padding: 0; align-items: flex-end; }
-  .pedido-modal { height: 96svh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .pedido-modal { border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+  .pedido-modal-tall { height: 96svh; }
   .pedido-modal-header { padding: var(--space-3) var(--space-4); }
   .pedido-modal-header h3 { font-size: 14.5px; }
   .pedido-menu, .pedido-cart { padding: var(--space-3); }
 }
 
-.pedido-cat-tabs { display: flex; gap: 4px; margin-bottom: var(--space-3); background: var(--surface-sunken); padding: 3px; border-radius: var(--radius-sm); width: fit-content; }
-.pedido-cat-tab { padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: 600; color: var(--text-dim); border: none; background: transparent; }
+.pedido-cat-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--space-3);
+  background: var(--surface-sunken);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.pedido-cat-tab { padding: 6px 12px; border-radius: 5px; font-size: 12px; font-weight: 600; color: var(--text-dim); border: none; background: transparent; white-space: nowrap; flex-shrink: 0; }
 .pedido-cat-tab.active { background: var(--surface-raised); color: var(--brown-dark); box-shadow: var(--shadow-sm); }
 
 .pedido-producto-list { display: flex; flex-direction: column; gap: 6px; }

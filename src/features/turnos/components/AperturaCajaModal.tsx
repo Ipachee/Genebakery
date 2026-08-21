@@ -20,7 +20,7 @@ export function AperturaCajaModal({ turno, onClose }: { turno: Turno; onClose: (
       <div className="pedido-modal" style={{ width: 380 }} onClick={(e) => e.stopPropagation()}>
         <div className="pedido-modal-header">
           <h3>💵 Fondo de caja</h3>
-          <button className="pedido-close" onClick={onClose}>
+          <button className="pedido-close" aria-label="Cerrar" onClick={onClose}>
             ✕
           </button>
         </div>

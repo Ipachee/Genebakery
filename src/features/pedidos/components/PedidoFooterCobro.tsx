@@ -116,7 +116,7 @@ export function PedidoFooterCobro({
                 style={{ width: 100, fontSize: 12.5 }}
               />
               {pagos.length > 1 && (
-                <button className="btn-danger btn-icon" onClick={() => quitarLinea(i)}>
+                <button className="btn-danger btn-icon" aria-label="Quitar forma de pago" onClick={() => quitarLinea(i)}>
                   🗑
                 </button>
               )}

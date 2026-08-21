@@ -70,7 +70,12 @@ function ItemGrupoFila({ grupo, onQuitar }: { grupo: GrupoEnviado; onQuitar: () 
         </span>
         <div className="pedido-item-controls">
           <span style={{ fontSize: 13, color: 'var(--text-dim)' }}>x{grupo.cantidad}</span>
-          <button className="btn-danger btn-icon" title="Quitar (ej: se canceló o lo devolvieron)" onClick={onQuitar}>
+          <button
+            className="btn-danger btn-icon"
+            title="Quitar (ej: se canceló o lo devolvieron)"
+            aria-label={`Quitar ${grupo.nombre}`}
+            onClick={onQuitar}
+          >
             🗑
           </button>
         </div>
@@ -115,11 +120,11 @@ function FilaSeleccionable({
       {seleccionada && fila.cantidad > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7 }} onClick={(e) => e.stopPropagation()}>
           <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>Transferir:</span>
-          <button className="pedido-qty-btn" onClick={() => onCambiarCantidad(cantidadElegida - 1)}>
+          <button className="pedido-qty-btn" aria-label="Restar de la cantidad a transferir" onClick={() => onCambiarCantidad(cantidadElegida - 1)}>
             −
           </button>
           <span style={{ minWidth: 14, textAlign: 'center' }}>{cantidadElegida}</span>
-          <button className="pedido-qty-btn" onClick={() => onCambiarCantidad(cantidadElegida + 1)}>
+          <button className="pedido-qty-btn" aria-label="Sumar a la cantidad a transferir" onClick={() => onCambiarCantidad(cantidadElegida + 1)}>
             +
           </button>
           <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>de {fila.cantidad}</span>
@@ -152,6 +157,7 @@ function ItemFila({
         <div className="pedido-item-controls">
           <button
             className="pedido-qty-btn"
+            aria-label="Restar cantidad"
             onClick={() => mutations.actualizarCantidad.mutate({ itemId: item.id, cantidad: Math.max(1, Number(item.cantidad) - 1) })}
           >
             −
@@ -159,11 +165,16 @@ function ItemFila({
           <span style={{ minWidth: 14, textAlign: 'center' }}>{item.cantidad}</span>
           <button
             className="pedido-qty-btn"
+            aria-label="Sumar cantidad"
             onClick={() => mutations.actualizarCantidad.mutate({ itemId: item.id, cantidad: Number(item.cantidad) + 1 })}
           >
             +
           </button>
-          <button className="btn-danger btn-icon" onClick={() => mutations.quitarItem.mutate(item.id)}>
+          <button
+            className="btn-danger btn-icon"
+            aria-label={`Quitar ${item.productos?.nombre ?? 'producto'}`}
+            onClick={() => mutations.quitarItem.mutate(item.id)}
+          >
             🗑
           </button>
         </div>
