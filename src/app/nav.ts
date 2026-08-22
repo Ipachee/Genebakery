@@ -1,15 +1,15 @@
 // Árbol de navegación del shell nuevo (barra lateral agrupada). Reemplaza
 // la barra oscura de arriba + la fila plana de pestañas de Administración.
 //
-// Roles: admin, mozo, y encargado (agregado 2026-08-22 para una tercera
-// persona de confianza, todavía sin puesto definido -- su nombre visible
-// vive en roles_personalizados, editable desde Ajustes sin tocar código).
-// Qué sección ve cada rol YA NO está hardcodeado acá -- admin ve todo
-// siempre (para no poder auto-bloquearse la pantalla de permisos), y
-// mozo/encargado se resuelven contra la tabla permisos_navegacion, que
-// admin tilda/destilda desde Ajustes → Roles y permisos (ver
-// features/permisos). Esta lista solo declara QUÉ secciones existen.
-export type Rol = 'admin' | 'mozo' | 'encargado';
+// Roles: admin, mozo, y "cargos" -- encargado (RRHH) y cualquier otro que
+// se cree desde + Nuevo cargo en Ajustes → Roles y permisos. Por eso Rol
+// es un string simple (no un union fijo): los cargos son dinámicos, viven
+// como filas en roles_personalizados, no como valores hardcodeados acá.
+// Qué sección ve/edita cada rol tampoco está hardcodeado -- admin ve todo
+// siempre (para no poder auto-bloquearse la pantalla de permisos), y el
+// resto se resuelve contra permisos_navegacion (ver features/permisos).
+// Esta lista solo declara QUÉ secciones existen.
+export type Rol = string;
 export type SeccionId =
   | 'salon'
   | 'comandera'
@@ -31,10 +31,6 @@ export type SeccionId =
 
 export type Seccion = { id: SeccionId; label: string };
 export type Grupo = { id: string; label: string; icon: string; items: Seccion[] };
-
-// Roles configurables por el panel de permisos (todos menos admin, que
-// siempre ve todo).
-export const ROLES_CONFIGURABLES: Exclude<Rol, 'admin'>[] = ['mozo', 'encargado'];
 
 // Salón y Comandera van ancladas arriba de todo, fuera de los grupos
 // plegables -- son lo que se usa a cada minuto del turno.

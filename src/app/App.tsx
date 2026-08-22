@@ -179,7 +179,12 @@ function Shell() {
   const [seccion, setSeccion] = useState<SeccionId>('salon');
   const [omitirAperturaCaja, setOmitirAperturaCaja] = useState(false);
   const iniciales = (profile?.nombre ?? session?.user.email ?? '?').slice(0, 1).toUpperCase();
-  const rol: Rol = profile?.rol === 'admin' ? 'admin' : profile?.rol === 'encargado' ? 'encargado' : 'mozo';
+  // Cualquier rol real (admin/mozo/encargado/un cargo nuevo) pasa tal cual
+  // -- antes esto colapsaba todo lo que no fuera admin/encargado en
+  // "mozo", lo cual estaba bien cuando esos eran los únicos 3 roles, pero
+  // con cargos dinámicos (+ Nuevo cargo) un cargo nuevo necesita su propia
+  // columna de permisos, no heredar la de mozo.
+  const rol: Rol = profile?.rol ?? 'mozo';
   const { permisos } = usePermisosNavegacion();
   const bloqueadoPorTurno = profile?.rol === 'mozo' && !!turnoError;
   // Cuando está bloqueado por turno no se renderiza el AppShell (no hay

@@ -48,3 +48,16 @@ export async function actualizarEtiquetaRol(clave: string, etiqueta: string) {
   const { error: errorProfile } = await supabase.from('profiles').update({ nombre: etiqueta }).eq('rol', clave);
   if (errorProfile) throw errorProfile;
 }
+
+// Crea el cargo de punta a punta (usuario de login + profile + fila en
+// roles_personalizados) via la Edge Function crear-cargo -- necesita la
+// service_role key para dar de alta el usuario de auth, así que no se
+// puede hacer directo desde acá con la clave anon.
+export async function crearCargo(v: { nombre: string; password: string; icono?: string }) {
+  const { data, error } = await supabase.functions.invoke('crear-cargo', { body: v });
+  if (error) {
+    const mensaje = (await error.context?.text?.().catch(() => null)) || error.message;
+    throw new Error(mensaje);
+  }
+  return data as { ok: true; clave: string };
+}

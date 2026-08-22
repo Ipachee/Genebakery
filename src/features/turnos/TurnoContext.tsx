@@ -19,10 +19,11 @@ export const TurnoContext = createContext<TurnoContextValue | undefined>(undefin
 
 export function TurnoProvider({ children }: { children: ReactNode }) {
   const { session, profile } = useAuth();
-  // Admin y encargado no tienen turno propio (ninguno es "mozo de turno") --
-  // ambos se enganchan al turno que ya esté abierto en vez de resolver el
-  // suyo.
-  const usaTurnoAbierto = profile?.rol === 'admin' || profile?.rol === 'encargado';
+  // Admin y cualquier "cargo" (encargado, y lo que se agregue con + Nuevo
+  // cargo) no tienen turno propio (ninguno es "mozo de turno") -- todos se
+  // enganchan al turno que ya esté abierto en vez de resolver el suyo. Solo
+  // mozo abre/resuelve su propio turno por horario.
+  const usaTurnoAbierto = profile?.rol != null && profile.rol !== 'mozo';
   const etiqueta = profile?.rol === 'mozo' ? etiquetaPorEmail(session?.user.email) : null;
   const userId = session?.user.id ?? null;
 

@@ -60,5 +60,9 @@ export function useRolMutations() {
       mutationFn: (v: { clave: string; etiqueta: string }) => api.actualizarEtiquetaRol(v.clave, v.etiqueta),
       onSuccess: () => qc.invalidateQueries({ queryKey: ['roles-personalizados'] }),
     }),
+    crear: useMutation({
+      mutationFn: (v: { nombre: string; password: string; icono?: string }) => api.crearCargo(v),
+      onSuccess: () => qc.invalidateQueries({ queryKey: ['roles-personalizados'] }),
+    }),
   };
 }
