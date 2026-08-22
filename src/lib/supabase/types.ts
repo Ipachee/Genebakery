@@ -39,6 +39,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      calendario_equipo: {
+        Row: {
+          creado_por: string | null
+          created_at: string
+          deleted_at: string | null
+          empleado_id: number | null
+          fecha_fin: string
+          fecha_inicio: string
+          id: number
+          nota: string | null
+          tipo: string
+          titulo: string | null
+          turno_etiqueta: string | null
+        }
+        Insert: {
+          creado_por?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          empleado_id?: number | null
+          fecha_fin: string
+          fecha_inicio: string
+          id?: never
+          nota?: string | null
+          tipo: string
+          titulo?: string | null
+          turno_etiqueta?: string | null
+        }
+        Update: {
+          creado_por?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          empleado_id?: number | null
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: never
+          nota?: string | null
+          tipo?: string
+          titulo?: string | null
+          turno_etiqueta?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendario_equipo_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendario_equipo_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categorias: {
         Row: {
           deleted_at: string | null
@@ -580,6 +637,57 @@ export type Database = {
           },
         ]
       }
+      pagos_empleados: {
+        Row: {
+          concepto: string | null
+          creado_por: string | null
+          created_at: string
+          deleted_at: string | null
+          empleado_id: number
+          fecha: string
+          id: number
+          metodo_pago: string | null
+          monto: number
+        }
+        Insert: {
+          concepto?: string | null
+          creado_por?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          empleado_id: number
+          fecha?: string
+          id?: never
+          metodo_pago?: string | null
+          monto: number
+        }
+        Update: {
+          concepto?: string | null
+          creado_por?: string | null
+          created_at?: string
+          deleted_at?: string | null
+          empleado_id?: number
+          fecha?: string
+          id?: never
+          metodo_pago?: string | null
+          monto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagos_empleados_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagos_empleados_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "empleados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pedido_items: {
         Row: {
           cantidad: number
@@ -756,6 +864,27 @@ export type Database = {
         }
         Relationships: []
       }
+      permisos_navegacion: {
+        Row: {
+          puede_editar: boolean
+          rol: string
+          seccion_id: string
+          visible: boolean
+        }
+        Insert: {
+          puede_editar?: boolean
+          rol: string
+          seccion_id: string
+          visible?: boolean
+        }
+        Update: {
+          puede_editar?: boolean
+          rol?: string
+          seccion_id?: string
+          visible?: boolean
+        }
+        Relationships: []
+      }
       producciones: {
         Row: {
           cantidad_unidades: number
@@ -920,6 +1049,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      roles_personalizados: {
+        Row: {
+          clave: string
+          etiqueta: string
+          icono: string
+        }
+        Insert: {
+          clave: string
+          etiqueta: string
+          icono?: string
+        }
+        Update: {
+          clave?: string
+          etiqueta?: string
+          icono?: string
+        }
+        Relationships: []
       }
       salones: {
         Row: {
@@ -1138,6 +1285,14 @@ export type Database = {
         Args: { p_pedido_id: number; p_ronda: number }
         Returns: undefined
       }
+      fn_nombres_empleados: {
+        Args: never
+        Returns: {
+          apellido: string
+          id: number
+          nombre: string
+        }[]
+      }
       fn_registrar_gasto: {
         Args: {
           p_cantidad: number
@@ -1193,6 +1348,8 @@ export type Database = {
       }
       is_active_staff: { Args: never; Returns: boolean }
       is_admin: { Args: never; Returns: boolean }
+      puede_editar_seccion: { Args: { p_seccion: string }; Returns: boolean }
+      puede_operar_seccion: { Args: { p_seccion: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

@@ -22,6 +22,14 @@ export async function crearInsumo(v: { nombre: string; unidad: string; stock: nu
   if (error) throw error;
 }
 
+export async function actualizarInsumo(v: { id: number; nombre: string; unidad: string; costoUnit: number; stockMin: number }) {
+  const { error } = await supabase
+    .from('insumos')
+    .update({ nombre: v.nombre, unidad: v.unidad, costo_unit: v.costoUnit, stock_min: v.stockMin })
+    .eq('id', v.id);
+  if (error) throw error;
+}
+
 export async function borrarInsumo(id: number) {
   const { error } = await supabase
     .from('insumos')

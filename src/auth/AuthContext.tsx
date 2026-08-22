@@ -105,13 +105,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function volverATurno() {
     const guardada = leerSesionGuardada();
     if (!guardada) return { error: null };
-    // Intentar el cambio de sesión ANTES de borrar el respaldo -- si
-    // setSession falla (ej. el refresh token ya se usó/rotó y quedó
-    // invalido), antes se perdía la sesión guardada igual, así que
-    // apretar "Volver a mi turno" parecía "no hacer nada" sin ningún
-    // aviso y sin forma de reintentar salvo cerrar sesión del todo.
+    // Ojo acá: setSession() con tokens inválidos/vencidos (ej. el respaldo
+    // quedó guardado mucho tiempo y el refresh token ya venció) no "falla
+    // dejando todo como estaba" -- el cliente de Supabase igual pisa la
+    // sesión activa en el momento de intentarlo, así que si el respaldo
+    // resultaba inválido, la cuenta que SÍ estaba activa (ej. admin) se
+    // cerraba sola sin aviso, quedando deslogueado del todo. Por eso se
+    // guarda una copia de la sesión actual ANTES de intentar, para poder
+    // restaurarla explícitamente si el intento falla.
+    const sesionAntesDeIntentar = session;
     const { error } = await supabase.auth.setSession(guardada);
-    if (error) return { error: error.message };
+    if (error) {
+      if (sesionAntesDeIntentar) {
+        await supabase.auth.setSession({
+          access_token: sesionAntesDeIntentar.access_token,
+          refresh_token: sesionAntesDeIntentar.refresh_token,
+        });
+      }
+      return { error: error.message };
+    }
     borrarSesionGuardada();
     setPuedeVolverATurno(false);
     return { error: null };

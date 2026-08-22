@@ -33,4 +33,7 @@ supabase/.temp/
 .vercel
 .env*
 
+# Config local del preview de dev (Claude Code), específica de esta máquina
+.claude/
+
 print-bridge/config.js

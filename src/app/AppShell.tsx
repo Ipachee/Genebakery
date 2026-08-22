@@ -24,22 +24,23 @@ function usePersistido<T>(key: string, inicial: T): [T, (v: T) => void] {
 export function AppShell({
   rol,
   activo,
+  permisos,
   onNavigate,
   topbarRight,
   children,
 }: {
   rol: Rol;
-  activo: SeccionId;
+  activo: SeccionId | null;
+  permisos: Set<string>;
   onNavigate: (id: SeccionId) => void;
   topbarRight: ReactNode;
   children: ReactNode;
 }) {
   const { theme, toggleTheme } = useTheme();
-  // Mozo y cajero arrancan con el lateral colapsado (según el handoff);
-  // acá solo existe mozo/admin hoy, y mozo de entrada ve nada más que
-  // Salón/Comandera fijas, así que colapsado por default tiene sentido
-  // igual -- menos aire ocupado para lo que en la práctica es un atajo de
-  // dos botones.
+  // Mozo arranca con el lateral colapsado -- de entrada ve nada más que
+  // Salón/Comandera/Calendario, así que menos aire ocupado para lo que en
+  // la práctica es un atajo de pocos botones. Admin y encargado arrancan
+  // expandidos.
   const [collapsed, setCollapsed] = usePersistido('comandacafe-nav-collapsed', rol === 'mozo');
   const [openGroups, setOpenGroups] = usePersistido<string[]>(
     'comandacafe-nav-open-groups',
@@ -53,12 +54,12 @@ export function AppShell({
     setOffCanvasAbierto(false);
   }, [activo]);
 
-  const grupos = GRUPOS.map((g) => ({ ...g, items: g.items.filter((it) => visiblePara(rol, it)) })).filter(
+  const grupos = GRUPOS.map((g) => ({ ...g, items: g.items.filter((it) => visiblePara(rol, it, permisos)) })).filter(
     (g) => g.items.length > 0
   );
-  const fijas = SECCIONES_FIJAS.filter((s) => visiblePara(rol, s));
+  const fijas = SECCIONES_FIJAS.filter((s) => visiblePara(rol, s, permisos));
 
-  const grupo = grupoDe(activo);
+  const grupo = activo ? grupoDe(activo) : null;
   const kicker = grupo?.label ?? (activo === 'salon' || activo === 'comandera' ? 'Operación' : null);
   const tituloActivo =
     fijas.find((s) => s.id === activo)?.label ?? grupos.flatMap((g) => g.items).find((it) => it.id === activo)?.label ?? '';

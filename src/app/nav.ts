@@ -1,14 +1,15 @@
 // Árbol de navegación del shell nuevo (barra lateral agrupada). Reemplaza
 // la barra oscura de arriba + la fila plana de pestañas de Administración.
 //
-// Roles: hoy el sistema solo tiene 'admin' y 'mozo' (el filtrado por rol
-// vive acá mismo, en `roles` de cada sección -- ya no en un componente
-// aparte). El handoff de diseño proyecta un tercer rol 'cajero' (ligado al campo
-// Puesto de Empleados) para dar acceso de "solo ver" a algunas secciones --
-// eso es un cambio de esquema aparte, fuera del alcance de esta rama. Cada
-// sección ya declara qué roles la ven (`roles`) para que sumar 'cajero' el
-// día de mañana sea solo tocar esta lista, no la lógica del shell.
-export type Rol = 'admin' | 'mozo';
+// Roles: admin, mozo, y encargado (agregado 2026-08-22 para una tercera
+// persona de confianza, todavía sin puesto definido -- su nombre visible
+// vive en roles_personalizados, editable desde Ajustes sin tocar código).
+// Qué sección ve cada rol YA NO está hardcodeado acá -- admin ve todo
+// siempre (para no poder auto-bloquearse la pantalla de permisos), y
+// mozo/encargado se resuelven contra la tabla permisos_navegacion, que
+// admin tilda/destilda desde Ajustes → Roles y permisos (ver
+// features/permisos). Esta lista solo declara QUÉ secciones existen.
+export type Rol = 'admin' | 'mozo' | 'encargado';
 export type SeccionId =
   | 'salon'
   | 'comandera'
@@ -21,19 +22,25 @@ export type SeccionId =
   | 'ventas'
   | 'gastos'
   | 'reportes'
+  | 'cobranzas'
   | 'empleados'
   | 'clientes'
+  | 'calendario'
   | 'ajustes'
   | 'papelera';
 
-export type Seccion = { id: SeccionId; label: string; roles: Rol[] };
+export type Seccion = { id: SeccionId; label: string };
 export type Grupo = { id: string; label: string; icon: string; items: Seccion[] };
+
+// Roles configurables por el panel de permisos (todos menos admin, que
+// siempre ve todo).
+export const ROLES_CONFIGURABLES: Exclude<Rol, 'admin'>[] = ['mozo', 'encargado'];
 
 // Salón y Comandera van ancladas arriba de todo, fuera de los grupos
 // plegables -- son lo que se usa a cada minuto del turno.
 export const SECCIONES_FIJAS: Seccion[] = [
-  { id: 'salon', label: 'Salón', roles: ['admin', 'mozo'] },
-  { id: 'comandera', label: 'Comandera', roles: ['admin', 'mozo'] },
+  { id: 'salon', label: 'Salón' },
+  { id: 'comandera', label: 'Comandera' },
 ];
 
 export const GRUPOS: Grupo[] = [
@@ -42,9 +49,9 @@ export const GRUPOS: Grupo[] = [
     label: 'Compras y stock',
     icon: '📦',
     items: [
-      { id: 'insumos', label: 'Insumos', roles: ['admin'] },
-      { id: 'movimientos', label: 'Movimientos', roles: ['admin'] },
-      { id: 'proveedores', label: 'Proveedores', roles: ['admin'] },
+      { id: 'insumos', label: 'Insumos' },
+      { id: 'movimientos', label: 'Movimientos' },
+      { id: 'proveedores', label: 'Proveedores' },
     ],
   },
   {
@@ -52,9 +59,9 @@ export const GRUPOS: Grupo[] = [
     label: 'Carta y producción',
     icon: '🍰',
     items: [
-      { id: 'categorias', label: 'Categorías', roles: ['admin'] },
-      { id: 'recetas', label: 'Recetas', roles: ['admin'] },
-      { id: 'elaborados', label: 'Elaborados', roles: ['admin'] },
+      { id: 'categorias', label: 'Categorías' },
+      { id: 'recetas', label: 'Recetas' },
+      { id: 'elaborados', label: 'Elaborados' },
     ],
   },
   {
@@ -62,9 +69,10 @@ export const GRUPOS: Grupo[] = [
     label: 'Finanzas',
     icon: '💰',
     items: [
-      { id: 'ventas', label: 'Ventas', roles: ['admin'] },
-      { id: 'gastos', label: 'Gastos', roles: ['admin'] },
-      { id: 'reportes', label: 'Reportes', roles: ['admin'] },
+      { id: 'ventas', label: 'Ventas' },
+      { id: 'gastos', label: 'Gastos' },
+      { id: 'reportes', label: 'Reportes' },
+      { id: 'cobranzas', label: 'Cobranzas' },
     ],
   },
   {
@@ -72,8 +80,9 @@ export const GRUPOS: Grupo[] = [
     label: 'Personas',
     icon: '👥',
     items: [
-      { id: 'empleados', label: 'Empleados', roles: ['admin'] },
-      { id: 'clientes', label: 'Clientes', roles: ['admin'] },
+      { id: 'empleados', label: 'Empleados' },
+      { id: 'clientes', label: 'Clientes' },
+      { id: 'calendario', label: 'Calendario' },
     ],
   },
   {
@@ -81,23 +90,39 @@ export const GRUPOS: Grupo[] = [
     label: 'Sistema',
     icon: '⚙️',
     items: [
-      { id: 'ajustes', label: 'Ajustes', roles: ['admin'] },
-      { id: 'papelera', label: 'Papelera', roles: ['admin'] },
+      { id: 'ajustes', label: 'Ajustes' },
+      { id: 'papelera', label: 'Papelera' },
     ],
   },
 ];
 
-export function visiblePara(rol: Rol, seccion: Seccion) {
-  return seccion.roles.includes(rol);
+export function todasLasSecciones(): Seccion[] {
+  return [...SECCIONES_FIJAS, ...GRUPOS.flatMap((g) => g.items)];
+}
+
+// `permisos` es el Set de "rol:seccionId" con visible=true, tal como lo arma
+// usePermisosNavegacion(). Admin no pasa por acá -- ver idVisiblePara.
+export function visiblePara(rol: Rol, seccion: Seccion, permisos: Set<string>) {
+  if (rol === 'admin') return true;
+  return permisos.has(`${rol}:${seccion.id}`);
 }
 
 function seccionPorId(id: SeccionId): Seccion | undefined {
   return SECCIONES_FIJAS.find((s) => s.id === id) ?? GRUPOS.flatMap((g) => g.items).find((s) => s.id === id);
 }
 
-export function idVisiblePara(rol: Rol, id: SeccionId): boolean {
+export function idVisiblePara(rol: Rol, id: SeccionId, permisos: Set<string>): boolean {
   const seccion = seccionPorId(id);
-  return seccion ? visiblePara(rol, seccion) : false;
+  return seccion ? visiblePara(rol, seccion, permisos) : false;
+}
+
+// Para el fallback de "la sección guardada ya no es visible para este rol"
+// -- antes de tener permisos configurables asumía que Salón siempre estaba
+// disponible, lo cual ya no es cierto para un rol recién creado sin nada
+// tildado todavía.
+export function primeraSeccionVisible(rol: Rol, permisos: Set<string>): SeccionId | null {
+  const todas = todasLasSecciones();
+  return todas.find((s) => visiblePara(rol, s, permisos))?.id ?? null;
 }
 
 // Grupo al que pertenece una sección, para el kicker del topbar ("Insumos ·

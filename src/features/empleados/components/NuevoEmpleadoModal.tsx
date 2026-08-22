@@ -2,24 +2,46 @@ import { useState } from 'react';
 import { useEmpleadoMutations } from '../hooks';
 import { FormModal } from '../../../components/FormModal';
 import { Field, TextInput } from '../../../components/Field';
+import type { Database } from '../../../lib/supabase/types';
 
-export function NuevoEmpleadoModal({ onClose }: { onClose: () => void }) {
-  const { crear } = useEmpleadoMutations();
-  const [form, setForm] = useState({ nombre: '', apellido: '', dni: '', puesto: '', ingreso: '', descuentoPct: '' });
+type Empleado = Database['public']['Tables']['empleados']['Row'];
+
+// Mismo modal para cargar y editar -- si viene `empleado`, arranca con
+// esos valores y guarda con actualizar() en vez de crear().
+export function NuevoEmpleadoModal({ empleado, onClose }: { empleado?: Empleado; onClose: () => void }) {
+  const editando = !!empleado;
+  const { crear, actualizar } = useEmpleadoMutations();
+  const [form, setForm] = useState({
+    nombre: empleado?.nombre ?? '',
+    apellido: empleado?.apellido ?? '',
+    dni: empleado?.dni ?? '',
+    puesto: empleado?.puesto ?? '',
+    ingreso: empleado?.ingreso ?? '',
+    descuentoPct: empleado ? String(empleado.descuento_pct) : '',
+  });
+
+  const guardando = editando ? actualizar.isPending : crear.isPending;
+  const mutacionActiva = editando ? actualizar : crear;
+  const valido = form.nombre.trim() !== '' && form.apellido.trim() !== '';
 
   function submit() {
-    if (!form.nombre.trim() || !form.apellido.trim()) return;
-    crear.mutate({ ...form, descuentoPct: Number(form.descuentoPct) || 0 });
+    if (!valido) return;
+    if (editando) {
+      actualizar.mutate({ id: empleado.id, ...form, descuentoPct: Number(form.descuentoPct) || 0 });
+    } else {
+      crear.mutate({ ...form, descuentoPct: Number(form.descuentoPct) || 0 });
+    }
     onClose();
   }
 
   return (
     <FormModal
-      title="👤 Nuevo empleado"
+      title={editando ? '✏️ Editar empleado' : '👤 Nuevo empleado'}
       onClose={onClose}
       onSubmit={submit}
-      submitLabel="+ Agregar empleado"
-      submitDisabled={!form.nombre.trim() || !form.apellido.trim()}
+      submitLabel={guardando ? 'Guardando…' : editando ? 'Guardar cambios' : '+ Agregar empleado'}
+      submitDisabled={!valido || guardando}
+      error={mutacionActiva.isError ? mutacionActiva.error?.message : null}
     >
       <div style={{ display: 'flex', gap: 8 }}>
         <Field label="Nombre" style={{ flex: 1 }}>

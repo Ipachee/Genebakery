@@ -10,6 +10,7 @@ export function useClienteMutations() {
   const invalidar = () => qc.invalidateQueries({ queryKey: ['clientes'] });
   return {
     crear: useMutation({ mutationFn: api.crearCliente, onSuccess: invalidar }),
+    actualizar: useMutation({ mutationFn: api.actualizarCliente, onSuccess: invalidar }),
     borrar: useMutation({ mutationFn: api.borrarCliente, onSuccess: invalidar }),
   };
 }

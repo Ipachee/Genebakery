@@ -166,11 +166,14 @@ function FilaProveedor({
   );
 }
 
+type Factura = NonNullable<ReturnType<typeof useFacturasDeProveedor>['data']>[number];
+
 function FacturasDeProveedor({ proveedorId, nombre, mozoId }: { proveedorId: number; nombre: string; mozoId: string }) {
   const { data: facturas, isLoading } = useFacturasDeProveedor(proveedorId);
   const { borrar } = useFacturaMutations(proveedorId);
   const { confirm, dialog } = useConfirm();
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [editando, setEditando] = useState<Factura | null>(null);
 
   const total = (facturas ?? []).reduce((s, f) => s + Number(f.monto), 0);
 
@@ -204,7 +207,15 @@ function FacturasDeProveedor({ proveedorId, nombre, mozoId }: { proveedorId: num
                   <td>{new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
                   <td>{f.numero_factura || '—'}</td>
                   <td>{fmt.format(Number(f.monto))}</td>
-                  <td>
+                  <td style={{ display: 'flex', gap: 6 }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      aria-label={`Editar factura ${f.numero_factura || f.id}`}
+                      onClick={() => setEditando(f)}
+                    >
+                      ✏️
+                    </Button>
                     <Button
                       variant="danger"
                       size="sm"
@@ -228,6 +239,15 @@ function FacturasDeProveedor({ proveedorId, nombre, mozoId }: { proveedorId: num
 
       {modalAbierto && (
         <NuevaFacturaModal proveedorId={proveedorId} nombreProveedor={nombre} mozoId={mozoId} onClose={() => setModalAbierto(false)} />
+      )}
+      {editando && (
+        <NuevaFacturaModal
+          proveedorId={proveedorId}
+          nombreProveedor={nombre}
+          mozoId={mozoId}
+          factura={editando}
+          onClose={() => setEditando(null)}
+        />
       )}
       {dialog}
     </div>

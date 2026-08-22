@@ -24,6 +24,17 @@ export const CUENTAS = [
     rol: 'mozo' as const,
     etiqueta: 'Noche',
   },
+  // Sin `etiqueta` a propósito -- no es un turno con horario fijo como los
+  // de arriba. El label de acá es solo el default: LoginScreen lo pisa con
+  // roles_personalizados.etiqueta si está cargado, para que se pueda
+  // renombrar sin tocar código (ver migración 20260822020000).
+  {
+    id: 'encargado',
+    icon: '🗂️',
+    label: 'Encargado',
+    email: 'encargado@comandacafe.local',
+    rol: 'encargado' as const,
+  },
 ] as const;
 
 export function etiquetaPorEmail(email: string | undefined | null): string | null {

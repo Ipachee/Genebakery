@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { TipografiaTicketView } from './TipografiaTicketView';
 import { PerfilNegocioView } from '../../negocio/components/PerfilNegocioView';
 import { FacturacionView } from '../../facturacion/components/FacturacionView';
+import { PermisosRolesView } from '../../permisos/components/PermisosRolesView';
 
 // Reportes vivía acá adentro como pestaña porque todavía no existía un
 // lugar propio en la navegación -- con el sidebar nuevo pasó a ser su
@@ -11,6 +12,7 @@ const TABS = [
   { id: 'negocio', label: 'Perfil del negocio', Componente: PerfilNegocioView },
   { id: 'facturacion', label: 'Facturación electrónica', Componente: FacturacionView },
   { id: 'tipografia', label: 'Tipografía del ticket', Componente: TipografiaTicketView },
+  { id: 'roles', label: 'Roles y permisos', Componente: PermisosRolesView },
 ] as const;
 
 export function AjustesView() {

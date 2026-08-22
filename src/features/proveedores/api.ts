@@ -62,6 +62,14 @@ export async function crearFactura(v: {
   if (error) throw error;
 }
 
+export async function actualizarFactura(v: { id: number; fecha: string; monto: number; numeroFactura: string }) {
+  const { error } = await supabase
+    .from('facturas_proveedor')
+    .update({ fecha: v.fecha, monto: v.monto, numero_factura: v.numeroFactura || null })
+    .eq('id', v.id);
+  if (error) throw error;
+}
+
 export async function borrarFactura(id: number) {
   const { error } = await supabase.from('facturas_proveedor').update({ deleted_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;

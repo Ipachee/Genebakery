@@ -7,7 +7,9 @@ import { TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
 import { useConfirm } from '../../../components/ConfirmDialog';
 import { NuevoEmpleadoModal } from './NuevoEmpleadoModal';
+import type { Database } from '../../../lib/supabase/types';
 
+type Empleado = Database['public']['Tables']['empleados']['Row'];
 type ColumnaOrden = 'nombre' | 'dni' | 'puesto' | 'ingreso' | 'descuento';
 
 export function EmpleadosView() {
@@ -15,6 +17,7 @@ export function EmpleadosView() {
   const { borrar } = useEmpleadoMutations();
   const [busqueda, setBusqueda] = useState('');
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [editando, setEditando] = useState<Empleado | null>(null);
   const { orden, alClickear } = useOrdenTabla<ColumnaOrden>('nombre');
   const { confirm, dialog } = useConfirm();
 
@@ -95,7 +98,10 @@ export function EmpleadosView() {
                 <td>{e.puesto || '—'}</td>
                 <td>{e.ingreso || '—'}</td>
                 <td>{e.descuento_pct}%</td>
-                <td>
+                <td style={{ display: 'flex', gap: 6 }}>
+                  <Button variant="secondary" size="sm" aria-label={`Editar ${e.nombre} ${e.apellido}`} onClick={() => setEditando(e)}>
+                    ✏️
+                  </Button>
                   <Button
                     variant="danger"
                     size="sm"
@@ -114,6 +120,7 @@ export function EmpleadosView() {
       )}
 
       {modalAbierto && <NuevoEmpleadoModal onClose={() => setModalAbierto(false)} />}
+      {editando && <NuevoEmpleadoModal empleado={editando} onClose={() => setEditando(null)} />}
       {dialog}
     </div>
   );

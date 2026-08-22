@@ -2,36 +2,55 @@ import { useState } from 'react';
 import { useFacturaMutations } from '../hooks';
 import { FormModal } from '../../../components/FormModal';
 import { Field, TextInput } from '../../../components/Field';
+import type { Database } from '../../../lib/supabase/types';
 
+type Factura = Database['public']['Tables']['facturas_proveedor']['Row'];
+
+// Mismo modal para cargar y editar -- si viene `factura`, arranca con esos
+// valores y guarda con actualizar() en vez de crear().
 export function NuevaFacturaModal({
   proveedorId,
   nombreProveedor,
   mozoId,
+  factura,
   onClose,
 }: {
   proveedorId: number;
   nombreProveedor: string;
   mozoId: string;
+  factura?: Factura;
   onClose: () => void;
 }) {
-  const { crear } = useFacturaMutations(proveedorId);
-  const [form, setForm] = useState({ fecha: new Date().toISOString().slice(0, 10), monto: '', numeroFactura: '' });
+  const editando = !!factura;
+  const { crear, actualizar } = useFacturaMutations(proveedorId);
+  const [form, setForm] = useState({
+    fecha: factura?.fecha ?? new Date().toISOString().slice(0, 10),
+    monto: factura ? String(factura.monto) : '',
+    numeroFactura: factura?.numero_factura ?? '',
+  });
   const monto = Number(form.monto);
   const valido = !!form.fecha && monto > 0;
+  const guardando = editando ? actualizar.isPending : crear.isPending;
+  const mutacionActiva = editando ? actualizar : crear;
 
   function submit() {
     if (!valido) return;
-    crear.mutate({ proveedorId, fecha: form.fecha, monto, numeroFactura: form.numeroFactura, cargadoPor: mozoId });
+    if (editando) {
+      actualizar.mutate({ id: factura.id, fecha: form.fecha, monto, numeroFactura: form.numeroFactura });
+    } else {
+      crear.mutate({ proveedorId, fecha: form.fecha, monto, numeroFactura: form.numeroFactura, cargadoPor: mozoId });
+    }
     onClose();
   }
 
   return (
     <FormModal
-      title={`🧾 Cargar factura de ${nombreProveedor}`}
+      title={editando ? `✏️ Editar factura de ${nombreProveedor}` : `🧾 Cargar factura de ${nombreProveedor}`}
       onClose={onClose}
       onSubmit={submit}
-      submitLabel="+ Cargar factura"
-      submitDisabled={!valido}
+      submitLabel={guardando ? 'Guardando…' : editando ? 'Guardar cambios' : '+ Cargar factura'}
+      submitDisabled={!valido || guardando}
+      error={mutacionActiva.isError ? mutacionActiva.error?.message : null}
     >
       <div style={{ display: 'flex', gap: 8 }}>
         <Field label="Fecha" style={{ flex: 1 }}>

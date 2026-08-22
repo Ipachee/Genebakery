@@ -11,6 +11,8 @@ import { Card } from '../../../components/Card';
 import { fmtMoneyDecimal as fmt } from '../../../lib/format';
 import { NuevoElaboradoModal } from './NuevoElaboradoModal';
 
+type Elaborado = NonNullable<ReturnType<typeof useElaborados>['data']>[number];
+
 export function ElaboradosView() {
   const { session } = useAuth();
   const { data: elaborados, isLoading } = useElaborados();
@@ -19,6 +21,7 @@ export function ElaboradosView() {
   const [producciones, setProducciones] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [editando, setEditando] = useState<Elaborado | null>(null);
   const { confirm, dialog } = useConfirm();
 
   async function producir(elaboradoId: number) {
@@ -80,6 +83,9 @@ export function ElaboradosView() {
                   <Button variant="success" size="sm" onClick={() => producir(e.id)}>
                     Registrar producción
                   </Button>
+                  <Button variant="secondary" size="sm" aria-label={`Editar ${e.nombre}`} onClick={() => setEditando(e)}>
+                    ✏️
+                  </Button>
                   <Button
                     variant="danger"
                     size="sm"
@@ -98,6 +104,7 @@ export function ElaboradosView() {
       )}
 
       {modalAbierto && <NuevoElaboradoModal onClose={() => setModalAbierto(false)} />}
+      {editando && <NuevoElaboradoModal elaborado={editando} onClose={() => setEditando(null)} />}
       {dialog}
     </div>
   );

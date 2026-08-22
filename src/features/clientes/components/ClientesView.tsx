@@ -7,7 +7,9 @@ import { TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
 import { useConfirm } from '../../../components/ConfirmDialog';
 import { NuevoClienteModal } from './NuevoClienteModal';
+import type { Database } from '../../../lib/supabase/types';
 
+type Cliente = Database['public']['Tables']['clientes']['Row'];
 type ColumnaOrden = 'nombre' | 'dni' | 'fiscal' | 'descuento' | 'visitas' | 'gastado';
 
 export function ClientesView() {
@@ -15,6 +17,7 @@ export function ClientesView() {
   const { borrar } = useClienteMutations();
   const [busqueda, setBusqueda] = useState('');
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [editando, setEditando] = useState<Cliente | null>(null);
   const { orden, alClickear } = useOrdenTabla<ColumnaOrden>('nombre');
   const { confirm, dialog } = useConfirm();
 
@@ -101,7 +104,10 @@ export function ClientesView() {
                 <td>{c.descuento_pct}%</td>
                 <td>{c.visitas}</td>
                 <td>${Number(c.total_gastado).toLocaleString('es-AR')}</td>
-                <td>
+                <td style={{ display: 'flex', gap: 6 }}>
+                  <Button variant="secondary" size="sm" aria-label={`Editar ${c.nombre} ${c.apellido}`} onClick={() => setEditando(c)}>
+                    ✏️
+                  </Button>
                   <Button
                     variant="danger"
                     size="sm"
@@ -120,6 +126,7 @@ export function ClientesView() {
       )}
 
       {modalAbierto && <NuevoClienteModal onClose={() => setModalAbierto(false)} />}
+      {editando && <NuevoClienteModal cliente={editando} onClose={() => setEditando(null)} />}
       {dialog}
     </div>
   );

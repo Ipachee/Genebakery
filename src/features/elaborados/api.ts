@@ -29,6 +29,14 @@ export async function crearElaborado(v: { nombre: string; productoId: number; po
   if (error) throw error;
 }
 
+export async function actualizarElaborado(v: { id: number; nombre: string; porcionesPorUnidad: number; porcionesMin: number }) {
+  const { error } = await supabase
+    .from('elaborados')
+    .update({ nombre: v.nombre, porciones_por_unidad: v.porcionesPorUnidad, porciones_min: v.porcionesMin })
+    .eq('id', v.id);
+  if (error) throw error;
+}
+
 export async function borrarElaborado(id: number) {
   const { error } = await supabase.from('elaborados').update({ deleted_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;

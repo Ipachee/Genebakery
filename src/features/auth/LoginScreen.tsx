@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { useTurnosPublico } from '../turnos/hooks';
+import { useRolesPersonalizados } from '../permisos/hooks';
 import { CUENTAS } from './accounts';
 
 // Admin no se loguea acá — se accede desde adentro de un turno con el
@@ -24,6 +25,14 @@ export function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const ahora = useReloj();
   const { data: turnosPublico } = useTurnosPublico();
+  const { data: rolesPersonalizados } = useRolesPersonalizados();
+
+  // El label de "Encargado" en accounts.ts es solo un default -- si admin ya
+  // le puso un nombre real (ej. "Cajera") desde Ajustes, se muestra ese acá,
+  // sin tener que tocar código.
+  function labelDe(opcion: (typeof OPCIONES)[number]) {
+    return rolesPersonalizados?.find((r) => r.clave === opcion.rol)?.etiqueta ?? opcion.label;
+  }
 
   function turnoAbierto(opcion: (typeof OPCIONES)[number]) {
     if (!('etiqueta' in opcion)) return false;
@@ -36,7 +45,7 @@ export function LoginScreen() {
     setSubmitting(opcion.id);
     const { error } = await signIn(opcion.email, passwords[opcion.id] ?? '');
     setSubmitting(null);
-    if (error) setError(`${opcion.label}: contraseña incorrecta`);
+    if (error) setError(`${labelDe(opcion)}: contraseña incorrecta`);
   }
 
   return (
@@ -57,7 +66,7 @@ export function LoginScreen() {
             <span className="shift-icon-wrap">
               <span className="shift-icon">{opcion.icon}</span>
             </span>
-            <span className="shift-name">{opcion.label}</span>
+            <span className="shift-name">{labelDe(opcion)}</span>
             {turnoAbierto(opcion) && (
               <span className="shift-status-abierto">
                 <span className="shift-status-dot" /> turno abierto

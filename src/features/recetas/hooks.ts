@@ -17,6 +17,21 @@ export function useCrearProducto() {
   });
 }
 
+// Pausar/reactivar saca (o devuelve) el producto del menú de Comandar
+// pedidos -- por eso también invalida ['productos'], que es lo que usa
+// ese menú.
+export function useActualizarActivoProducto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: number; activo: boolean }) => api.actualizarActivoProducto(v.id, v.activo),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['productos-recetas'] });
+      qc.invalidateQueries({ queryKey: ['productos'] });
+      qc.invalidateQueries({ queryKey: ['productos-sin-elaborado'] });
+    },
+  });
+}
+
 export function useInsumos() {
   return useQuery({ queryKey: ['insumos-recetas'], queryFn: api.fetchInsumos });
 }

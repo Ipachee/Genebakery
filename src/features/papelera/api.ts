@@ -3,7 +3,15 @@ import type { Database } from '../../lib/supabase/types';
 
 type TablaSoftDelete = Exclude<
   keyof Database['public']['Tables'],
-  'movimientos' | 'recetas' | 'pedido_items' | 'turnos' | 'profiles' | 'perfil_negocio' | 'credenciales_facturacion'
+  | 'movimientos'
+  | 'recetas'
+  | 'pedido_items'
+  | 'turnos'
+  | 'profiles'
+  | 'perfil_negocio'
+  | 'credenciales_facturacion'
+  | 'roles_personalizados'
+  | 'permisos_navegacion'
 >;
 
 const TABLA_POR_TIPO: Record<string, TablaSoftDelete> = {
@@ -23,6 +31,8 @@ const TABLA_POR_TIPO: Record<string, TablaSoftDelete> = {
   categoria: 'categorias',
   elemento_decorativo: 'elementos_decorativos',
   factura_electronica: 'facturas_electronicas',
+  calendario_equipo: 'calendario_equipo',
+  pago_empleado: 'pagos_empleados',
 };
 
 export async function fetchPapelera() {

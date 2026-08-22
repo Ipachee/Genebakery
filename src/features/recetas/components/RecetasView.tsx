@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useCrearProducto, useInsumos, useProductos, useRecetaDeProducto, useRecetaMutations } from '../hooks';
+import { useActualizarActivoProducto, useCrearProducto, useInsumos, useProductos, useRecetaDeProducto, useRecetaMutations } from '../hooks';
 import { useCategorias } from '../../categorias/hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '../../../components/Button';
+import { Badge } from '../../../components/Badge';
 import { Field, Select, TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
 import { Card } from '../../../components/Card';
@@ -15,9 +16,13 @@ export function RecetasView() {
   const { data: receta } = useRecetaDeProducto(productoId);
   const mutations = useRecetaMutations(productoId);
   const crearProducto = useCrearProducto();
+  const actualizarActivo = useActualizarActivoProducto();
+  const productoSeleccionado = productos?.find((p) => p.id === productoId) ?? null;
 
   const [insumoId, setInsumoId] = useState<number | ''>('');
   const [cantidad, setCantidad] = useState('');
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [cantidadEditada, setCantidadEditada] = useState('');
 
   const [creandoProducto, setCreandoProducto] = useState(false);
   const [nuevoProducto, setNuevoProducto] = useState({ nombre: '', categoria: '', precio: '' });
@@ -45,7 +50,7 @@ export function RecetasView() {
           <option value="">Elegí un producto…</option>
           {productos?.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.nombre} ({p.categoria})
+              {p.nombre} ({p.categoria}){!p.activo ? ' — pausado' : ''}
             </option>
           ))}
         </Select>
@@ -91,8 +96,31 @@ export function RecetasView() {
         </Card>
       )}
 
-      {productoId && (
+      {productoId && productoSeleccionado && (
         <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="field-label" style={{ margin: 0 }}>
+                {productoSeleccionado.nombre}
+              </span>
+              <Badge tone={productoSeleccionado.activo ? 'good' : 'warn'}>
+                {productoSeleccionado.activo ? 'En carta' : 'Pausado'}
+              </Badge>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={actualizarActivo.isPending}
+              onClick={() => actualizarActivo.mutate({ id: productoSeleccionado.id, activo: !productoSeleccionado.activo })}
+            >
+              {productoSeleccionado.activo ? '⏸️ Pausar (sacar de la carta)' : '▶️ Volver a la carta'}
+            </Button>
+          </div>
+          {!productoSeleccionado.activo && (
+            <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
+              Pausado: no aparece en el menú de Comandar pedidos hasta que se reactive. La receta sigue acá, intacta.
+            </p>
+          )}
           {receta?.length === 0 && <EmptyState>Sin receta cargada todavía.</EmptyState>}
           {receta?.map((r) => (
             <div
@@ -108,12 +136,65 @@ export function RecetasView() {
                 background: 'var(--surface-sunken)',
               }}
             >
-              <span>
-                {r.insumos?.nombre} — <strong>{r.cantidad}</strong> {r.insumos?.unidad}
-              </span>
-              <Button variant="danger" size="sm" aria-label={`Quitar ${r.insumos?.nombre} de la receta`} onClick={() => mutations.quitar.mutate(r.id)}>
-                🗑
-              </Button>
+              {editandoId === r.id ? (
+                <>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {r.insumos?.nombre} —
+                    <TextInput
+                      type="number"
+                      autoFocus
+                      value={cantidadEditada}
+                      onChange={(e) => setCantidadEditada(e.target.value)}
+                      style={{ width: 80 }}
+                    />
+                    {r.insumos?.unidad}
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Button
+                      variant="success"
+                      size="sm"
+                      aria-label="Guardar cantidad"
+                      disabled={!cantidadEditada || Number(cantidadEditada) <= 0}
+                      onClick={() => {
+                        mutations.agregar.mutate({ insumoId: r.insumo_id, cantidad: Number(cantidadEditada) });
+                        setEditandoId(null);
+                      }}
+                    >
+                      ✓
+                    </Button>
+                    <Button variant="secondary" size="sm" aria-label="Cancelar edición" onClick={() => setEditandoId(null)}>
+                      ✕
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span>
+                    {r.insumos?.nombre} — <strong>{r.cantidad}</strong> {r.insumos?.unidad}
+                  </span>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      aria-label={`Editar cantidad de ${r.insumos?.nombre}`}
+                      onClick={() => {
+                        setEditandoId(r.id);
+                        setCantidadEditada(String(r.cantidad));
+                      }}
+                    >
+                      ✏️
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      aria-label={`Quitar ${r.insumos?.nombre} de la receta`}
+                      onClick={() => mutations.quitar.mutate(r.id)}
+                    >
+                      🗑
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
 

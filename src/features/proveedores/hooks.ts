@@ -28,6 +28,7 @@ export function useFacturaMutations(proveedorId: number | null) {
   const invalidar = () => qc.invalidateQueries({ queryKey: ['facturas-proveedor', proveedorId] });
   return {
     crear: useMutation({ mutationFn: api.crearFactura, onSuccess: invalidar }),
+    actualizar: useMutation({ mutationFn: api.actualizarFactura, onSuccess: invalidar }),
     borrar: useMutation({ mutationFn: api.borrarFactura, onSuccess: invalidar }),
   };
 }

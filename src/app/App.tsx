@@ -11,9 +11,11 @@ import { RecetasView } from '../features/recetas/components/RecetasView';
 import { ElaboradosView } from '../features/elaborados/components/ElaboradosView';
 import { VentasView } from '../features/ventas/components/VentasView';
 import { GastosView } from '../features/gastos/components/GastosView';
+import { CobranzasView } from '../features/cobranzas/components/CobranzasView';
 import { ReportesView } from '../features/reportes/components/ReportesView';
 import { EmpleadosView } from '../features/empleados/components/EmpleadosView';
 import { ClientesView } from '../features/clientes/components/ClientesView';
+import { CalendarioView } from '../features/calendario/components/CalendarioView';
 import { PapeleraView } from '../features/papelera/components/PapeleraView';
 import { ComanderaView } from '../features/comandera/components/ComanderaView';
 import { AjustesView } from '../features/ajustes/components/AjustesView';
@@ -26,7 +28,8 @@ import { useOnlineStatus } from './useOnlineStatus';
 import { useCobrosPendientes } from '../features/pedidos/hooks';
 import { Button } from '../components/Button';
 import { AppShell } from './AppShell';
-import { idVisiblePara, type Rol, type SeccionId } from './nav';
+import { idVisiblePara, primeraSeccionVisible, type Rol, type SeccionId } from './nav';
+import { usePermisosNavegacion } from '../features/permisos/hooks';
 import { useTheme } from './useTheme';
 import './shell.css';
 
@@ -42,8 +45,10 @@ const REGISTRO: Record<SeccionId, ComponentType> = {
   ventas: VentasView,
   gastos: GastosView,
   reportes: ReportesView,
+  cobranzas: CobranzasView,
   empleados: EmpleadosView,
   clientes: ClientesView,
+  calendario: CalendarioView,
   ajustes: AjustesView,
   papelera: PapeleraView,
 };
@@ -174,10 +179,8 @@ function Shell() {
   const [seccion, setSeccion] = useState<SeccionId>('salon');
   const [omitirAperturaCaja, setOmitirAperturaCaja] = useState(false);
   const iniciales = (profile?.nombre ?? session?.user.email ?? '?').slice(0, 1).toUpperCase();
-  // El sistema hoy solo tiene estos dos roles (ver auth/RequireRole) -- el
-  // 'cajero' de la matriz de permisos del handoff todavía no existe como
-  // rol real, queda para cuando el campo Puesto de Empleados pase a select.
-  const rol: Rol = profile?.rol === 'admin' ? 'admin' : 'mozo';
+  const rol: Rol = profile?.rol === 'admin' ? 'admin' : profile?.rol === 'encargado' ? 'encargado' : 'mozo';
+  const { permisos } = usePermisosNavegacion();
   const bloqueadoPorTurno = profile?.rol === 'mozo' && !!turnoError;
   // Cuando está bloqueado por turno no se renderiza el AppShell (no hay
   // sidebar ni contenido real que mostrar todavía), así que el toggle de
@@ -195,8 +198,9 @@ function Shell() {
   // algo que este rol no puede ver (ej. quedó guardado de una sesión admin
   // anterior en la misma pestaña), no renderiza esa pantalla igual --
   // el permiso real de todos modos lo valida cada policy de Supabase.
-  const seccionValida = idVisiblePara(rol, seccion);
-  const Contenido = REGISTRO[seccionValida ? seccion : 'salon'];
+  const seccionValida = idVisiblePara(rol, seccion, permisos);
+  const seccionEfectiva = seccionValida ? seccion : primeraSeccionVisible(rol, permisos);
+  const Contenido = seccionEfectiva ? REGISTRO[seccionEfectiva] : null;
 
   return (
     <>
@@ -217,11 +221,15 @@ function Shell() {
       ) : (
         <AppShell
           rol={rol}
-          activo={seccionValida ? seccion : 'salon'}
+          activo={seccionEfectiva}
+          permisos={permisos}
           onNavigate={setSeccion}
           topbarRight={
             <>
-              {profile?.rol === 'mozo' && !puedeVolverATurno && <AdminUnlock onSuccess={() => setSeccion('insumos')} />}
+              {/* mozo Y encargado pueden desbloquear admin puntualmente sin
+                  cerrar sesión -- el mismo mecanismo de siempre, ahora no
+                  exclusivo de mozo. */}
+              {profile?.rol !== 'admin' && !puedeVolverATurno && <AdminUnlock onSuccess={() => setSeccion('insumos')} />}
 
               {puedeVolverATurno && (
                 <button
@@ -229,13 +237,13 @@ function Shell() {
                   onClick={async () => {
                     const { error } = await volverATurno();
                     if (error) {
-                      alert(`No se pudo volver al turno (${error}). Probá de nuevo; si sigue igual, cerrá sesión y volvé a entrar con la clave del turno.`);
+                      alert(`No se pudo volver a tu cuenta (${error}). Probá de nuevo; si sigue igual, cerrá sesión y volvé a entrar con tu clave.`);
                       return;
                     }
                     setSeccion('salon');
                   }}
                 >
-                  ↩ Volver a mi turno
+                  ↩ Volver a mi cuenta
                 </button>
               )}
 
@@ -253,7 +261,18 @@ function Shell() {
             </>
           }
         >
-          <Contenido />
+          {Contenido ? (
+            <Contenido />
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px 16px' }}>
+              <div className="card card-pad" style={{ maxWidth: 420, textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 14 }}>
+                  Todavía no tenés ninguna sección habilitada. Pedile a un admin que te tilde algo en Ajustes → Roles y
+                  permisos.
+                </p>
+              </div>
+            </div>
+          )}
         </AppShell>
       )}
       {pedirAperturaCaja && <AperturaCajaModal turno={turno!} onClose={() => setOmitirAperturaCaja(true)} />}

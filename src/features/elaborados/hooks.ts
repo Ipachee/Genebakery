@@ -18,6 +18,7 @@ export function useElaboradoMutations() {
   };
   return {
     crear: useMutation({ mutationFn: api.crearElaborado, onSuccess: invalidar }),
+    actualizar: useMutation({ mutationFn: api.actualizarElaborado, onSuccess: invalidar }),
     borrar: useMutation({ mutationFn: api.borrarElaborado, onSuccess: invalidar }),
     producir: useMutation({
       mutationFn: (v: { elaboradoId: number; cantidadUnidades: number; usuarioId: string }) =>

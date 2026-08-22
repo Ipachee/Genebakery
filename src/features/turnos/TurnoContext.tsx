@@ -19,17 +19,20 @@ export const TurnoContext = createContext<TurnoContextValue | undefined>(undefin
 
 export function TurnoProvider({ children }: { children: ReactNode }) {
   const { session, profile } = useAuth();
-  const esAdmin = profile?.rol === 'admin';
+  // Admin y encargado no tienen turno propio (ninguno es "mozo de turno") --
+  // ambos se enganchan al turno que ya esté abierto en vez de resolver el
+  // suyo.
+  const usaTurnoAbierto = profile?.rol === 'admin' || profile?.rol === 'encargado';
   const etiqueta = profile?.rol === 'mozo' ? etiquetaPorEmail(session?.user.email) : null;
   const userId = session?.user.id ?? null;
 
   const { turnoId: turnoIdMozo, resolviendo, error, reintentar } = useResolverTurno(etiqueta, userId);
-  // Admin no tiene turno propio -- no abre uno nuevo, se engancha al que ya
-  // esté abierto (si hay uno) para poder cobrar/tomar pedidos sin tener que
-  // "volver al turno" de un mozo. Como fn_resolver_turno nunca deja más de
-  // un turno abierto a la vez, esto es inequívoco.
-  const { data: turnoAbierto, isLoading: buscandoAbierto } = useTurnoAbierto(esAdmin);
-  const turnoId = esAdmin ? (turnoAbierto?.id ?? null) : turnoIdMozo;
+  // Ninguno de los dos abre turno propio -- se enganchan al que ya esté
+  // abierto (si hay uno) para poder cobrar/tomar pedidos sin tener que
+  // "volver a mi cuenta" de un mozo. Como fn_resolver_turno nunca deja más
+  // de un turno abierto a la vez, esto es inequívoco.
+  const { data: turnoAbierto, isLoading: buscandoAbierto } = useTurnoAbierto(usaTurnoAbierto);
+  const turnoId = usaTurnoAbierto ? (turnoAbierto?.id ?? null) : turnoIdMozo;
 
   const { data: turno, isLoading: cargandoTurno } = useTurno(turnoId);
   const { data: facturado = 0 } = useFacturadoTurno(turnoId);
@@ -37,12 +40,12 @@ export function TurnoProvider({ children }: { children: ReactNode }) {
   const value: TurnoContextValue = {
     turno: turno ?? null,
     facturado,
-    loading: esAdmin ? buscandoAbierto || cargandoTurno : etiqueta != null && (resolviendo || cargandoTurno),
+    loading: usaTurnoAbierto ? buscandoAbierto || cargandoTurno : etiqueta != null && (resolviendo || cargandoTurno),
     // El error de fn_resolver_turno es específico de mozo (regla de "un
     // turno a la vez" al intentar abrir el propio); para admin, no tener
     // turno abierto no es un error -- solo significa que Salón/Comandera
     // van a mostrar su propio EmptyState hasta que alguien abra uno.
-    error: esAdmin ? null : error,
+    error: usaTurnoAbierto ? null : error,
     reintentar,
     // "Reabrir" pasa de nuevo por fn_resolver_turno (mismo camino que al
     // loguearse) -- así respeta las mismas reglas de negocio (un turno

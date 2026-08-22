@@ -10,6 +10,7 @@ export function useEmpleadoMutations() {
   const invalidar = () => qc.invalidateQueries({ queryKey: ['empleados'] });
   return {
     crear: useMutation({ mutationFn: api.crearEmpleado, onSuccess: invalidar }),
+    actualizar: useMutation({ mutationFn: api.actualizarEmpleado, onSuccess: invalidar }),
     borrar: useMutation({ mutationFn: api.borrarEmpleado, onSuccess: invalidar }),
   };
 }

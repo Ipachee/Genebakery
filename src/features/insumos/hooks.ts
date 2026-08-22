@@ -10,6 +10,7 @@ export function useInsumoMutations() {
   const invalidar = () => qc.invalidateQueries({ queryKey: ['insumos'] });
   return {
     crear: useMutation({ mutationFn: api.crearInsumo, onSuccess: invalidar }),
+    actualizar: useMutation({ mutationFn: api.actualizarInsumo, onSuccess: invalidar }),
     borrar: useMutation({ mutationFn: api.borrarInsumo, onSuccess: invalidar }),
   };
 }

@@ -2,24 +2,48 @@ import { useState } from 'react';
 import { useClienteMutations } from '../hooks';
 import { FormModal } from '../../../components/FormModal';
 import { Field, TextInput } from '../../../components/Field';
+import type { Database } from '../../../lib/supabase/types';
 
-export function NuevoClienteModal({ onClose }: { onClose: () => void }) {
-  const { crear } = useClienteMutations();
-  const [form, setForm] = useState({ nombre: '', apellido: '', dni: '', cuit: '', direccion: '', condicionFiscal: '', email: '', descuentoPct: '' });
+type Cliente = Database['public']['Tables']['clientes']['Row'];
+
+// Mismo modal para cargar y editar -- si viene `cliente`, arranca con esos
+// valores y guarda con actualizar() en vez de crear().
+export function NuevoClienteModal({ cliente, onClose }: { cliente?: Cliente; onClose: () => void }) {
+  const editando = !!cliente;
+  const { crear, actualizar } = useClienteMutations();
+  const [form, setForm] = useState({
+    nombre: cliente?.nombre ?? '',
+    apellido: cliente?.apellido ?? '',
+    dni: cliente?.dni ?? '',
+    cuit: cliente?.cuit ?? '',
+    direccion: cliente?.direccion ?? '',
+    condicionFiscal: cliente?.condicion_fiscal ?? '',
+    email: cliente?.email ?? '',
+    descuentoPct: cliente ? String(cliente.descuento_pct) : '',
+  });
+
+  const guardando = editando ? actualizar.isPending : crear.isPending;
+  const mutacionActiva = editando ? actualizar : crear;
+  const valido = form.nombre.trim() !== '' && form.apellido.trim() !== '';
 
   function submit() {
-    if (!form.nombre.trim() || !form.apellido.trim()) return;
-    crear.mutate({ ...form, descuentoPct: Number(form.descuentoPct) || 0 });
+    if (!valido) return;
+    if (editando) {
+      actualizar.mutate({ id: cliente.id, ...form, descuentoPct: Number(form.descuentoPct) || 0 });
+    } else {
+      crear.mutate({ ...form, descuentoPct: Number(form.descuentoPct) || 0 });
+    }
     onClose();
   }
 
   return (
     <FormModal
-      title="🧑 Nuevo cliente"
+      title={editando ? '✏️ Editar cliente' : '🧑 Nuevo cliente'}
       onClose={onClose}
       onSubmit={submit}
-      submitLabel="+ Agregar cliente"
-      submitDisabled={!form.nombre.trim() || !form.apellido.trim()}
+      submitLabel={guardando ? 'Guardando…' : editando ? 'Guardar cambios' : '+ Agregar cliente'}
+      submitDisabled={!valido || guardando}
+      error={mutacionActiva.isError ? mutacionActiva.error?.message : null}
     >
       <div style={{ display: 'flex', gap: 8 }}>
         <Field label="Nombre" style={{ flex: 1 }}>
@@ -38,7 +62,11 @@ export function NuevoClienteModal({ onClose }: { onClose: () => void }) {
         </Field>
       </div>
       <Field label="Condición fiscal">
-        <TextInput placeholder="Ej: Consumidor Final, Responsable Inscripto" value={form.condicionFiscal} onChange={(e) => setForm({ ...form, condicionFiscal: e.target.value })} />
+        <TextInput
+          placeholder="Ej: Consumidor Final, Responsable Inscripto"
+          value={form.condicionFiscal}
+          onChange={(e) => setForm({ ...form, condicionFiscal: e.target.value })}
+        />
       </Field>
       <Field label="Dirección">
         <TextInput value={form.direccion} onChange={(e) => setForm({ ...form, direccion: e.target.value })} />

@@ -3,25 +3,36 @@ import { useInsumoMutations, useInsumos } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable, ThOrdenable, useOrdenTabla } from '../../../components/DataTable';
 import { Button } from '../../../components/Button';
-import { TextInput } from '../../../components/Field';
+import { Select, TextInput } from '../../../components/Field';
 import { Badge } from '../../../components/Badge';
 import { EmptyState } from '../../../components/EmptyState';
 import { useConfirm } from '../../../components/ConfirmDialog';
 import { fmtMoneyDecimal as fmt } from '../../../lib/format';
 import { NuevoInsumoModal } from './NuevoInsumoModal';
+import type { Database } from '../../../lib/supabase/types';
 
+type Insumo = Database['public']['Tables']['insumos']['Row'];
 type ColumnaOrden = 'nombre' | 'stock' | 'costo' | 'minimo';
 
 export function InsumosView() {
   const { data: insumos, isLoading } = useInsumos();
   const { borrar } = useInsumoMutations();
   const [busqueda, setBusqueda] = useState('');
+  const [unidad, setUnidad] = useState('');
   const [modalAbierto, setModalAbierto] = useState(false);
+  const [editando, setEditando] = useState<Insumo | null>(null);
   const { orden, alClickear } = useOrdenTabla<ColumnaOrden>('nombre');
   const { confirm, dialog } = useConfirm();
 
+  const unidadesDisponibles = useMemo(
+    () => Array.from(new Set((insumos ?? []).map((i) => i.unidad))).sort((a, b) => a.localeCompare(b)),
+    [insumos]
+  );
+
   const insumosFiltrados = useMemo(() => {
-    const filtrados = (insumos ?? []).filter((i) => i.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()));
+    const filtrados = (insumos ?? []).filter(
+      (i) => i.nombre.toLowerCase().includes(busqueda.trim().toLowerCase()) && (!unidad || i.unidad === unidad)
+    );
     const dir = orden.dir === 'asc' ? 1 : -1;
     return [...filtrados].sort((a, b) => {
       switch (orden.col) {
@@ -35,19 +46,29 @@ export function InsumosView() {
           return dir * a.nombre.localeCompare(b.nombre);
       }
     });
-  }, [insumos, busqueda, orden]);
+  }, [insumos, busqueda, unidad, orden]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <PageHeader title="Insumos" subtitle="Stock y costo por promedio ponderado. Se recalcula solo con cada compra." />
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-        <TextInput
-          placeholder="🔍 Buscar insumo por nombre…"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          style={{ maxWidth: 260, flex: 1 }}
-        />
+        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', flex: 1 }}>
+          <TextInput
+            placeholder="🔍 Buscar insumo por nombre…"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            style={{ maxWidth: 260, flex: 1 }}
+          />
+          <Select value={unidad} onChange={(e) => setUnidad(e.target.value)} style={{ maxWidth: 160 }}>
+            <option value="">Todas las unidades</option>
+            {unidadesDisponibles.map((u) => (
+              <option key={u} value={u}>
+                {u}
+              </option>
+            ))}
+          </Select>
+        </div>
         <Button variant="primary" onClick={() => setModalAbierto(true)}>
           + Nuevo insumo
         </Button>
@@ -58,7 +79,7 @@ export function InsumosView() {
       ) : !insumos?.length ? (
         <EmptyState>Todavía no cargaste insumos.</EmptyState>
       ) : !insumosFiltrados.length ? (
-        <EmptyState>No hay insumos que coincidan con la búsqueda.</EmptyState>
+        <EmptyState>No hay insumos que coincidan con la búsqueda o el filtro.</EmptyState>
       ) : (
         <DataTable>
           <thead>
@@ -91,7 +112,10 @@ export function InsumosView() {
                   </td>
                   <td>{fmt.format(Number(i.costo_unit))}</td>
                   <td>{i.stock_min}</td>
-                  <td>
+                  <td style={{ display: 'flex', gap: 6 }}>
+                    <Button variant="secondary" size="sm" aria-label={`Editar ${i.nombre}`} onClick={() => setEditando(i)}>
+                      ✏️
+                    </Button>
                     <Button
                       variant="danger"
                       size="sm"
@@ -111,6 +135,7 @@ export function InsumosView() {
       )}
 
       {modalAbierto && <NuevoInsumoModal onClose={() => setModalAbierto(false)} />}
+      {editando && <NuevoInsumoModal insumo={editando} onClose={() => setEditando(null)} />}
       {dialog}
     </div>
   );

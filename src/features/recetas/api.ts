@@ -16,6 +16,15 @@ export async function crearProducto(v: { nombre: string; categoria: string; prec
   return data;
 }
 
+// "Pausado" (activo=false) saca el producto del menú de Comandar pedidos
+// sin borrarlo -- conserva receta, costo e historial, para cuando vuelva a
+// haber stock/se retome. La receta se sigue pudiendo ver y editar
+// pausado o no.
+export async function actualizarActivoProducto(id: number, activo: boolean) {
+  const { error } = await supabase.from('productos').update({ activo }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function fetchInsumos() {
   const { data, error } = await supabase.from('insumos').select('*').is('deleted_at', null).order('nombre');
   if (error) throw error;
