@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { useAuth } from '../../../auth/useAuth';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { useElementosDecorativos, useMesas, useEstadoDeMesas, useSalonMutations, useSalones, type EstadoMesa } from '../hooks';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
 import { PedidoPanel } from '../../pedidos/components/PedidoPanel';
@@ -39,7 +39,6 @@ type Drag = { tipo: 'mesa' | 'salon' | 'elemento'; id: number; dx: number; dy: n
 type Redim = { tipo: 'salon' | 'elemento'; id: number; startX: number; startY: number; startW: number; startH: number } | null;
 
 export function SalonView() {
-  const { profile } = useAuth();
   const { data: salones, isLoading: loadingSalones, error: errorSalones } = useSalones();
   const { data: mesas, isLoading: loadingMesas, error: errorMesas } = useMesas();
   const { data: elementos, isLoading: loadingElementos, error: errorElementos } = useElementosDecorativos();
@@ -87,7 +86,7 @@ export function SalonView() {
     setArrastrePanel(null);
   }
 
-  const esAdmin = profile?.rol === 'admin';
+  const puedeEditarPlano = usePuedeEditar('salon');
 
   if (loadingSalones || loadingMesas || loadingElementos) return <EmptyState>Cargando salón…</EmptyState>;
   if (errorSalones || errorMesas || errorElementos) {
@@ -263,7 +262,7 @@ export function SalonView() {
               🛍️ Take away
             </Button>
           )}
-          {esAdmin && (
+          {puedeEditarPlano && (
             <>
               <Button
                 variant={editando ? 'primary' : 'secondary'}

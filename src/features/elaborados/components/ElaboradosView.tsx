@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { useElaboradoMutations, useElaborados } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '../../../components/Button';
@@ -14,6 +15,7 @@ import { NuevoElaboradoModal } from './NuevoElaboradoModal';
 type Elaborado = NonNullable<ReturnType<typeof useElaborados>['data']>[number];
 
 export function ElaboradosView() {
+  const puedeEditar = usePuedeEditar('elaborados');
   const { session } = useAuth();
   const { data: elaborados, isLoading } = useElaborados();
   const mutations = useElaboradoMutations();
@@ -43,9 +45,11 @@ export function ElaboradosView() {
         title="Elaborados"
         subtitle="Se producen en unidades (ej. una torta entera) y se venden por porción."
         action={
-          <Button variant="primary" onClick={() => setModalAbierto(true)}>
-            + Nuevo elaborado
-          </Button>
+          puedeEditar ? (
+            <Button variant="primary" onClick={() => setModalAbierto(true)}>
+              + Nuevo elaborado
+            </Button>
+          ) : undefined
         }
       />
 
@@ -72,31 +76,33 @@ export function ElaboradosView() {
                     Stock: <strong>{e.stock_porciones}</strong> porciones {bajo && <Badge tone="warn">bajo</Badge>}
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
-                  <TextInput
-                    placeholder="Unidades hechas"
-                    type="number"
-                    value={producciones[e.id] ?? ''}
-                    onChange={(ev) => setProducciones({ ...producciones, [e.id]: ev.target.value })}
-                    style={{ width: 120 }}
-                  />
-                  <Button variant="success" size="sm" onClick={() => producir(e.id)}>
-                    Registrar producción
-                  </Button>
-                  <Button variant="secondary" size="sm" aria-label={`Editar ${e.nombre}`} onClick={() => setEditando(e)}>
-                    ✏️
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    aria-label={`Borrar ${e.nombre}`}
-                    onClick={async () => {
-                      if (await confirm(`¿Borrar el elaborado "${e.nombre}"?`)) mutations.borrar.mutate(e.id);
-                    }}
-                  >
-                    🗑
-                  </Button>
-                </div>
+                {puedeEditar && (
+                  <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+                    <TextInput
+                      placeholder="Unidades hechas"
+                      type="number"
+                      value={producciones[e.id] ?? ''}
+                      onChange={(ev) => setProducciones({ ...producciones, [e.id]: ev.target.value })}
+                      style={{ width: 120 }}
+                    />
+                    <Button variant="success" size="sm" onClick={() => producir(e.id)}>
+                      Registrar producción
+                    </Button>
+                    <Button variant="secondary" size="sm" aria-label={`Editar ${e.nombre}`} onClick={() => setEditando(e)}>
+                      ✏️
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      aria-label={`Borrar ${e.nombre}`}
+                      onClick={async () => {
+                        if (await confirm(`¿Borrar el elaborado "${e.nombre}"?`)) mutations.borrar.mutate(e.id);
+                      }}
+                    >
+                      🗑
+                    </Button>
+                  </div>
+                )}
               </Card>
             );
           })}

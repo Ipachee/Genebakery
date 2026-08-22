@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useActualizarActivoProducto, useCrearProducto, useInsumos, useProductos, useRecetaDeProducto, useRecetaMutations } from '../hooks';
 import { useCategorias } from '../../categorias/hooks';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '../../../components/Button';
 import { Badge } from '../../../components/Badge';
@@ -9,6 +10,7 @@ import { EmptyState } from '../../../components/EmptyState';
 import { Card } from '../../../components/Card';
 
 export function RecetasView() {
+  const puedeEditar = usePuedeEditar('recetas');
   const { data: productos } = useProductos();
   const { data: insumos } = useInsumos();
   const { data: categorias } = useCategorias();
@@ -54,12 +56,14 @@ export function RecetasView() {
             </option>
           ))}
         </Select>
-        <Button variant="secondary" onClick={() => setCreandoProducto((v) => !v)}>
-          {creandoProducto ? 'cancelar' : '+ Nuevo producto'}
-        </Button>
+        {puedeEditar && (
+          <Button variant="secondary" onClick={() => setCreandoProducto((v) => !v)}>
+            {creandoProducto ? 'cancelar' : '+ Nuevo producto'}
+          </Button>
+        )}
       </div>
 
-      {creandoProducto && (
+      {puedeEditar && creandoProducto && (
         <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <Field label="Nombre del plato/producto">
             <TextInput
@@ -107,14 +111,16 @@ export function RecetasView() {
                 {productoSeleccionado.activo ? 'En carta' : 'Pausado'}
               </Badge>
             </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              disabled={actualizarActivo.isPending}
-              onClick={() => actualizarActivo.mutate({ id: productoSeleccionado.id, activo: !productoSeleccionado.activo })}
-            >
-              {productoSeleccionado.activo ? '⏸️ Pausar (sacar de la carta)' : '▶️ Volver a la carta'}
-            </Button>
+            {puedeEditar && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={actualizarActivo.isPending}
+                onClick={() => actualizarActivo.mutate({ id: productoSeleccionado.id, activo: !productoSeleccionado.activo })}
+              >
+                {productoSeleccionado.activo ? '⏸️ Pausar (sacar de la carta)' : '▶️ Volver a la carta'}
+              </Button>
+            )}
           </div>
           {!productoSeleccionado.activo && (
             <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
@@ -172,56 +178,60 @@ export function RecetasView() {
                   <span>
                     {r.insumos?.nombre} — <strong>{r.cantidad}</strong> {r.insumos?.unidad}
                   </span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      aria-label={`Editar cantidad de ${r.insumos?.nombre}`}
-                      onClick={() => {
-                        setEditandoId(r.id);
-                        setCantidadEditada(String(r.cantidad));
-                      }}
-                    >
-                      ✏️
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      aria-label={`Quitar ${r.insumos?.nombre} de la receta`}
-                      onClick={() => mutations.quitar.mutate(r.id)}
-                    >
-                      🗑
-                    </Button>
-                  </div>
+                  {puedeEditar && (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        aria-label={`Editar cantidad de ${r.insumos?.nombre}`}
+                        onClick={() => {
+                          setEditandoId(r.id);
+                          setCantidadEditada(String(r.cantidad));
+                        }}
+                      >
+                        ✏️
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        aria-label={`Quitar ${r.insumos?.nombre} de la receta`}
+                        onClick={() => mutations.quitar.mutate(r.id)}
+                      >
+                        🗑
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
           ))}
 
-          <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
-            <Select value={insumoId} onChange={(e) => setInsumoId(e.target.value ? Number(e.target.value) : '')} style={{ flex: 1 }}>
-              <option value="">Insumo…</option>
-              {insumos
-                ?.filter((i) => !insumosUsados.has(i.id))
-                .map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.nombre} ({i.unidad})
-                  </option>
-                ))}
-            </Select>
-            <TextInput placeholder="Cantidad" type="number" value={cantidad} onChange={(e) => setCantidad(e.target.value)} style={{ width: 100 }} />
-            <Button
-              variant="primary"
-              onClick={() => {
-                if (!insumoId || !cantidad) return;
-                mutations.agregar.mutate({ insumoId, cantidad: Number(cantidad) });
-                setInsumoId('');
-                setCantidad('');
-              }}
-            >
-              + Agregar
-            </Button>
-          </div>
+          {puedeEditar && (
+            <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-2)' }}>
+              <Select value={insumoId} onChange={(e) => setInsumoId(e.target.value ? Number(e.target.value) : '')} style={{ flex: 1 }}>
+                <option value="">Insumo…</option>
+                {insumos
+                  ?.filter((i) => !insumosUsados.has(i.id))
+                  .map((i) => (
+                    <option key={i.id} value={i.id}>
+                      {i.nombre} ({i.unidad})
+                    </option>
+                  ))}
+              </Select>
+              <TextInput placeholder="Cantidad" type="number" value={cantidad} onChange={(e) => setCantidad(e.target.value)} style={{ width: 100 }} />
+              <Button
+                variant="primary"
+                onClick={() => {
+                  if (!insumoId || !cantidad) return;
+                  mutations.agregar.mutate({ insumoId, cantidad: Number(cantidad) });
+                  setInsumoId('');
+                  setCantidad('');
+                }}
+              >
+                + Agregar
+              </Button>
+            </div>
+          )}
         </Card>
       )}
     </div>

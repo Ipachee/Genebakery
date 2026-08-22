@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { useGastos } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable, ThOrdenable, useOrdenTabla } from '../../../components/DataTable';
@@ -11,6 +12,7 @@ import { RegistrarGastoModal } from './RegistrarGastoModal';
 type ColumnaOrden = 'fecha' | 'insumo' | 'cantidad' | 'costo' | 'proveedor';
 
 export function GastosView() {
+  const puedeEditar = usePuedeEditar('gastos');
   const { data: gastos, isLoading } = useGastos();
   const [busqueda, setBusqueda] = useState('');
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -54,9 +56,11 @@ export function GastosView() {
           onChange={(e) => setBusqueda(e.target.value)}
           style={{ maxWidth: 260, flex: 1 }}
         />
-        <Button variant="primary" onClick={() => setModalAbierto(true)}>
-          + Registrar gasto
-        </Button>
+        {puedeEditar && (
+          <Button variant="primary" onClick={() => setModalAbierto(true)}>
+            + Registrar gasto
+          </Button>
+        )}
       </div>
 
       {isLoading ? (

@@ -1,9 +1,9 @@
-import { Fragment, useEffect, useState } from 'react';
-import { usePermisosNavegacion, usePermisosMutations, useRolesPersonalizados, useRolMutations } from '../hooks';
+import { Fragment } from 'react';
+import { usePermisosNavegacion, usePermisosMutations, useRolesPersonalizados } from '../hooks';
 import { SECCIONES_FIJAS, GRUPOS, ROLES_CONFIGURABLES } from '../../../app/nav';
 import { DataTable } from '../../../components/DataTable';
-import { Field, TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
+import './PermisosRolesView.css';
 
 const LABEL_ROL_FIJO: Record<string, string> = { mozo: 'Mozo' };
 
@@ -11,17 +11,8 @@ export function PermisosRolesView() {
   const { permisos, edicion, isLoading } = usePermisosNavegacion();
   const { set, setEditar } = usePermisosMutations();
   const { data: rolesPersonalizados } = useRolesPersonalizados();
-  const { actualizarEtiqueta } = useRolMutations();
 
   const etiquetaEncargado = rolesPersonalizados?.find((r) => r.clave === 'encargado')?.etiqueta ?? 'Encargado';
-  const [nombreEncargado, setNombreEncargado] = useState(etiquetaEncargado);
-  // El input arranca vacío (la query todavía no cargó) y se sincroniza una
-  // vez que llega el nombre real -- después de eso el usuario ya puede
-  // estar escribiendo, así que no se vuelve a pisar.
-  useEffect(() => {
-    if (rolesPersonalizados) setNombreEncargado(etiquetaEncargado);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolesPersonalizados === undefined]);
 
   function labelRol(rol: string) {
     if (rol === 'encargado') return etiquetaEncargado;
@@ -41,30 +32,18 @@ export function PermisosRolesView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <div>
-        <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: '0 0 var(--space-3)' }}>
+        <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0 }}>
           Qué sección del menú ve cada rol. <strong>Admin siempre ve todo</strong> (no se puede restringir, para no
           quedarse afuera de esta misma pantalla por error). Los cambios se guardan solos, no hace falta un botón
           "Guardar".
         </p>
-
-        <Field label="Nombre del 3er rol (todavía sin definir el puesto real)">
-          <div style={{ display: 'flex', gap: 8, maxWidth: 320 }}>
-            <TextInput value={nombreEncargado} onChange={(e) => setNombreEncargado(e.target.value)} />
-            <button
-              className="btn btn-secondary btn-sm"
-              disabled={!nombreEncargado.trim() || nombreEncargado.trim() === etiquetaEncargado}
-              onClick={() => actualizarEtiqueta.mutate({ clave: 'encargado', etiqueta: nombreEncargado.trim() })}
-            >
-              {actualizarEtiqueta.isPending ? 'Guardando…' : 'Renombrar'}
-            </button>
-          </div>
-        </Field>
       </div>
 
       {isLoading ? (
         <EmptyState>Cargando…</EmptyState>
       ) : (
         <>
+        <div className="permisos-matriz">
         <DataTable>
           <thead>
             <tr>
@@ -72,7 +51,7 @@ export function PermisosRolesView() {
                 Sección
               </th>
               {ROLES_CONFIGURABLES.map((rol) => (
-                <th key={rol} colSpan={2} style={{ textAlign: 'center' }}>
+                <th key={rol} colSpan={2} className="col-grupo-rol" style={{ textAlign: 'center' }}>
                   {labelRol(rol)}
                 </th>
               ))}
@@ -80,8 +59,8 @@ export function PermisosRolesView() {
             <tr>
               {ROLES_CONFIGURABLES.map((rol) => (
                 <Fragment key={rol}>
-                  <th style={{ textAlign: 'center', fontWeight: 500, fontSize: 11.5, color: 'var(--text-dim)' }}>Ver</th>
-                  <th style={{ textAlign: 'center', fontWeight: 500, fontSize: 11.5, color: 'var(--text-dim)' }}>Editar</th>
+                  <th className="col-ver" style={{ textAlign: 'center', fontWeight: 500, fontSize: 11.5, color: 'var(--text-dim)' }}>Ver</th>
+                  <th className="col-editar" style={{ textAlign: 'center', fontWeight: 500, fontSize: 11.5, color: 'var(--text-dim)' }}>Editar</th>
                 </Fragment>
               ))}
             </tr>
@@ -102,7 +81,7 @@ export function PermisosRolesView() {
                       const puedeEditar = edicion.has(`${rol}:${s.id}`);
                       return (
                         <Fragment key={rol}>
-                          <td style={{ textAlign: 'center' }}>
+                          <td className="col-ver">
                             <input
                               type="checkbox"
                               checked={visible}
@@ -111,7 +90,7 @@ export function PermisosRolesView() {
                               aria-label={`${labelRol(rol)} ve ${s.label}`}
                             />
                           </td>
-                          <td style={{ textAlign: 'center' }}>
+                          <td className="col-editar">
                             <input
                               type="checkbox"
                               checked={puedeEditar}
@@ -129,6 +108,7 @@ export function PermisosRolesView() {
             ))}
           </tbody>
         </DataTable>
+        </div>
         <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
           "Ver" muestra la sección en el menú. "Editar" habilita cargar/mover/borrar ahí adentro -- por ahora esto último
           solo lo respeta Calendario (el resto de las secciones sigue funcionando como antes, atado solo a "Ver").

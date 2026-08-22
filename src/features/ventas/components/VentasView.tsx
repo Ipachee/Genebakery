@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { useVentaMutations, useVentas } from '../hooks';
 import { fetchItemsParaTicket } from '../api';
 import { usePerfilNegocio } from '../../negocio/hooks';
@@ -33,6 +34,7 @@ function mesaLabelDe(v: Venta) {
 }
 
 export function VentasView() {
+  const puedeEditar = usePuedeEditar('ventas');
   const { data: ventas, isLoading } = useVentas();
   const { data: perfilNegocio } = usePerfilNegocio();
   const { actualizarMetodoPago, borrar } = useVentaMutations();
@@ -202,6 +204,7 @@ export function VentasView() {
                 key={v.id}
                 venta={v}
                 cargandoTicket={cargandoTicketId === v.id}
+                puedeEditar={puedeEditar}
                 onGuardarMetodo={(metodoPago) => actualizarMetodoPago.mutate({ id: v.id, metodoPago })}
                 onReimprimir={() => reimprimirTicket(v)}
                 onFacturar={() => setFacturando(v)}
@@ -246,6 +249,7 @@ export function VentasView() {
 function FilaVenta({
   venta,
   cargandoTicket,
+  puedeEditar,
   onGuardarMetodo,
   onReimprimir,
   onFacturar,
@@ -253,6 +257,7 @@ function FilaVenta({
 }: {
   venta: Venta;
   cargandoTicket: boolean;
+  puedeEditar: boolean;
   onGuardarMetodo: (metodoPago: string) => void;
   onReimprimir: () => void;
   onFacturar: () => void;
@@ -302,9 +307,11 @@ function FilaVenta({
           </>
         ) : (
           <>
-            <Button variant="success" size="sm" title="Editar método de pago" aria-label="Editar método de pago" onClick={empezarEdicion}>
-              ✓
-            </Button>
+            {puedeEditar && (
+              <Button variant="success" size="sm" title="Editar método de pago" aria-label="Editar método de pago" onClick={empezarEdicion}>
+                ✓
+              </Button>
+            )}
             <Button
               variant="secondary"
               size="sm"
@@ -328,9 +335,11 @@ function FilaVenta({
                 🧾
               </Button>
             )}
-            <Button variant="danger" size="sm" title="Borrar venta" aria-label="Borrar venta" onClick={onBorrar}>
-              🗑
-            </Button>
+            {puedeEditar && (
+              <Button variant="danger" size="sm" title="Borrar venta" aria-label="Borrar venta" onClick={onBorrar}>
+                🗑
+              </Button>
+            )}
           </>
         )}
       </td>

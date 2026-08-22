@@ -1,0 +1,24 @@
+/* La tabla base (.data-table) usa el mismo padding parejo en toda celda,
+   pensado para columnas de una sola cosa -- acá cada rol son 2 columnas
+   (Ver/Editar) que tienen que leerse como una dupla. Se achica el padding
+   entre ambas y se agrega un separador antes de "Ver" (arranque de cada
+   rol) para que la dupla se vea junta y el salto entre roles distintos
+   quede claro. */
+.permisos-matriz table.data-table th.col-ver,
+.permisos-matriz table.data-table td.col-ver {
+  padding-left: 20px;
+  padding-right: 4px;
+  border-left: 1px solid var(--border);
+  text-align: center;
+}
+
+.permisos-matriz table.data-table th.col-editar,
+.permisos-matriz table.data-table td.col-editar {
+  padding-left: 4px;
+  padding-right: 20px;
+  text-align: center;
+}
+
+.permisos-matriz table.data-table th.col-grupo-rol {
+  border-left: 1px solid var(--border);
+}

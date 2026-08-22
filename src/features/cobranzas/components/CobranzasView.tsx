@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { usePagosEmpleados, usePagosEmpleadosMutations } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable } from '../../../components/DataTable';
@@ -15,6 +16,7 @@ type Pago = Database['public']['Tables']['pagos_empleados']['Row'] & {
 };
 
 export function CobranzasView() {
+  const puedeEditar = usePuedeEditar('cobranzas');
   const { data: pagos, isLoading } = usePagosEmpleados();
   const { borrar } = usePagosEmpleadosMutations();
   const [busqueda, setBusqueda] = useState('');
@@ -49,9 +51,11 @@ export function CobranzasView() {
           onChange={(e) => setBusqueda(e.target.value)}
           style={{ maxWidth: 260, flex: 1 }}
         />
-        <Button variant="primary" onClick={() => setModalAbierto(true)}>
-          + Registrar pago
-        </Button>
+        {puedeEditar && (
+          <Button variant="primary" onClick={() => setModalAbierto(true)}>
+            + Registrar pago
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -70,7 +74,7 @@ export function CobranzasView() {
                 <th>Concepto</th>
                 <th>Método</th>
                 <th>Monto</th>
-                <th></th>
+                {puedeEditar && <th></th>}
               </tr>
             </thead>
             <tbody>
@@ -81,24 +85,26 @@ export function CobranzasView() {
                   <td>{p.concepto || '—'}</td>
                   <td>{p.metodo_pago || '—'}</td>
                   <td>{fmt.format(Number(p.monto))}</td>
-                  <td style={{ display: 'flex', gap: 6 }}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      aria-label={`Editar pago a ${p.empleados?.nombre ?? ''}`}
-                      onClick={() => setEditando(p)}
-                    >
-                      ✏️
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      aria-label={`Borrar pago a ${p.empleados?.nombre ?? ''}`}
-                      onClick={() => handleBorrar(p)}
-                    >
-                      🗑
-                    </Button>
-                  </td>
+                  {puedeEditar && (
+                    <td style={{ display: 'flex', gap: 6 }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        aria-label={`Editar pago a ${p.empleados?.nombre ?? ''}`}
+                        onClick={() => setEditando(p)}
+                      >
+                        ✏️
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        aria-label={`Borrar pago a ${p.empleados?.nombre ?? ''}`}
+                        onClick={() => handleBorrar(p)}
+                      >
+                        🗑
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

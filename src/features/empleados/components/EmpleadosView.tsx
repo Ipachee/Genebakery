@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { useEmpleadoMutations, useEmpleados } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable, ThOrdenable, useOrdenTabla } from '../../../components/DataTable';
@@ -13,6 +14,7 @@ type Empleado = Database['public']['Tables']['empleados']['Row'];
 type ColumnaOrden = 'nombre' | 'dni' | 'puesto' | 'ingreso' | 'descuento';
 
 export function EmpleadosView() {
+  const puedeEditar = usePuedeEditar('empleados');
   const { data: empleados, isLoading } = useEmpleados();
   const { borrar } = useEmpleadoMutations();
   const [busqueda, setBusqueda] = useState('');
@@ -55,9 +57,11 @@ export function EmpleadosView() {
           onChange={(e) => setBusqueda(e.target.value)}
           style={{ maxWidth: 260, flex: 1 }}
         />
-        <Button variant="primary" onClick={() => setModalAbierto(true)}>
-          + Nuevo empleado
-        </Button>
+        {puedeEditar && (
+          <Button variant="primary" onClick={() => setModalAbierto(true)}>
+            + Nuevo empleado
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -85,7 +89,7 @@ export function EmpleadosView() {
               <ThOrdenable col="descuento" orden={orden} onOrdenar={alClickear}>
                 Desc.
               </ThOrdenable>
-              <th></th>
+              {puedeEditar && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -98,21 +102,23 @@ export function EmpleadosView() {
                 <td>{e.puesto || '—'}</td>
                 <td>{e.ingreso || '—'}</td>
                 <td>{e.descuento_pct}%</td>
-                <td style={{ display: 'flex', gap: 6 }}>
-                  <Button variant="secondary" size="sm" aria-label={`Editar ${e.nombre} ${e.apellido}`} onClick={() => setEditando(e)}>
-                    ✏️
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    aria-label={`Borrar ${e.nombre} ${e.apellido}`}
-                    onClick={async () => {
-                      if (await confirm(`¿Borrar a ${e.nombre} ${e.apellido}?`)) borrar.mutate(e.id);
-                    }}
-                  >
-                    🗑
-                  </Button>
-                </td>
+                {puedeEditar && (
+                  <td style={{ display: 'flex', gap: 6 }}>
+                    <Button variant="secondary" size="sm" aria-label={`Editar ${e.nombre} ${e.apellido}`} onClick={() => setEditando(e)}>
+                      ✏️
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      aria-label={`Borrar ${e.nombre} ${e.apellido}`}
+                      onClick={async () => {
+                        if (await confirm(`¿Borrar a ${e.nombre} ${e.apellido}?`)) borrar.mutate(e.id);
+                      }}
+                    >
+                      🗑
+                    </Button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState } from 'react';
-import { useAuth } from '../../../auth/useAuth';
 import { useCalendario, useCalendarioMutations } from '../hooks';
-import { usePermisosNavegacion } from '../../permisos/hooks';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { Button } from '../../../components/Button';
 import { EmptyState } from '../../../components/EmptyState';
@@ -124,14 +123,7 @@ function claseTipo(tipo: string): string {
 type InfoArrastre = { entrada: Entrada; duracionDias: number; startX: number; startY: number };
 
 export function CalendarioView() {
-  const { profile } = useAuth();
-  const { edicion } = usePermisosNavegacion();
-  // Admin siempre puede editar el calendario. Mozo/RRHH solo si tienen el
-  // tick de "Editar" en calendario tildado en Ajustes → Roles y permisos
-  // -- "Ver" (que ya controla si la sección aparece en el menú) no alcanza,
-  // separar ambos permite que alguien vea quién trabaja sin poder mover
-  // turnos ni cargar vacaciones.
-  const puedeEditar = profile?.rol === 'admin' || (!!profile?.rol && edicion.has(`${profile.rol}:calendario`));
+  const puedeEditar = usePuedeEditar('calendario');
   const [vista, setVista] = useState<'mensual' | 'semanal'>('mensual');
   const [mesBase, setMesBase] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [semanaBase, setSemanaBase] = useState(() => new Date());

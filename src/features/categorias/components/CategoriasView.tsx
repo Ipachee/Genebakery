@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { useCategoriaMutations, useCategorias } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable } from '../../../components/DataTable';
@@ -11,6 +12,7 @@ import type { Database } from '../../../lib/supabase/types';
 type Categoria = Database['public']['Tables']['categorias']['Row'];
 
 export function CategoriasView() {
+  const puedeEditar = usePuedeEditar('categorias');
   const { data: categorias, isLoading } = useCategorias();
   const { crear, actualizar, borrar } = useCategoriaMutations();
   const [nombre, setNombre] = useState('');
@@ -30,12 +32,14 @@ export function CategoriasView() {
         subtitle="Las pestañas que se ven al armar un pedido y al cargar un producto nuevo. El orden acá define el orden de las pestañas."
       />
 
-      <div className="toolbar-form">
-        <TextInput placeholder="Nombre de la categoría (ej: Bebidas noche)" value={nombre} onChange={(e) => setNombre(e.target.value)} style={{ minWidth: 220 }} />
-        <Button variant="primary" onClick={submit}>
-          + Agregar categoría
-        </Button>
-      </div>
+      {puedeEditar && (
+        <div className="toolbar-form">
+          <TextInput placeholder="Nombre de la categoría (ej: Bebidas noche)" value={nombre} onChange={(e) => setNombre(e.target.value)} style={{ minWidth: 220 }} />
+          <Button variant="primary" onClick={submit}>
+            + Agregar categoría
+          </Button>
+        </div>
+      )}
 
       {isLoading ? (
         <EmptyState>Cargando…</EmptyState>
@@ -47,7 +51,7 @@ export function CategoriasView() {
             <tr>
               <th>Orden</th>
               <th>Nombre</th>
-              <th></th>
+              {puedeEditar && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -55,6 +59,7 @@ export function CategoriasView() {
               <FilaCategoria
                 key={c.id}
                 categoria={c}
+                puedeEditar={puedeEditar}
                 onGuardar={(v) => actualizar.mutate(v)}
                 onBorrar={async () => {
                   if (await confirm(`¿Borrar la categoría "${c.nombre}"?`)) borrar.mutate(c.id);
@@ -71,10 +76,12 @@ export function CategoriasView() {
 
 function FilaCategoria({
   categoria,
+  puedeEditar,
   onGuardar,
   onBorrar,
 }: {
   categoria: Categoria;
+  puedeEditar: boolean;
   onGuardar: (v: { id: number; nombre: string; orden: number }) => void;
   onBorrar: () => void;
 }) {
@@ -117,14 +124,16 @@ function FilaCategoria({
     <tr>
       <td>{categoria.orden}</td>
       <td>{categoria.nombre}</td>
-      <td style={{ display: 'flex', gap: 6 }}>
-        <Button size="sm" variant="secondary" onClick={empezarEdicion}>
-          ✏️ Editar
-        </Button>
-        <Button variant="danger" size="sm" aria-label={`Borrar categoría ${categoria.nombre}`} onClick={onBorrar}>
-          🗑
-        </Button>
-      </td>
+      {puedeEditar && (
+        <td style={{ display: 'flex', gap: 6 }}>
+          <Button size="sm" variant="secondary" onClick={empezarEdicion}>
+            ✏️ Editar
+          </Button>
+          <Button variant="danger" size="sm" aria-label={`Borrar categoría ${categoria.nombre}`} onClick={onBorrar}>
+            🗑
+          </Button>
+        </td>
+      )}
     </tr>
   );
 }

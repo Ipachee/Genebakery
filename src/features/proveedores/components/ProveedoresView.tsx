@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { useFacturaMutations, useFacturasDeProveedor, useProveedorMutations, useProveedores } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable } from '../../../components/DataTable';
@@ -15,6 +16,7 @@ import type { Database } from '../../../lib/supabase/types';
 type Proveedor = Database['public']['Tables']['proveedores']['Row'];
 
 export function ProveedoresView() {
+  const puedeEditar = usePuedeEditar('proveedores');
   const { session } = useAuth();
   const { data: proveedores, isLoading } = useProveedores();
   const { actualizar, borrar } = useProveedorMutations();
@@ -37,9 +39,11 @@ export function ProveedoresView() {
           onChange={(e) => setBusqueda(e.target.value)}
           style={{ maxWidth: 320, flex: 1 }}
         />
-        <Button variant="primary" onClick={() => setModalAbierto(true)}>
-          + Nuevo proveedor
-        </Button>
+        {puedeEditar && (
+          <Button variant="primary" onClick={() => setModalAbierto(true)}>
+            + Nuevo proveedor
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -63,6 +67,7 @@ export function ProveedoresView() {
                 key={p.id}
                 proveedor={p}
                 seleccionado={p.id === proveedorId}
+                puedeEditar={puedeEditar}
                 onToggleFacturas={() => setProveedorId(p.id === proveedorId ? null : p.id)}
                 onGuardar={(v) => actualizar.mutate(v)}
                 onBorrar={async () => {
@@ -77,7 +82,12 @@ export function ProveedoresView() {
       )}
 
       {proveedorSeleccionado && session && (
-        <FacturasDeProveedor proveedorId={proveedorSeleccionado.id} nombre={proveedorSeleccionado.nombre} mozoId={session.user.id} />
+        <FacturasDeProveedor
+          proveedorId={proveedorSeleccionado.id}
+          nombre={proveedorSeleccionado.nombre}
+          mozoId={session.user.id}
+          puedeEditar={puedeEditar}
+        />
       )}
 
       {modalAbierto && <NuevoProveedorModal onClose={() => setModalAbierto(false)} />}
@@ -89,12 +99,14 @@ export function ProveedoresView() {
 function FilaProveedor({
   proveedor,
   seleccionado,
+  puedeEditar,
   onToggleFacturas,
   onGuardar,
   onBorrar,
 }: {
   proveedor: Proveedor;
   seleccionado: boolean;
+  puedeEditar: boolean;
   onToggleFacturas: () => void;
   onGuardar: (v: { id: number; nombre: string; cuit: string; telefono: string; email: string }) => void;
   onBorrar: () => void;
@@ -155,12 +167,16 @@ function FilaProveedor({
         <Button size="sm" variant={seleccionado ? 'primary' : 'secondary'} onClick={onToggleFacturas}>
           📄 Facturas
         </Button>
-        <Button size="sm" variant="secondary" onClick={empezarEdicion}>
-          ✏️ Editar
-        </Button>
-        <Button variant="danger" size="sm" aria-label={`Borrar proveedor ${proveedor.nombre}`} onClick={onBorrar}>
-          🗑
-        </Button>
+        {puedeEditar && (
+          <>
+            <Button size="sm" variant="secondary" onClick={empezarEdicion}>
+              ✏️ Editar
+            </Button>
+            <Button variant="danger" size="sm" aria-label={`Borrar proveedor ${proveedor.nombre}`} onClick={onBorrar}>
+              🗑
+            </Button>
+          </>
+        )}
       </td>
     </tr>
   );
@@ -168,7 +184,17 @@ function FilaProveedor({
 
 type Factura = NonNullable<ReturnType<typeof useFacturasDeProveedor>['data']>[number];
 
-function FacturasDeProveedor({ proveedorId, nombre, mozoId }: { proveedorId: number; nombre: string; mozoId: string }) {
+function FacturasDeProveedor({
+  proveedorId,
+  nombre,
+  mozoId,
+  puedeEditar,
+}: {
+  proveedorId: number;
+  nombre: string;
+  mozoId: string;
+  puedeEditar: boolean;
+}) {
   const { data: facturas, isLoading } = useFacturasDeProveedor(proveedorId);
   const { borrar } = useFacturaMutations(proveedorId);
   const { confirm, dialog } = useConfirm();
@@ -181,9 +207,11 @@ function FacturasDeProveedor({ proveedorId, nombre, mozoId }: { proveedorId: num
     <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div className="field-label">Facturas de {nombre}</div>
-        <Button variant="primary" size="sm" onClick={() => setModalAbierto(true)}>
-          + Cargar factura
-        </Button>
+        {puedeEditar && (
+          <Button variant="primary" size="sm" onClick={() => setModalAbierto(true)}>
+            + Cargar factura
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -198,7 +226,7 @@ function FacturasDeProveedor({ proveedorId, nombre, mozoId }: { proveedorId: num
                 <th>Fecha</th>
                 <th>N° factura</th>
                 <th>Monto</th>
-                <th></th>
+                {puedeEditar && <th></th>}
               </tr>
             </thead>
             <tbody>
@@ -207,26 +235,28 @@ function FacturasDeProveedor({ proveedorId, nombre, mozoId }: { proveedorId: num
                   <td>{new Date(f.fecha + 'T00:00:00').toLocaleDateString('es-AR')}</td>
                   <td>{f.numero_factura || '—'}</td>
                   <td>{fmt.format(Number(f.monto))}</td>
-                  <td style={{ display: 'flex', gap: 6 }}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      aria-label={`Editar factura ${f.numero_factura || f.id}`}
-                      onClick={() => setEditando(f)}
-                    >
-                      ✏️
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      aria-label={`Borrar factura ${f.numero_factura || f.id}`}
-                      onClick={async () => {
-                        if (await confirm(`¿Borrar esta factura de ${fmt.format(Number(f.monto))}?`)) borrar.mutate(f.id);
-                      }}
-                    >
-                      🗑
-                    </Button>
-                  </td>
+                  {puedeEditar && (
+                    <td style={{ display: 'flex', gap: 6 }}>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        aria-label={`Editar factura ${f.numero_factura || f.id}`}
+                        onClick={() => setEditando(f)}
+                      >
+                        ✏️
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        aria-label={`Borrar factura ${f.numero_factura || f.id}`}
+                        onClick={async () => {
+                          if (await confirm(`¿Borrar esta factura de ${fmt.format(Number(f.monto))}?`)) borrar.mutate(f.id);
+                        }}
+                      >
+                        🗑
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

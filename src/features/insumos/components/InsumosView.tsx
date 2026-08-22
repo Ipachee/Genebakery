@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { useInsumoMutations, useInsumos } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable, ThOrdenable, useOrdenTabla } from '../../../components/DataTable';
@@ -15,6 +16,7 @@ type Insumo = Database['public']['Tables']['insumos']['Row'];
 type ColumnaOrden = 'nombre' | 'stock' | 'costo' | 'minimo';
 
 export function InsumosView() {
+  const puedeEditar = usePuedeEditar('insumos');
   const { data: insumos, isLoading } = useInsumos();
   const { borrar } = useInsumoMutations();
   const [busqueda, setBusqueda] = useState('');
@@ -69,9 +71,11 @@ export function InsumosView() {
             ))}
           </Select>
         </div>
-        <Button variant="primary" onClick={() => setModalAbierto(true)}>
-          + Nuevo insumo
-        </Button>
+        {puedeEditar && (
+          <Button variant="primary" onClick={() => setModalAbierto(true)}>
+            + Nuevo insumo
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -97,7 +101,7 @@ export function InsumosView() {
               <ThOrdenable col="minimo" orden={orden} onOrdenar={alClickear}>
                 Mínimo
               </ThOrdenable>
-              <th></th>
+              {puedeEditar && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -112,21 +116,23 @@ export function InsumosView() {
                   </td>
                   <td>{fmt.format(Number(i.costo_unit))}</td>
                   <td>{i.stock_min}</td>
-                  <td style={{ display: 'flex', gap: 6 }}>
-                    <Button variant="secondary" size="sm" aria-label={`Editar ${i.nombre}`} onClick={() => setEditando(i)}>
-                      ✏️
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      aria-label={`Borrar ${i.nombre}`}
-                      onClick={async () => {
-                        if (await confirm(`¿Borrar el insumo "${i.nombre}"?`)) borrar.mutate(i.id);
-                      }}
-                    >
-                      🗑
-                    </Button>
-                  </td>
+                  {puedeEditar && (
+                    <td style={{ display: 'flex', gap: 6 }}>
+                      <Button variant="secondary" size="sm" aria-label={`Editar ${i.nombre}`} onClick={() => setEditando(i)}>
+                        ✏️
+                      </Button>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        aria-label={`Borrar ${i.nombre}`}
+                        onClick={async () => {
+                          if (await confirm(`¿Borrar el insumo "${i.nombre}"?`)) borrar.mutate(i.id);
+                        }}
+                      >
+                        🗑
+                      </Button>
+                    </td>
+                  )}
                 </tr>
               );
             })}

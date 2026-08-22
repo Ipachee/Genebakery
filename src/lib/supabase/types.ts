@@ -1350,6 +1350,7 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       puede_editar_seccion: { Args: { p_seccion: string }; Returns: boolean }
       puede_operar_seccion: { Args: { p_seccion: string }; Returns: boolean }
+      puede_ver_seccion: { Args: { p_seccion: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

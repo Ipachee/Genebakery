@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '../../auth/useAuth';
 import * as api from './api';
 
 // `permisos`: set de "rol:seccionId" con visible=true (ve la sección) --
@@ -34,6 +35,18 @@ export function usePermisosMutations() {
       onSuccess: invalidar,
     }),
   };
+}
+
+// Atajo para gatillar en cada vista si el usuario actual puede editar
+// ESA sección puntual (agregar/editar/borrar ahí adentro) -- admin
+// siempre puede, mozo/RRHH solo si tienen el tick de "Editar" tildado en
+// Ajustes → Roles y permisos para esa sección. "Ver" (que ya controla si
+// la sección aparece en el menú) no alcanza para esto.
+export function usePuedeEditar(seccionId: string): boolean {
+  const { profile } = useAuth();
+  const { edicion } = usePermisosNavegacion();
+  if (profile?.rol === 'admin') return true;
+  return !!profile?.rol && edicion.has(`${profile.rol}:${seccionId}`);
 }
 
 export function useRolesPersonalizados() {
