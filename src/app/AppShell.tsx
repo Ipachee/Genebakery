@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { GRUPOS, SECCIONES_FIJAS, grupoDe, visiblePara, type Rol, type SeccionId } from './nav';
 import { useTheme } from './useTheme';
+import { usePersistido } from './usePersistido';
 import './sidebar.css';
 
 const ICONO_FIJA: Record<string, string> = { salon: '🪑', comandera: '🧾' };
@@ -19,22 +20,6 @@ function useEsMobile(): boolean {
     return () => mq.removeEventListener('change', onChange);
   }, []);
   return esMobile;
-}
-
-function usePersistido<T>(key: string, inicial: T): [T, (v: T) => void] {
-  const [valor, setValor] = useState<T>(() => {
-    try {
-      const guardado = localStorage.getItem(key);
-      return guardado != null ? (JSON.parse(guardado) as T) : inicial;
-    } catch {
-      return inicial;
-    }
-  });
-  const guardar = (v: T) => {
-    setValor(v);
-    localStorage.setItem(key, JSON.stringify(v));
-  };
-  return [valor, guardar];
 }
 
 export function AppShell({

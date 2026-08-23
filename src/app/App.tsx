@@ -31,6 +31,7 @@ import { AppShell } from './AppShell';
 import { idVisiblePara, primeraSeccionVisible, type Rol, type SeccionId } from './nav';
 import { usePermisosNavegacion } from '../features/permisos/hooks';
 import { useTheme } from './useTheme';
+import { usePersistido } from './usePersistido';
 import './shell.css';
 
 const REGISTRO: Record<SeccionId, ComponentType> = {
@@ -176,7 +177,12 @@ function BannerNuevaVersion() {
 function Shell() {
   const { session, profile, signOut, puedeVolverATurno, volverATurno } = useAuth();
   const { turno, error: turnoError, reintentar: reintentarTurno } = useTurnoActual();
-  const [seccion, setSeccion] = useState<SeccionId>('salon');
+  // Persistido (no un useState suelto) -- si el navegador descarta esta
+  // pestaña de fondo y la recarga entera al volver (pasa seguido en el
+  // celu con poca memoria, o simplemente al cambiar de pestaña un rato),
+  // antes esto volvía siempre a "salon" perdiendo en qué pantalla estaba
+  // parado (ej. a mitad de cargar una credencial en Ajustes).
+  const [seccion, setSeccion] = usePersistido<SeccionId>('comandacafe-ultima-seccion', 'salon');
   const [omitirAperturaCaja, setOmitirAperturaCaja] = useState(false);
   const iniciales = (profile?.nombre ?? session?.user.email ?? '?').slice(0, 1).toUpperCase();
   // Cualquier rol real (admin/mozo/encargado/un cargo nuevo) pasa tal cual
