@@ -1339,6 +1339,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      fn_resumen_gastos_dia: {
+        Args: { p_fecha: string }
+        Returns: {
+          concepto: string
+          monto: number
+          tipo: string
+        }[]
+      }
+      fn_resumen_gastos_rango: {
+        Args: { p_desde: string; p_hasta?: string }
+        Returns: {
+          concepto: string
+          monto: number
+          tipo: string
+        }[]
+      }
       fn_turnos_publico: {
         Args: never
         Returns: {
@@ -1351,6 +1367,7 @@ export type Database = {
       puede_editar_seccion: { Args: { p_seccion: string }; Returns: boolean }
       puede_operar_seccion: { Args: { p_seccion: string }; Returns: boolean }
       puede_ver_seccion: { Args: { p_seccion: string }; Returns: boolean }
+      rol_valido: { Args: { p_rol: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

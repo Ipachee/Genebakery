@@ -11,6 +11,7 @@ type Venta = Database['public']['Tables']['ventas']['Row'] & {
   clientes: { nombre: string; apellido: string } | null;
 };
 type Insumo = Database['public']['Tables']['insumos']['Row'];
+type GastoDia = { concepto: string; monto: number; tipo: string };
 
 type RGB = [number, number, number];
 
@@ -104,8 +105,9 @@ export function generarPdfCierre(params: {
   mesasPendientes: { mesa_id: number | null; estado: string; mesas: { label: string | null } | null }[];
   insumosBajo: Insumo[];
   efectivoContado: number | null;
+  gastosDia: GastoDia[];
 }): Blob {
-  const { turno, perfil, ventas, facturado, mesasPendientes, insumosBajo, efectivoContado } = params;
+  const { turno, perfil, ventas, facturado, mesasPendientes, insumosBajo, efectivoContado, gastosDia } = params;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   const nombreNegocio = perfil?.nombre_fiscal || 'ComandaCafé';
 
@@ -208,6 +210,40 @@ export function generarPdfCierre(params: {
       doc.text(valor, MARGIN + CONTENT_W - 5, fy, { align: 'right' });
       fy += 7;
     });
+    doc.setTextColor(...COLOR.brownDark);
+    y += alto + 10;
+  }
+
+  // --- Gastos del día (insumos, servicios y pagos a empleados) --
+  // para que el dueño vea de un vistazo cuánto entró y cuánto salió el
+  // mismo día, no solo lo facturado.
+  if (gastosDia.length > 0) {
+    const totalGastos = gastosDia.reduce((s, g) => s + Number(g.monto), 0);
+    const neto = facturado - totalGastos;
+    const alto = 8 + gastosDia.length * 6.5 + 9;
+    y = ensureSpace(doc, y, alto + 12);
+    y = seccionHeader(doc, 'Gastos del día', y, COLOR.red);
+    doc.setFillColor(...COLOR.cream);
+    doc.roundedRect(MARGIN, y, CONTENT_W, alto, 2, 2, 'F');
+    let gy = y + 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    for (const g of gastosDia) {
+      doc.setTextColor(...COLOR.brownDark);
+      doc.text(`${g.concepto} (${g.tipo})`, MARGIN + 5, gy, { maxWidth: CONTENT_W - 45 });
+      doc.setTextColor(...COLOR.red);
+      doc.text(`-${fmt.format(Number(g.monto))}`, MARGIN + CONTENT_W - 5, gy, { align: 'right' });
+      gy += 6.5;
+    }
+    gy += 2.5;
+    doc.setDrawColor(...COLOR.creamDeep);
+    doc.line(MARGIN + 5, gy - 5, MARGIN + CONTENT_W - 5, gy - 5);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9.5);
+    doc.setTextColor(...COLOR.brownDark);
+    doc.text('Neto (facturado − gastos del día)', MARGIN + 5, gy);
+    doc.setTextColor(...(neto >= 0 ? COLOR.terracotaDark : COLOR.red));
+    doc.text(fmt.format(neto), MARGIN + CONTENT_W - 5, gy, { align: 'right' });
     doc.setTextColor(...COLOR.brownDark);
     y += alto + 10;
   }

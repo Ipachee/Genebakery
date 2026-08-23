@@ -6,6 +6,7 @@ import {
   fetchFacturadoTurno,
   fetchInsumosStockBajo,
   fetchMesasPendientesDelTurno,
+  fetchResumenGastosDia,
   fetchTurnoAbierto,
   fetchTurnoPorId,
   fetchTurnosPublico,
@@ -159,6 +160,14 @@ export function useMesasPendientesDelTurno(turnoId: number | null) {
 
 export function useInsumosStockBajo() {
   return useQuery({ queryKey: ['insumos-stock-bajo'], queryFn: fetchInsumosStockBajo });
+}
+
+export function useResumenGastosDia(fecha: string | null) {
+  return useQuery({
+    queryKey: ['resumen-gastos-dia', fecha],
+    queryFn: () => fetchResumenGastosDia(fecha!),
+    enabled: fecha != null,
+  });
 }
 
 export function useEnviarResumenPorMail() {

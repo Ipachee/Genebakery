@@ -11,6 +11,15 @@ export async function fetchVentasDesde(desde: string) {
   return data;
 }
 
+// Via función security definer (fn_resumen_gastos_rango) -- quien ve
+// Reportes no necesariamente tiene "Ver" tildado en Gastos/Cobranzas, y
+// sin esto el total de gastos del período quedaría siempre en $0.
+export async function fetchResumenGastosRango(desde: string, hasta: string) {
+  const { data, error } = await supabase.rpc('fn_resumen_gastos_rango', { p_desde: desde, p_hasta: hasta });
+  if (error) throw error;
+  return data;
+}
+
 export async function fetchProductoMasVendido(desde: string) {
   const { data, error } = await supabase
     .from('pedido_items')

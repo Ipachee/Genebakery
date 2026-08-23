@@ -96,6 +96,17 @@ export async function fetchInsumosStockBajo() {
   return (data ?? []).filter((i) => Number(i.stock) <= Number(i.stock_min));
 }
 
+// Gastos (insumos + servicios) y pagos a empleados del día del turno --
+// via una función security definer (fn_resumen_gastos_dia) porque quien
+// cierra el turno no necesariamente tiene "Ver" tildado en Gastos o
+// Cobranzas, pero el dueño que recibe el PDF sí necesita ver esos números
+// junto a lo facturado.
+export async function fetchResumenGastosDia(fecha: string) {
+  const { data, error } = await supabase.rpc('fn_resumen_gastos_dia', { p_fecha: fecha });
+  if (error) throw error;
+  return data;
+}
+
 function blobABase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

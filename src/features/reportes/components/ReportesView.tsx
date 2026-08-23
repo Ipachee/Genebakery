@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useProductoMasVendido, useVentasPorRango } from '../hooks';
+import { useGastosPorRango, useProductoMasVendido, useVentasPorRango } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { EmptyState } from '../../../components/EmptyState';
 import { fmtMoney as fmt } from '../../../lib/format';
@@ -8,6 +8,8 @@ export function ReportesView() {
   const [rango, setRango] = useState<'semana' | 'mes'>('semana');
   const { data: ventas, isLoading } = useVentasPorRango(rango);
   const { data: itemsVendidos } = useProductoMasVendido(rango);
+  const { data: gastosRango } = useGastosPorRango(rango);
+  const totalGastos = (gastosRango ?? []).reduce((s, g) => s + Number(g.monto), 0);
 
   const porDia = new Map<string, number>();
   for (const v of ventas ?? []) {
@@ -96,8 +98,22 @@ export function ReportesView() {
       ) : (
         <>
           <div className="card card-pad">
-            <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 2 }}>Total facturado</div>
-            <div style={{ fontSize: 26, fontWeight: 700 }}>{fmt.format(totalPeriodo)}</div>
+            <div style={{ display: 'flex', gap: 'var(--space-5)', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 2 }}>Total facturado</div>
+                <div style={{ fontSize: 26, fontWeight: 700 }}>{fmt.format(totalPeriodo)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 2 }}>Gastos del período</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--red)' }}>-{fmt.format(totalGastos)}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 2 }}>Neto</div>
+                <div style={{ fontSize: 26, fontWeight: 700, color: totalPeriodo - totalGastos >= 0 ? 'var(--terracota-dark)' : 'var(--red)' }}>
+                  {fmt.format(totalPeriodo - totalGastos)}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="card card-pad">

@@ -6,6 +6,7 @@ import {
   useFacturadoTurno,
   useInsumosStockBajo,
   useMesasPendientesDelTurno,
+  useResumenGastosDia,
   useVentasDelTurno,
 } from '../hooks';
 import { usePerfilNegocio } from '../../negocio/hooks';
@@ -28,6 +29,13 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
   const { data: mesasPendientes } = useMesasPendientesDelTurno(turno.id);
   const { data: insumosBajo } = useInsumosStockBajo();
   const { data: perfil } = usePerfilNegocio();
+  // Fecha local del turno (no el ISO en UTC) -- gastos.fecha/pagos_empleados.fecha
+  // son un date sin horario, cargados con la fecha del día real.
+  const fechaTurno = (() => {
+    const d = new Date(turno.abierto_at);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+  const { data: gastosDia } = useResumenGastosDia(fechaTurno);
   const cerrar = useCerrarTurno(turno.id);
   const enviarMail = useEnviarResumenPorMail();
   const [email, setEmail] = useState('');
@@ -83,8 +91,11 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
       mesasPendientes: mesasPendientes ?? [],
       insumosBajo: insumosBajo ?? [],
       efectivoContado: efectivoContadoNum,
+      gastosDia: gastosDia ?? [],
     });
   }
+
+  const totalGastosDia = (gastosDia ?? []).reduce((s, g) => s + Number(g.monto), 0);
 
   function descargarPdf() {
     const blob = construirPdf();
@@ -190,6 +201,40 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
                     <strong style={{ color: 'var(--terracota-dark)' }}>{fmt.format(total)}</strong>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {!!gastosDia?.length && (
+            <div>
+              <div className="field-label" style={{ marginBottom: 8 }}>
+                Gastos del día
+              </div>
+              <div className="card card-pad">
+                {gastosDia.map((g, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                    <span style={{ color: 'var(--text)' }}>
+                      {g.concepto} <span style={{ color: 'var(--text-dim)', fontSize: 11.5 }}>({g.tipo})</span>
+                    </span>
+                    <strong style={{ color: 'var(--red)' }}>-{fmt.format(Number(g.monto))}</strong>
+                  </div>
+                ))}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    borderTop: '1px dashed var(--border)',
+                    paddingTop: 6,
+                    marginTop: 4,
+                  }}
+                >
+                  <span>Neto (facturado − gastos)</span>
+                  <span style={{ color: facturado - totalGastosDia >= 0 ? 'var(--terracota-dark)' : 'var(--red)' }}>
+                    {fmt.format(facturado - totalGastosDia)}
+                  </span>
+                </div>
               </div>
             </div>
           )}
