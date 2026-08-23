@@ -58,6 +58,7 @@ export function FacturacionView() {
         <Select value={form.proveedor} onChange={(e) => actualizar('proveedor', e.target.value)}>
           <option value="">Elegí uno…</option>
           <option value="afip_directo">AFIP/ARCA directo (Clave Fiscal)</option>
+          <option value="afipsdk">AfipSDK</option>
           <option value="tusfacturas">Tusfacturas.app</option>
           <option value="otro">Otro intermediario</option>
         </Select>
