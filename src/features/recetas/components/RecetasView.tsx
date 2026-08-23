@@ -138,23 +138,18 @@ export function RecetasView() {
             </p>
           )}
 
-          <Field label="A qué ticket sale cuando se manda a cocina">
+          <Field label="A qué ticket sale">
             {puedeEditar ? (
               <Select
-                value={productoSeleccionado.destino ?? ''}
-                onChange={(e) =>
-                  actualizarDestino.mutate({ id: productoSeleccionado.id, destino: (e.target.value || null) as 'cocina' | 'barra' | null })
-                }
-                style={{ maxWidth: 280 }}
+                value={productoSeleccionado.destino ?? destinoCategoria}
+                onChange={(e) => actualizarDestino.mutate({ id: productoSeleccionado.id, destino: e.target.value as 'cocina' | 'barra' })}
+                style={{ maxWidth: 160 }}
               >
-                <option value="">Según la categoría ({destinoCategoria === 'barra' ? '🍹 Barra' : '🍳 Cocina'})</option>
-                <option value="cocina">🍳 Cocina (siempre, aunque cambie la categoría)</option>
-                <option value="barra">🍹 Barra (siempre, aunque cambie la categoría)</option>
+                <option value="cocina">Cocina</option>
+                <option value="barra">Barra</option>
               </Select>
             ) : (
-              <span style={{ fontSize: 13.5 }}>
-                {productoSeleccionado.destino === 'barra' ? '🍹 Barra' : productoSeleccionado.destino === 'cocina' ? '🍳 Cocina' : `Según la categoría (${destinoCategoria === 'barra' ? '🍹 Barra' : '🍳 Cocina'})`}
-              </span>
+              <span style={{ fontSize: 13.5 }}>{(productoSeleccionado.destino ?? destinoCategoria) === 'barra' ? 'Barra' : 'Cocina'}</span>
             )}
           </Field>
           {receta?.length === 0 && <EmptyState>Sin receta cargada todavía.</EmptyState>}
