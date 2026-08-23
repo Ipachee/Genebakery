@@ -12,15 +12,30 @@ import { useConfirm } from '../../../components/ConfirmDialog';
 import { TicketCobro } from '../../pedidos/components/TicketCobro';
 import type { ItemConProducto } from '../../pedidos/hooks';
 import { GenerarFacturaModal } from './GenerarFacturaModal';
+import { FacturaTicket, CBTE_TIPO } from './FacturaTicket';
+import { useEmitirFactura } from '../../facturacion/hooks';
+import { urlQrFactura, generarQrDataUrl } from '../../../lib/facturaQr';
 import { fmtMoney as fmt } from '../../../lib/format';
 import { METODOS_PAGO } from '../../../lib/pedidoConstantes';
 import type { Database } from '../../../lib/supabase/types';
 
+type Factura = {
+  id: number;
+  estado: string;
+  tipo_comprobante: string;
+  cae: string | null;
+  cae_vencimiento: string | null;
+  numero: number | null;
+  punto_venta: number | null;
+  cuit_emisor: string | null;
+  error_mensaje: string | null;
+};
+
 type Venta = Database['public']['Tables']['ventas']['Row'] & {
   mesas: { label: string | null; es_take_away: boolean } | null;
-  clientes: { nombre: string; apellido: string; email: string | null } | null;
+  clientes: { nombre: string; apellido: string; email: string | null; dni: string | null; cuit: string | null } | null;
   mozo: { nombre: string } | null;
-  facturas_electronicas: { id: number; estado: string }[];
+  facturas_electronicas: Factura[];
 };
 
 type ColumnaOrden = 'fecha' | 'mesa' | 'cliente' | 'total' | 'metodo';
@@ -67,6 +82,55 @@ export function VentasView() {
   const [cargandoTicketId, setCargandoTicketId] = useState<number | null>(null);
   const [reimprimiendo, setReimprimiendo] = useState<{ venta: Venta; items: ItemConProducto[] } | null>(null);
   const [facturando, setFacturando] = useState<Venta | null>(null);
+  const [cargandoFacturaId, setCargandoFacturaId] = useState<number | null>(null);
+  const [imprimiendoFactura, setImprimiendoFactura] = useState<{ venta: Venta; factura: Factura; items: ItemConProducto[]; qrDataUrl: string } | null>(null);
+  const emitirFactura = useEmitirFactura();
+
+  // Doc del comprador para el QR -- misma prioridad que usa la Edge
+  // Function al pedir el CAE (CUIT > DNI > consumidor final anónimo), para
+  // que el QR impreso coincida con lo que ARCA realmente autorizó.
+  function docCliente(v: Venta): { tipo: number; nro: string } {
+    const cuit = (v.clientes?.cuit ?? '').replace(/\D/g, '');
+    const dni = (v.clientes?.dni ?? '').replace(/\D/g, '');
+    if (cuit) return { tipo: 80, nro: cuit };
+    if (dni) return { tipo: 96, nro: dni };
+    return { tipo: 99, nro: '0' };
+  }
+
+  async function imprimirFactura(v: Venta, f: Factura) {
+    if (!f.cae || !f.numero || !f.punto_venta || !f.cuit_emisor) return;
+    setCargandoFacturaId(f.id);
+    try {
+      const items = await fetchItemsParaTicket(v.pedido_id);
+      const doc = docCliente(v);
+      const url = urlQrFactura({
+        fecha: v.created_at.slice(0, 10),
+        cuit: f.cuit_emisor,
+        ptoVta: f.punto_venta,
+        tipoCmp: CBTE_TIPO[f.tipo_comprobante] ?? 6,
+        nroCmp: f.numero,
+        importe: Number(v.total),
+        tipoDocRec: doc.tipo,
+        nroDocRec: Number(doc.nro),
+        cae: f.cae,
+      });
+      const qrDataUrl = await generarQrDataUrl(url);
+      setImprimiendoFactura({ venta: v, factura: f, items, qrDataUrl });
+    } finally {
+      setCargandoFacturaId(null);
+    }
+  }
+
+  useEffect(() => {
+    if (!imprimiendoFactura) return;
+    const id = requestAnimationFrame(() => window.print());
+    const cerrar = () => setImprimiendoFactura(null);
+    window.addEventListener('afterprint', cerrar);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener('afterprint', cerrar);
+    };
+  }, [imprimiendoFactura]);
 
   // Reimprimir un ticket viejo no guarda nada aparte: los ítems del pedido
   // original ya están en pedido_items (no se borran al cobrar ni al
@@ -224,10 +288,14 @@ export function VentasView() {
                 key={v.id}
                 venta={v}
                 cargandoTicket={cargandoTicketId === v.id}
+                cargandoFactura={v.facturas_electronicas.some((f) => f.id === cargandoFacturaId)}
+                reintentandoFactura={emitirFactura.isPending}
                 puedeEditar={puedeEditar}
                 onGuardarMetodo={(metodoPago) => actualizarMetodoPago.mutate({ id: v.id, metodoPago })}
                 onReimprimir={() => reimprimirTicket(v)}
                 onFacturar={() => setFacturando(v)}
+                onVerFactura={(f) => imprimirFactura(v, f)}
+                onReintentarFactura={(facturaId) => emitirFactura.mutate(facturaId)}
                 onBorrar={() => pedirBorrado(v)}
               />
             ))}
@@ -262,6 +330,23 @@ export function VentasView() {
           onClose={() => setFacturando(null)}
         />
       )}
+
+      {imprimiendoFactura && imprimiendoFactura.factura.cae && imprimiendoFactura.factura.numero && imprimiendoFactura.factura.punto_venta && (
+        <FacturaTicket
+          tipoComprobante={imprimiendoFactura.factura.tipo_comprobante}
+          puntoVenta={imprimiendoFactura.factura.punto_venta}
+          numero={imprimiendoFactura.factura.numero}
+          cae={imprimiendoFactura.factura.cae}
+          caeVencimiento={imprimiendoFactura.factura.cae_vencimiento ?? ''}
+          clienteNombre={imprimiendoFactura.venta.clientes ? `${imprimiendoFactura.venta.clientes.nombre} ${imprimiendoFactura.venta.clientes.apellido}` : null}
+          items={imprimiendoFactura.items}
+          total={Number(imprimiendoFactura.venta.total)}
+          metodoPago={imprimiendoFactura.venta.metodo_pago}
+          perfil={perfilNegocio ?? null}
+          fecha={new Date(imprimiendoFactura.venta.created_at)}
+          qrDataUrl={imprimiendoFactura.qrDataUrl}
+        />
+      )}
     </div>
   );
 }
@@ -269,18 +354,26 @@ export function VentasView() {
 function FilaVenta({
   venta,
   cargandoTicket,
+  cargandoFactura,
+  reintentandoFactura,
   puedeEditar,
   onGuardarMetodo,
   onReimprimir,
   onFacturar,
+  onVerFactura,
+  onReintentarFactura,
   onBorrar,
 }: {
   venta: Venta;
   cargandoTicket: boolean;
+  cargandoFactura: boolean;
+  reintentandoFactura: boolean;
   puedeEditar: boolean;
   onGuardarMetodo: (metodoPago: string) => void;
   onReimprimir: () => void;
   onFacturar: () => void;
+  onVerFactura: (factura: Factura) => void;
+  onReintentarFactura: (facturaId: number) => void;
   onBorrar: () => void;
 }) {
   const [editando, setEditando] = useState(false);
@@ -342,19 +435,50 @@ function FilaVenta({
             >
               🖨️
             </Button>
-            {venta.facturas_electronicas.some((f) => f.estado === 'emitida') ? (
-              <span className="badge badge-good" title="Factura emitida">
-                🧾 Emitida
-              </span>
-            ) : venta.facturas_electronicas.length > 0 ? (
-              <span className="badge badge-info" title="Ya se pidió factura para esta venta -- queda pendiente hasta conectar la emisión real">
-                🧾 Pendiente
-              </span>
-            ) : (
-              <Button variant="secondary" size="sm" title="Generar factura" aria-label="Generar factura" onClick={onFacturar}>
-                🧾
-              </Button>
-            )}
+            {(() => {
+              const emitida = venta.facturas_electronicas.find((f) => f.estado === 'emitida');
+              if (emitida) {
+                return (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    title={`Ver/imprimir factura -- CAE ${emitida.cae}`}
+                    aria-label="Ver factura"
+                    disabled={cargandoFactura}
+                    onClick={() => onVerFactura(emitida)}
+                  >
+                    🧾 Emitida
+                  </Button>
+                );
+              }
+              const conError = venta.facturas_electronicas.find((f) => f.estado === 'error');
+              if (conError) {
+                return (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    title={conError.error_mensaje ?? 'ARCA rechazó el comprobante'}
+                    aria-label="Reintentar factura"
+                    disabled={reintentandoFactura}
+                    onClick={() => onReintentarFactura(conError.id)}
+                  >
+                    ⚠️ Reintentar
+                  </Button>
+                );
+              }
+              if (venta.facturas_electronicas.length > 0) {
+                return (
+                  <span className="badge badge-info" title="Ya se pidió factura para esta venta -- queda pendiente hasta conectar la emisión real">
+                    🧾 Pendiente
+                  </span>
+                );
+              }
+              return (
+                <Button variant="secondary" size="sm" title="Generar factura" aria-label="Generar factura" onClick={onFacturar}>
+                  🧾
+                </Button>
+              );
+            })()}
             {puedeEditar && (
               <Button variant="danger" size="sm" title="Borrar venta" aria-label="Borrar venta" onClick={onBorrar}>
                 🗑

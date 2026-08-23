@@ -4,7 +4,7 @@ import { PageHeader } from '../../../components/PageHeader';
 import { Field, TextInput, Select } from '../../../components/Field';
 import { Button } from '../../../components/Button';
 
-const VACIO = { proveedor: '', usuario: '', claveSecreta: '', tokenApi: '' };
+const VACIO = { proveedor: '', usuario: '', claveSecreta: '', tokenApi: '', modo: 'dev' as 'dev' | 'prod' };
 
 export function FacturacionView() {
   const { data: estado, isLoading } = useEstadoCredenciales();
@@ -12,7 +12,7 @@ export function FacturacionView() {
   const [form, setForm] = useState(VACIO);
   const [guardado, setGuardado] = useState(false);
 
-  function actualizar<K extends keyof typeof VACIO>(campo: K, valor: string) {
+  function actualizar<K extends keyof typeof VACIO>(campo: K, valor: (typeof VACIO)[K]) {
     setForm((f) => ({ ...f, [campo]: valor }));
     setGuardado(false);
   }
@@ -22,8 +22,9 @@ export function FacturacionView() {
     await guardar.mutateAsync(form);
     // Se limpian los campos sensibles apenas se guardan -- no tiene sentido
     // que queden tipeados en pantalla (ni se podrían volver a mostrar de
-    // todos modos, porque el servidor nunca los devuelve).
-    setForm(VACIO);
+    // todos modos, porque el servidor nunca los devuelve). El modo elegido
+    // sí se mantiene en el formulario, no es sensible.
+    setForm((f) => ({ ...VACIO, modo: f.modo }));
     setGuardado(true);
   }
 
@@ -39,9 +40,12 @@ export function FacturacionView() {
       <div className="card card-pad" style={{ fontSize: 13 }}>
         {estado?.configurado ? (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
               <span style={{ color: 'var(--green)', fontWeight: 700 }}>✅ Configurado</span>
               {estado.proveedor && <span style={{ color: 'var(--text-dim)' }}>· {estado.proveedor}</span>}
+              <span className={`badge ${estado.modo === 'prod' ? 'badge-warn' : 'badge-info'}`}>
+                {estado.modo === 'prod' ? '🔴 Producción (real)' : '🧪 Prueba'}
+              </span>
             </div>
             <div style={{ color: 'var(--text-dim)', fontSize: 12 }}>
               {estado.actualizado_at &&
@@ -54,6 +58,13 @@ export function FacturacionView() {
         )}
       </div>
 
+      <Field label="Modo">
+        <Select value={form.modo} onChange={(e) => actualizar('modo', e.target.value as 'dev' | 'prod')}>
+          <option value="dev">🧪 Prueba (testing) -- no emite comprobantes reales</option>
+          <option value="prod">🔴 Producción -- emite facturas reales, cuenta ante ARCA</option>
+        </Select>
+      </Field>
+
       <Field label="Proveedor">
         <Select value={form.proveedor} onChange={(e) => actualizar('proveedor', e.target.value)}>
           <option value="">Elegí uno…</option>
@@ -63,6 +74,15 @@ export function FacturacionView() {
           <option value="otro">Otro intermediario</option>
         </Select>
       </Field>
+
+      {form.proveedor === 'afipsdk' && (
+        <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0, background: 'var(--surface-sunken)', padding: '8px 10px', borderRadius: 'var(--radius-sm)' }}>
+          Con AfipSDK: el <strong>access_token</strong> de tu cuenta va en "Token / API key" de abajo. En modo Prueba
+          dejá "Usuario / CUIT" vacío (se usa el CUIT de demo de AfipSDK); en Producción poné el CUIT real del
+          negocio ahí.
+        </p>
+      )}
+
       <Field label="Usuario / CUIT de acceso">
         <TextInput
           value={form.usuario}
@@ -97,8 +117,8 @@ export function FacturacionView() {
       )}
 
       <p style={{ fontSize: 11.5, color: 'var(--text-dim)', margin: 0 }}>
-        Esto todavía no factura nada automáticamente -- es solo el lugar seguro donde queda guardada la credencial
-        para cuando se conecte la emisión real de comprobantes.
+        Con AfipSDK configurado, "🧾 Generar factura" en Ventas ya llama de verdad a ARCA (real o de prueba según el
+        modo de arriba) y trae el CAE. Los demás proveedores todavía dejan el pedido en "pendiente" nomás.
       </p>
     </div>
   );

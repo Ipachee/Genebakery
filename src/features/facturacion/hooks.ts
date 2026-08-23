@@ -20,3 +20,11 @@ export function useCrearFacturaPendiente() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['ventas'] }),
   });
 }
+
+export function useEmitirFactura() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.emitirFactura,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ventas'] }),
+  });
+}

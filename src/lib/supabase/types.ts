@@ -168,6 +168,7 @@ export type Database = {
           actualizado_por: string | null
           clave_secreta: string | null
           id: number
+          modo: string
           proveedor: string | null
           token_api: string | null
           usuario: string | null
@@ -177,6 +178,7 @@ export type Database = {
           actualizado_por?: string | null
           clave_secreta?: string | null
           id?: number
+          modo?: string
           proveedor?: string | null
           token_api?: string | null
           usuario?: string | null
@@ -186,6 +188,7 @@ export type Database = {
           actualizado_por?: string | null
           clave_secreta?: string | null
           id?: number
+          modo?: string
           proveedor?: string | null
           token_api?: string | null
           usuario?: string | null
@@ -328,6 +331,7 @@ export type Database = {
           cliente_id: number | null
           creado_por: string
           created_at: string
+          cuit_emisor: string | null
           deleted_at: string | null
           enviada_por_mail_at: string | null
           error_mensaje: string | null
@@ -336,6 +340,7 @@ export type Database = {
           mail_envio: string
           numero: number | null
           pdf_url: string | null
+          punto_venta: number | null
           tipo_comprobante: string
           venta_id: number
         }
@@ -345,6 +350,7 @@ export type Database = {
           cliente_id?: number | null
           creado_por: string
           created_at?: string
+          cuit_emisor?: string | null
           deleted_at?: string | null
           enviada_por_mail_at?: string | null
           error_mensaje?: string | null
@@ -353,6 +359,7 @@ export type Database = {
           mail_envio: string
           numero?: number | null
           pdf_url?: string | null
+          punto_venta?: number | null
           tipo_comprobante?: string
           venta_id: number
         }
@@ -362,6 +369,7 @@ export type Database = {
           cliente_id?: number | null
           creado_por?: string
           created_at?: string
+          cuit_emisor?: string | null
           deleted_at?: string | null
           enviada_por_mail_at?: string | null
           error_mensaje?: string | null
@@ -370,6 +378,7 @@ export type Database = {
           mail_envio?: string
           numero?: number | null
           pdf_url?: string | null
+          punto_venta?: number | null
           tipo_comprobante?: string
           venta_id?: number
         }
@@ -1265,18 +1274,30 @@ export type Database = {
           actualizado_at: string
           actualizado_por_nombre: string
           configurado: boolean
+          modo: string
           proveedor: string
         }[]
       }
-      fn_guardar_credenciales_facturacion: {
-        Args: {
-          p_clave_secreta?: string
-          p_proveedor: string
-          p_token_api?: string
-          p_usuario?: string
-        }
-        Returns: undefined
-      }
+      fn_guardar_credenciales_facturacion:
+        | {
+            Args: {
+              p_clave_secreta?: string
+              p_proveedor: string
+              p_token_api?: string
+              p_usuario?: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_clave_secreta?: string
+              p_modo?: string
+              p_proveedor: string
+              p_token_api?: string
+              p_usuario?: string
+            }
+            Returns: undefined
+          }
       fn_marcar_pedido_entregado: {
         Args: { p_pedido_id: number }
         Returns: undefined
