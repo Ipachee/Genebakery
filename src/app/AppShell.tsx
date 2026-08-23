@@ -5,6 +5,22 @@ import './sidebar.css';
 
 const ICONO_FIJA: Record<string, string> = { salon: '🪑', comandera: '🧾' };
 
+// En pantallas de celular la topbar no tiene aire para el toggle de tema
+// + el candado de admin además de turno/usuario/salir -- quedan movidos
+// adentro del cajón del menú (ver .app-sidebar-footer) en vez de
+// amontonados ahí arriba. En desktop/tablet siguen en la topbar como
+// siempre.
+function useEsMobile(): boolean {
+  const [esMobile, setEsMobile] = useState(() => window.matchMedia('(max-width: 560px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 560px)');
+    const onChange = () => setEsMobile(mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  return esMobile;
+}
+
 function usePersistido<T>(key: string, inicial: T): [T, (v: T) => void] {
   const [valor, setValor] = useState<T>(() => {
     try {
@@ -27,6 +43,7 @@ export function AppShell({
   permisos,
   onNavigate,
   topbarRight,
+  accionesMenu,
   children,
 }: {
   rol: Rol;
@@ -34,9 +51,11 @@ export function AppShell({
   permisos: Set<string>;
   onNavigate: (id: SeccionId) => void;
   topbarRight: ReactNode;
+  accionesMenu?: ReactNode;
   children: ReactNode;
 }) {
   const { theme, toggleTheme } = useTheme();
+  const esMobile = useEsMobile();
   // Mozo arranca con el lateral colapsado -- de entrada ve nada más que
   // Salón/Comandera/Calendario, así que menos aire ocupado para lo que en
   // la práctica es un atajo de pocos botones. Admin y encargado arrancan
@@ -136,6 +155,16 @@ export function AppShell({
             );
           })}
         </nav>
+
+        {esMobile && (
+          <div className="app-sidebar-footer">
+            <button className="app-sidebar-footer-item" onClick={toggleTheme}>
+              <span className="app-nav-icon">{theme === 'light' ? '🌙' : '☀️'}</span>
+              <span className="app-nav-label">{theme === 'light' ? 'Modo oscuro' : 'Modo claro'}</span>
+            </button>
+            {accionesMenu}
+          </div>
+        )}
       </aside>
 
       <div className="app-content-col">
@@ -161,14 +190,19 @@ export function AppShell({
             <span className="app-topbar-section">{tituloActivo}</span>
           </div>
           <div className="app-topbar-right">
-            <button
-              className="app-theme-toggle"
-              onClick={toggleTheme}
-              title={theme === 'light' ? 'Cambiar a modo oscuro (Espresso)' : 'Cambiar a modo claro (Organic)'}
-              aria-label="Cambiar tema"
-            >
-              {theme === 'light' ? '☀️' : '🌙'}
-            </button>
+            {!esMobile && (
+              <>
+                <button
+                  className="app-theme-toggle"
+                  onClick={toggleTheme}
+                  title={theme === 'light' ? 'Cambiar a modo oscuro (Espresso)' : 'Cambiar a modo claro (Organic)'}
+                  aria-label="Cambiar tema"
+                >
+                  {theme === 'light' ? '☀️' : '🌙'}
+                </button>
+                {accionesMenu}
+              </>
+            )}
             {topbarRight}
           </div>
         </header>

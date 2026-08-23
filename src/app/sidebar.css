@@ -42,6 +42,41 @@
 .app-sidebar-nav { display: flex; flex-direction: column; gap: 3px; }
 .app-sidebar-sep { height: 1px; background: var(--border); margin: var(--space-2) 4px; }
 
+/* En celular el toggle de tema y el candado de admin viven acá (empujados
+   al fondo del cajón) en vez de en la topbar -- ahí arriba solo queda
+   turno/usuario/salir, sin amontonarse. */
+.app-sidebar-footer {
+  margin-top: auto;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.app-sidebar-footer-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--nav-item-radius);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.app-sidebar-footer-item:hover { background: var(--surface); color: var(--text); }
+
+/* AdminUnlock trae su propio botón/popover ("shell-signout" + un form
+   absolute) pensados para la topbar -- acá adentro alcanza con que no se
+   rompa el ancho del cajón; se deja su estilo de ícono tal cual. */
+.app-sidebar-footer .shell-signout {
+  margin: 2px 12px;
+}
+
 .app-nav-item {
   display: flex;
   align-items: center;

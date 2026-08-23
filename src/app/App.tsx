@@ -229,13 +229,14 @@ function Shell() {
           activo={seccionEfectiva}
           permisos={permisos}
           onNavigate={setSeccion}
+          accionesMenu={
+            // mozo Y encargado/cargos pueden desbloquear admin puntualmente
+            // sin cerrar sesión -- el mismo mecanismo de siempre. En celular
+            // vive en el cajón del menú en vez de la topbar (ver AppShell).
+            profile?.rol !== 'admin' && !puedeVolverATurno ? <AdminUnlock onSuccess={() => setSeccion('insumos')} /> : null
+          }
           topbarRight={
             <>
-              {/* mozo Y encargado pueden desbloquear admin puntualmente sin
-                  cerrar sesión -- el mismo mecanismo de siempre, ahora no
-                  exclusivo de mozo. */}
-              {profile?.rol !== 'admin' && !puedeVolverATurno && <AdminUnlock onSuccess={() => setSeccion('insumos')} />}
-
               {puedeVolverATurno && (
                 <button
                   className="shell-signout"
