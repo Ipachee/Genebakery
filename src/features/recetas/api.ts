@@ -25,6 +25,14 @@ export async function actualizarActivoProducto(id: number, activo: boolean) {
   if (error) throw error;
 }
 
+// null = usa el destino de la categoría (default). Puesto en 'cocina' o
+// 'barra' explícito, pisa ese default -- para el caso puntual de un
+// producto que no sigue la regla general de su categoría.
+export async function actualizarDestinoProducto(id: number, destino: 'cocina' | 'barra' | null) {
+  const { error } = await supabase.from('productos').update({ destino }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function fetchInsumos() {
   const { data, error } = await supabase.from('insumos').select('*').is('deleted_at', null).order('nombre');
   if (error) throw error;

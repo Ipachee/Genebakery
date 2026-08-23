@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import { useActualizarActivoProducto, useCrearProducto, useInsumos, useProductos, useRecetaDeProducto, useRecetaMutations } from '../hooks';
+import {
+  useActualizarActivoProducto,
+  useActualizarDestinoProducto,
+  useCrearProducto,
+  useInsumos,
+  useProductos,
+  useRecetaDeProducto,
+  useRecetaMutations,
+} from '../hooks';
 import { useCategorias } from '../../categorias/hooks';
 import { usePuedeEditar } from '../../permisos/hooks';
 import { PageHeader } from '../../../components/PageHeader';
@@ -19,7 +27,9 @@ export function RecetasView() {
   const mutations = useRecetaMutations(productoId);
   const crearProducto = useCrearProducto();
   const actualizarActivo = useActualizarActivoProducto();
+  const actualizarDestino = useActualizarDestinoProducto();
   const productoSeleccionado = productos?.find((p) => p.id === productoId) ?? null;
+  const destinoCategoria = categorias?.find((c) => c.nombre === productoSeleccionado?.categoria)?.destino ?? 'cocina';
 
   const [insumoId, setInsumoId] = useState<number | ''>('');
   const [cantidad, setCantidad] = useState('');
@@ -127,6 +137,26 @@ export function RecetasView() {
               Pausado: no aparece en el menú de Comandar pedidos hasta que se reactive. La receta sigue acá, intacta.
             </p>
           )}
+
+          <Field label="A qué ticket sale cuando se manda a cocina">
+            {puedeEditar ? (
+              <Select
+                value={productoSeleccionado.destino ?? ''}
+                onChange={(e) =>
+                  actualizarDestino.mutate({ id: productoSeleccionado.id, destino: (e.target.value || null) as 'cocina' | 'barra' | null })
+                }
+                style={{ maxWidth: 280 }}
+              >
+                <option value="">Según la categoría ({destinoCategoria === 'barra' ? '🍹 Barra' : '🍳 Cocina'})</option>
+                <option value="cocina">🍳 Cocina (siempre, aunque cambie la categoría)</option>
+                <option value="barra">🍹 Barra (siempre, aunque cambie la categoría)</option>
+              </Select>
+            ) : (
+              <span style={{ fontSize: 13.5 }}>
+                {productoSeleccionado.destino === 'barra' ? '🍹 Barra' : productoSeleccionado.destino === 'cocina' ? '🍳 Cocina' : `Según la categoría (${destinoCategoria === 'barra' ? '🍹 Barra' : '🍳 Cocina'})`}
+              </span>
+            )}
+          </Field>
           {receta?.length === 0 && <EmptyState>Sin receta cargada todavía.</EmptyState>}
           {receta?.map((r) => (
             <div

@@ -947,6 +947,7 @@ export type Database = {
           activo: boolean
           categoria: string
           deleted_at: string | null
+          destino: string | null
           id: number
           nombre: string
           precio: number
@@ -955,6 +956,7 @@ export type Database = {
           activo?: boolean
           categoria: string
           deleted_at?: string | null
+          destino?: string | null
           id?: never
           nombre: string
           precio: number
@@ -963,6 +965,7 @@ export type Database = {
           activo?: boolean
           categoria?: string
           deleted_at?: string | null
+          destino?: string | null
           id?: never
           nombre?: string
           precio?: number

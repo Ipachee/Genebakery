@@ -32,6 +32,14 @@ export function useActualizarActivoProducto() {
   });
 }
 
+export function useActualizarDestinoProducto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (v: { id: number; destino: 'cocina' | 'barra' | null }) => api.actualizarDestinoProducto(v.id, v.destino),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['productos-recetas'] }),
+  });
+}
+
 export function useInsumos() {
   return useQuery({ queryKey: ['insumos-recetas'], queryFn: api.fetchInsumos });
 }

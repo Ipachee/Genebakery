@@ -119,7 +119,7 @@ async function imprimir(ticket) {
 async function traerPedidosActivos() {
   const { data, error } = await supabase
     .from('pedidos')
-    .select('id, mesa_id, mesas(label), pedido_items(id, cantidad, nota, ronda, enviado_cocina_at, productos(nombre, categoria))')
+    .select('id, mesa_id, mesas(label), pedido_items(id, cantidad, nota, ronda, enviado_cocina_at, productos(nombre, categoria, destino))')
     .in('estado', ['abierto', 'enviado_cocina', 'entregado'])
     .is('deleted_at', null);
   if (error) {
@@ -157,7 +157,10 @@ function agruparPorRonda(pedidos, destinoDeCategoria) {
     for (const [ronda, items] of porRonda) {
       const porDestino = new Map(); // 'cocina' | 'barra' -> items[]
       for (const it of items) {
-        const destino = destinoDeCategoria.get(it.productos?.categoria) ?? 'cocina';
+        // El producto puede pisar el destino de su categoría (se elige
+        // desde Recetas en la web) -- si no tiene nada elegido, se usa el
+        // de la categoría como default.
+        const destino = it.productos?.destino ?? destinoDeCategoria.get(it.productos?.categoria) ?? 'cocina';
         if (!porDestino.has(destino)) porDestino.set(destino, []);
         porDestino.get(destino).push(it);
       }
