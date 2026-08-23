@@ -112,8 +112,8 @@ export function RecetasView() {
 
       {productoId && productoSeleccionado && (
         <Card style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span className="field-label" style={{ margin: 0 }}>
                 {productoSeleccionado.nombre}
               </span>

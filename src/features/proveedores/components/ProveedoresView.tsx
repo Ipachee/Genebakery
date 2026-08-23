@@ -205,7 +205,7 @@ function FacturasDeProveedor({
 
   return (
     <div className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
         <div className="field-label">Facturas de {nombre}</div>
         {puedeEditar && (
           <Button variant="primary" size="sm" onClick={() => setModalAbierto(true)}>

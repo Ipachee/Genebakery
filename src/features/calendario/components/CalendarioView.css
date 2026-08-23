@@ -229,8 +229,20 @@
   white-space: nowrap;
 }
 
+/* En vez de achicar el grid de 7 columnas hasta hacerlo ilegible en un
+   celular, a partir de cierto ancho se deja un mínimo por día y el grid
+   entero scrollea horizontal -- mismo criterio que ya usan las tablas
+   (.table-wrap) en vez de comprimir el contenido hasta romperlo. */
+.calendario-grid-scroll {
+  overflow-x: auto;
+}
+
 @media (max-width: 720px) {
   .calendario-dia-header { font-size: 9.5px; padding: 5px 2px; }
   .calendario-dia { min-height: 72px; padding: 4px; }
   .calendario-chip { font-size: 9px; padding: 1px 4px; }
+}
+
+@media (max-width: 620px) {
+  .calendario-grid { min-width: 560px; }
 }

@@ -342,6 +342,7 @@ export function CalendarioView() {
       {isLoading ? (
         <EmptyState>Cargando…</EmptyState>
       ) : (
+        <div className="calendario-grid-scroll">
         <div className={`calendario-grid ${vista === 'semanal' ? 'es-semanal' : ''}`}>
           {DIAS_HEADER.map((d) => (
             <div key={d} className="calendario-dia-header">
@@ -398,6 +399,7 @@ export function CalendarioView() {
               </div>
             );
           })}
+        </div>
         </div>
       )}
 
