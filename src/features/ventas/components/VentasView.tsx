@@ -33,6 +33,19 @@ function mesaLabelDe(v: Venta) {
   return v.mesas?.label ?? (v.mesa_id ? `#${v.mesa_id}` : 'Take away');
 }
 
+// Las mesas se etiquetan como número ("1", "2"... "12") -- ordenarlas como
+// texto (localeCompare) las deja "1, 10, 11, 12, 2, 3..." en vez de
+// "1, 2, 3...12" apenas hay 10 mesas o más. Si ambos labels son números,
+// se comparan como tales; si no (ej. "Take away"), cae a texto.
+function compararMesas(a: Venta, b: Venta): number {
+  const la = mesaLabelDe(a);
+  const lb = mesaLabelDe(b);
+  const na = Number(la);
+  const nb = Number(lb);
+  if (la !== '' && lb !== '' && !Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+  return la.localeCompare(lb);
+}
+
 export function VentasView() {
   const puedeEditar = usePuedeEditar('ventas');
   const { data: ventas, isLoading } = useVentas();
@@ -41,8 +54,16 @@ export function VentasView() {
   const [busqueda, setBusqueda] = useState('');
   const [metodoPago, setMetodoPago] = useState('todos');
   const [tipo, setTipo] = useState<'todos' | 'mesa' | 'takeaway'>('todos');
-  const { orden, alClickear } = useOrdenTabla<ColumnaOrden>('fecha', 'desc');
+  const { orden, alClickear, setOrden } = useOrdenTabla<ColumnaOrden>('fecha', 'desc');
   const { confirm, dialog } = useConfirm();
+
+  // "Solo mesas" es para chequear rápido mesa por mesa -- tiene más
+  // sentido verlas en orden de mesa (1, 2, 3...) que por fecha, que es el
+  // orden por default del resto de la pantalla. Se puede volver a
+  // reordenar clickeando cualquier otra columna después.
+  useEffect(() => {
+    if (tipo === 'mesa') setOrden({ col: 'mesa', dir: 'asc' });
+  }, [tipo, setOrden]);
 
   const [cargandoTicketId, setCargandoTicketId] = useState<number | null>(null);
   const [reimprimiendo, setReimprimiendo] = useState<{ venta: Venta; items: ItemConProducto[] } | null>(null);
@@ -104,7 +125,7 @@ export function VentasView() {
     return [...filtradas].sort((a, b) => {
       switch (orden.col) {
         case 'mesa':
-          return dir * (a.mesas?.label ?? '').localeCompare(b.mesas?.label ?? '');
+          return dir * compararMesas(a, b);
         case 'cliente':
           return dir * (a.clientes ? `${a.clientes.nombre} ${a.clientes.apellido}` : '').localeCompare(b.clientes ? `${b.clientes.nombre} ${b.clientes.apellido}` : '');
         case 'total':

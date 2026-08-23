@@ -17,6 +17,9 @@ export function PedidoFooterCobro({
   subtotal,
   descuento,
   total,
+  puedeDescuento,
+  descuentoManualPct,
+  onDescuentoManualPct,
   onCobrar,
   onCobrarMultiple,
   pendiente,
@@ -29,6 +32,9 @@ export function PedidoFooterCobro({
   subtotal: number;
   descuento: number;
   total: number;
+  puedeDescuento: boolean;
+  descuentoManualPct: string;
+  onDescuentoManualPct: (pct: string) => void;
   onCobrar: (metodo: string) => void;
   onCobrarMultiple: (pagos: { metodo: string; monto: number }[]) => void;
   pendiente: boolean;
@@ -76,6 +82,25 @@ export function PedidoFooterCobro({
         Subtotal {fmt.format(subtotal)}
         {descuento > 0 && ` · Descuento −${fmt.format(descuento)}`}
       </div>
+      {puedeDescuento && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span className="field-label" style={{ margin: 0 }}>
+            Descuento
+          </span>
+          <TextInput
+            type="number"
+            min={0}
+            max={100}
+            placeholder="0"
+            value={descuentoManualPct}
+            onChange={(e) => onDescuentoManualPct(e.target.value)}
+            style={{ width: 64, fontSize: 12.5 }}
+          />
+          <span style={{ fontSize: 12.5, color: 'var(--text-dim)' }}>
+            % {descuentoManualPct !== '' && '(pisa el del cliente)'}
+          </span>
+        </div>
+      )}
       <div className="pedido-total-row">
         <span className="label">Total</span>
         <span>{fmt.format(total)}</span>

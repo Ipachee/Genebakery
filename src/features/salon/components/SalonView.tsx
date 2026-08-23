@@ -3,6 +3,7 @@ import { usePuedeEditar } from '../../permisos/hooks';
 import { useElementosDecorativos, useMesas, useEstadoDeMesas, useSalonMutations, useSalones, type EstadoMesa } from '../hooks';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
 import { PedidoPanel } from '../../pedidos/components/PedidoPanel';
+import { ArqueoCajaModal } from '../../turnos/components/ArqueoCajaModal';
 import { Button } from '../../../components/Button';
 import { TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
@@ -53,6 +54,7 @@ export function SalonView() {
   const [redim, setRedim] = useState<Redim>(null);
   const [sizeOverride, setSizeOverride] = useState<Record<string, { w: number; h: number }>>({});
   const [mesaParaPedido, setMesaParaPedido] = useState<Mesa | null>(null);
+  const [arqueoAbierto, setArqueoAbierto] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const { confirm, dialog } = useConfirm();
 
@@ -257,6 +259,11 @@ export function SalonView() {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+          {!editando && turno && (
+            <Button variant="secondary" size="sm" onClick={() => setArqueoAbierto(true)}>
+              💵 Caja inicial
+            </Button>
+          )}
           {mesaTakeAway && !editando && (
             <Button variant="secondary" size="sm" onClick={() => setMesaParaPedido(mesaTakeAway)}>
               🛍️ Take away
@@ -532,6 +539,7 @@ export function SalonView() {
       {mesaParaPedido && (
         <PedidoPanel mesa={mesaParaPedido} onClose={() => setMesaParaPedido(null)} />
       )}
+      {arqueoAbierto && turno && <ArqueoCajaModal turno={turno} onClose={() => setArqueoAbierto(false)} />}
       {dialog}
     </div>
   );

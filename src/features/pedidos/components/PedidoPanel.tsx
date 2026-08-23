@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../../auth/useAuth';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { useTurnoActual } from '../../turnos/useTurnoActual';
 import { pedidoMesaKey, usePedidoDeMesa, usePedidoMutations, useProductos, type ItemConProducto, type PedidoConItems } from '../hooks';
 import { useClientes } from '../../clientes/hooks';
@@ -36,6 +37,7 @@ type ReciboCobro = {
 
 export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void }) {
   const { session, profile } = useAuth();
+  const puedeDescuento = usePuedeEditar('ventas');
   const { turno } = useTurnoActual();
   const { data: productos } = useProductos();
   const { data: pedido, isLoading } = usePedidoDeMesa(mesa.id);
@@ -69,6 +71,10 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   }
   const [enviando, setEnviando] = useState(false);
   const [clienteId, setClienteId] = useState<number | ''>('');
+  // Descuento manual (0-100%) que el que está cobrando puede tipear en el
+  // momento -- pisa el % automático del cliente si tiene uno cargado.
+  // Vacío = usar el del cliente (o ninguno) como hasta ahora.
+  const [descuentoManualPct, setDescuentoManualPct] = useState('');
   const [transfiriendo, setTransfiriendo] = useState(false);
   const [mesaDestino, setMesaDestino] = useState<number | ''>('');
   // Cuántas unidades de cada fila se van a transferir (0 = no seleccionada).
@@ -82,7 +88,10 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const subtotal = items.reduce((s, it) => s + Number(it.precio_unitario) * Number(it.cantidad), 0);
   const hayPendientesDeCocina = items.some((it) => !it.enviado_cocina);
   const clienteSeleccionado = clientes?.find((c) => c.id === clienteId);
-  const descuento = clienteSeleccionado ? Math.round(subtotal * (Number(clienteSeleccionado.descuento_pct) / 100)) : 0;
+  const descuentoCliente = clienteSeleccionado ? Math.round(subtotal * (Number(clienteSeleccionado.descuento_pct) / 100)) : 0;
+  const pctManual = Number(descuentoManualPct);
+  const hayDescuentoManual = puedeDescuento && descuentoManualPct !== '' && !Number.isNaN(pctManual);
+  const descuento = hayDescuentoManual ? Math.round(subtotal * (Math.min(100, Math.max(0, pctManual)) / 100)) : descuentoCliente;
   const total = subtotal - descuento;
 
   // Lista combinada (agrupados enviados + sueltos sin enviar) en el mismo
@@ -417,6 +426,9 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                     subtotal={subtotal}
                     descuento={descuento}
                     total={total}
+                    puedeDescuento={puedeDescuento}
+                    descuentoManualPct={descuentoManualPct}
+                    onDescuentoManualPct={setDescuentoManualPct}
                     onCobrar={handleCobrar}
                     onCobrarMultiple={handleCobrarMultiple}
                     pendiente={mutations.cobrar.isPending}

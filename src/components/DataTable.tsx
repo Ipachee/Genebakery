@@ -18,7 +18,7 @@ export function useOrdenTabla<T extends string>(colInicial: T, dirInicial: Orden
   function alClickear(col: T) {
     setOrden((o) => (o.col === col ? { col, dir: o.dir === 'asc' ? 'desc' : 'asc' } : { col, dir: 'asc' }));
   }
-  return { orden, alClickear };
+  return { orden, alClickear, setOrden };
 }
 
 export function ThOrdenable<T extends string>({
