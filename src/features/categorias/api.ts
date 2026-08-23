@@ -16,6 +16,13 @@ export async function actualizarCategoria(v: { id: number; nombre: string; orden
   if (error) throw error;
 }
 
+// Separado de actualizarCategoria (nombre/orden) a propósito -- se toca
+// desde un select suelto en la fila, no desde el modo edición completo.
+export async function actualizarDestinoCategoria(id: number, destino: 'cocina' | 'barra') {
+  const { error } = await supabase.from('categorias').update({ destino }).eq('id', id);
+  if (error) throw error;
+}
+
 export async function borrarCategoria(id: number) {
   const { error } = await supabase.from('categorias').update({ deleted_at: new Date().toISOString() }).eq('id', id);
   if (error) throw error;

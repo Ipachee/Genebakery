@@ -16,10 +16,24 @@ module.exports = {
   LOGIN_EMAIL: 'admin@comandacafe.local',
   LOGIN_PASSWORD: 'PONÉ_ACÁ_EL_PIN_REAL',
 
-  // Nombre del RECURSO COMPARTIDO de la impresora en Windows (no
-  // necesariamente el mismo que el nombre que se ve en "Impresoras y
-  // escáneres" -- ver el README para cómo compartirla y qué nombre
-  // ponerle). Por default se deja igual al nombre de la impresora.
+  // Cómo llegarle a la impresora -- 'red' si tiene su propio puerto
+  // Ethernet y está conectada directo al router (recomendado si el
+  // modelo lo tiene: no depende de compartir nada en Windows, y
+  // cualquier compu de la red le puede mandar tickets sin instalar nada
+  // más ahí), o 'usb-compartida' si va por USB a esta misma compu (ver
+  // README para cómo compartirla en Windows).
+  PRINTER_MODE: 'usb-compartida', // 'usb-compartida' | 'red'
+
+  // Solo si PRINTER_MODE es 'red': IP de la impresora en la red local
+  // (se ve en el menú/autotest de la impresora) y el puerto de impresión
+  // ESC/POS -- 9100 es el estándar, casi nunca hace falta cambiarlo.
+  PRINTER_IP: '',
+  PRINTER_PORT: 9100,
+
+  // Solo si PRINTER_MODE es 'usb-compartida': nombre del RECURSO
+  // COMPARTIDO de la impresora en Windows (no necesariamente el mismo
+  // que el nombre que se ve en "Impresoras y escáneres" -- ver el README
+  // para cómo compartirla y qué nombre ponerle).
   PRINTER_SHARE_NAME: 'PONÉ_ACÁ_EL_NOMBRE_COMPARTIDO',
 
   // Cada cuántos milisegundos revisa si hay comandas nuevas.

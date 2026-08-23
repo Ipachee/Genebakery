@@ -4,7 +4,7 @@ import { useCategoriaMutations, useCategorias } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable } from '../../../components/DataTable';
 import { Button } from '../../../components/Button';
-import { TextInput } from '../../../components/Field';
+import { Select, TextInput } from '../../../components/Field';
 import { EmptyState } from '../../../components/EmptyState';
 import { useConfirm } from '../../../components/ConfirmDialog';
 import type { Database } from '../../../lib/supabase/types';
@@ -14,7 +14,7 @@ type Categoria = Database['public']['Tables']['categorias']['Row'];
 export function CategoriasView() {
   const puedeEditar = usePuedeEditar('categorias');
   const { data: categorias, isLoading } = useCategorias();
-  const { crear, actualizar, borrar } = useCategoriaMutations();
+  const { crear, actualizar, actualizarDestino, borrar } = useCategoriaMutations();
   const [nombre, setNombre] = useState('');
   const { confirm, dialog } = useConfirm();
 
@@ -29,7 +29,7 @@ export function CategoriasView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <PageHeader
         title="Categorías"
-        subtitle="Las pestañas que se ven al armar un pedido y al cargar un producto nuevo. El orden acá define el orden de las pestañas."
+        subtitle="Las pestañas que se ven al armar un pedido y al cargar un producto nuevo. El orden acá define el orden de las pestañas. El destino define si el ticket de esa categoría sale para cocina o para la barra."
       />
 
       {puedeEditar && (
@@ -51,6 +51,7 @@ export function CategoriasView() {
             <tr>
               <th>Orden</th>
               <th>Nombre</th>
+              <th>Destino</th>
               {puedeEditar && <th></th>}
             </tr>
           </thead>
@@ -61,6 +62,7 @@ export function CategoriasView() {
                 categoria={c}
                 puedeEditar={puedeEditar}
                 onGuardar={(v) => actualizar.mutate(v)}
+                onGuardarDestino={(destino) => actualizarDestino.mutate({ id: c.id, destino })}
                 onBorrar={async () => {
                   if (await confirm(`¿Borrar la categoría "${c.nombre}"?`)) borrar.mutate(c.id);
                 }}
@@ -78,11 +80,13 @@ function FilaCategoria({
   categoria,
   puedeEditar,
   onGuardar,
+  onGuardarDestino,
   onBorrar,
 }: {
   categoria: Categoria;
   puedeEditar: boolean;
   onGuardar: (v: { id: number; nombre: string; orden: number }) => void;
+  onGuardarDestino: (destino: 'cocina' | 'barra') => void;
   onBorrar: () => void;
 }) {
   const [editando, setEditando] = useState(false);
@@ -108,6 +112,7 @@ function FilaCategoria({
         <td>
           <TextInput value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} style={{ width: '100%' }} autoFocus />
         </td>
+        <td>{categoria.destino === 'barra' ? '🍹 Barra' : '🍳 Cocina'}</td>
         <td style={{ display: 'flex', gap: 6 }}>
           <Button variant="success" size="sm" onClick={guardar}>
             💾 Guardar
@@ -124,6 +129,22 @@ function FilaCategoria({
     <tr>
       <td>{categoria.orden}</td>
       <td>{categoria.nombre}</td>
+      <td>
+        {puedeEditar ? (
+          <Select
+            value={categoria.destino}
+            onChange={(e) => onGuardarDestino(e.target.value as 'cocina' | 'barra')}
+            style={{ fontSize: 12.5, padding: '4px 6px' }}
+          >
+            <option value="cocina">🍳 Cocina</option>
+            <option value="barra">🍹 Barra</option>
+          </Select>
+        ) : categoria.destino === 'barra' ? (
+          '🍹 Barra'
+        ) : (
+          '🍳 Cocina'
+        )}
+      </td>
       {puedeEditar && (
         <td style={{ display: 'flex', gap: 6 }}>
           <Button size="sm" variant="secondary" onClick={empezarEdicion}>

@@ -11,6 +11,10 @@ export function useCategoriaMutations() {
   return {
     crear: useMutation({ mutationFn: api.crearCategoria, onSuccess: invalidar }),
     actualizar: useMutation({ mutationFn: api.actualizarCategoria, onSuccess: invalidar }),
+    actualizarDestino: useMutation({
+      mutationFn: (v: { id: number; destino: 'cocina' | 'barra' }) => api.actualizarDestinoCategoria(v.id, v.destino),
+      onSuccess: invalidar,
+    }),
     borrar: useMutation({ mutationFn: api.borrarCategoria, onSuccess: invalidar }),
   };
 }
