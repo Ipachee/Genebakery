@@ -215,11 +215,10 @@ export function generarPdfCierre(params: {
   }
 
   // --- Gastos del día (insumos, servicios y pagos a empleados) --
-  // para que el dueño vea de un vistazo cuánto entró y cuánto salió el
-  // mismo día, no solo lo facturado.
+  // para que el dueño vea de un vistazo qué se pagó ese día, aparte de lo
+  // facturado. Sin saldo neto a propósito -- puede dar negativo y queda feo.
   if (gastosDia.length > 0) {
     const totalGastos = gastosDia.reduce((s, g) => s + Number(g.monto), 0);
-    const neto = facturado - totalGastos;
     const alto = 8 + gastosDia.length * 6.5 + 9;
     y = ensureSpace(doc, y, alto + 12);
     y = seccionHeader(doc, 'Gastos del día', y, COLOR.red);
@@ -241,9 +240,9 @@ export function generarPdfCierre(params: {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9.5);
     doc.setTextColor(...COLOR.brownDark);
-    doc.text('Neto (facturado − gastos del día)', MARGIN + 5, gy);
-    doc.setTextColor(...(neto >= 0 ? COLOR.terracotaDark : COLOR.red));
-    doc.text(fmt.format(neto), MARGIN + CONTENT_W - 5, gy, { align: 'right' });
+    doc.text('Total gastos', MARGIN + 5, gy);
+    doc.setTextColor(...COLOR.red);
+    doc.text(`-${fmt.format(totalGastos)}`, MARGIN + CONTENT_W - 5, gy, { align: 'right' });
     doc.setTextColor(...COLOR.brownDark);
     y += alto + 10;
   }

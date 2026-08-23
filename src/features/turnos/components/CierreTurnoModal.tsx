@@ -230,10 +230,8 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
                     marginTop: 4,
                   }}
                 >
-                  <span>Neto (facturado − gastos)</span>
-                  <span style={{ color: facturado - totalGastosDia >= 0 ? 'var(--terracota-dark)' : 'var(--red)' }}>
-                    {fmt.format(facturado - totalGastosDia)}
-                  </span>
+                  <span>Total gastos</span>
+                  <span style={{ color: 'var(--red)' }}>-{fmt.format(totalGastosDia)}</span>
                 </div>
               </div>
             </div>

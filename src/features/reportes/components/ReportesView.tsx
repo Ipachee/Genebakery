@@ -107,14 +107,26 @@ export function ReportesView() {
                 <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 2 }}>Gastos del período</div>
                 <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--red)' }}>-{fmt.format(totalGastos)}</div>
               </div>
-              <div>
-                <div style={{ fontSize: 12, color: 'var(--text-dim)', marginBottom: 2 }}>Neto</div>
-                <div style={{ fontSize: 26, fontWeight: 700, color: totalPeriodo - totalGastos >= 0 ? 'var(--terracota-dark)' : 'var(--red)' }}>
-                  {fmt.format(totalPeriodo - totalGastos)}
-                </div>
-              </div>
             </div>
           </div>
+
+          {!!gastosRango?.length && (
+            <div className="card card-pad">
+              <div className="field-label" style={{ marginBottom: 10 }}>
+                Gastos del período
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {gastosRango.map((g, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span>
+                      {g.concepto} <span style={{ color: 'var(--text-dim)', fontSize: 11.5 }}>({g.tipo})</span>
+                    </span>
+                    <strong style={{ color: 'var(--red)' }}>-{fmt.format(Number(g.monto))}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="card card-pad">
             <div className="field-label" style={{ marginBottom: 10 }}>
