@@ -127,7 +127,7 @@ export function PedidoFooterCobro({
         <span>{fmt.format(total)}</span>
       </div>
       <Button variant="ghost" size="sm" onClick={onImprimirPreview}>
-        🖨️ Imprimir ticket (por si quiere verlo antes de pagar)
+        🖨️ Imprimir ticket
       </Button>
 
       {!dividir ? (
