@@ -26,4 +26,9 @@ casilla y sume dígitos de más.
 El badge de factura (emitida/error/pendiente/sin factura) y el botón de imprimir ticket con QR viven en
 esta vista. Ver [[Facturacion-electronica]] para el flujo completo.
 
+`FacturaTicket.tsx` tiene la condición de IVA del comprador **inferida del tipo de comprobante elegido**
+(`COND_IVA_COMPRADOR`) -- Factura A siempre es Responsable Inscripto, B/C caen a Consumidor Final. No es
+un dato que se cargue por cliente hoy, así que no inventar un campo nuevo para esto sin que haga falta de
+verdad.
+
 **Relacionado:** [[Turnos]], [[Facturacion-electronica]], [[Permisos]]

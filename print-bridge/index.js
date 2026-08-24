@@ -73,16 +73,17 @@ async function imprimir(ticket) {
   printer.println(`Mesa: ${ticket.mesaLabel}`);
   printer.drawLine();
 
-  for (const item of ticket.items) {
+  ticket.items.forEach((item, i) => {
+    if (i > 0) printer.newLine();
     printer.setTextDoubleHeight();
     printer.bold(true);
     printer.println(`${item.cantidad}x ${item.nombre}`);
     printer.bold(false);
     printer.setTextNormal();
     if (item.nota) {
-      printer.println(`  * ${item.nota}`);
+      printer.println(`  ↳ ${item.nota}`);
     }
-  }
+  });
 
   printer.drawLine();
   printer.cut();

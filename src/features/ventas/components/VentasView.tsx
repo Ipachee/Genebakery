@@ -339,6 +339,7 @@ export function VentasView() {
           cae={imprimiendoFactura.factura.cae}
           caeVencimiento={imprimiendoFactura.factura.cae_vencimiento ?? ''}
           clienteNombre={imprimiendoFactura.venta.clientes ? `${imprimiendoFactura.venta.clientes.nombre} ${imprimiendoFactura.venta.clientes.apellido}` : null}
+          clienteCuitDni={imprimiendoFactura.venta.clientes?.cuit || imprimiendoFactura.venta.clientes?.dni || null}
           items={imprimiendoFactura.items}
           total={Number(imprimiendoFactura.venta.total)}
           metodoPago={imprimiendoFactura.venta.metodo_pago}

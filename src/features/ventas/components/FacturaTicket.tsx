@@ -7,6 +7,14 @@ type PerfilNegocio = Database['public']['Tables']['perfil_negocio']['Row'] | nul
 
 const LABEL_TIPO: Record<string, string> = { factura_a: 'A', factura_b: 'B', factura_c: 'C' };
 const CBTE_TIPO: Record<string, number> = { factura_a: 1, factura_b: 6, factura_c: 11 };
+// La condición de IVA del comprador se infiere del tipo de comprobante
+// elegido (no es un dato que se cargue por cliente hoy): Factura A es
+// exclusiva para Responsable Inscripto, B/C cubren el resto.
+const COND_IVA_COMPRADOR: Record<string, string> = {
+  factura_a: 'Responsable Inscripto',
+  factura_b: 'Consumidor Final',
+  factura_c: 'Consumidor Final',
+};
 
 export function FacturaTicket({
   tipoComprobante,
@@ -15,6 +23,7 @@ export function FacturaTicket({
   cae,
   caeVencimiento,
   clienteNombre,
+  clienteCuitDni,
   items,
   total,
   metodoPago,
@@ -28,6 +37,7 @@ export function FacturaTicket({
   cae: string;
   caeVencimiento: string;
   clienteNombre: string | null;
+  clienteCuitDni: string | null;
   items: ItemConProducto[];
   total: number;
   metodoPago: string;
@@ -41,52 +51,67 @@ export function FacturaTicket({
   const cfg = getTicketConfig();
   const anchoPx = cfg.ancho === 58 ? 220 : 300;
   const fontFamily = cfg.fuente === 'mono' ? 'ui-monospace, Consolas, monospace' : 'Arial, sans-serif';
-  const raya = <hr style={{ border: 'none', borderTop: '1px dashed #000', margin: '4px 0' }} />;
+  const raya = <hr style={{ border: 'none', borderTop: '1.5px dashed #000', margin: '10px 0' }} />;
+  const letra = LABEL_TIPO[tipoComprobante] ?? '?';
 
   return (
-    <div className="ticket-print" style={{ width: anchoPx, fontFamily, fontSize: cfg.tamano, color: '#000', padding: '4px 6px' }}>
+    <div className="ticket-print" style={{ width: anchoPx, fontFamily, fontSize: cfg.tamano, color: '#000', padding: '22px 18px 26px' }}>
       <style>{`@page { size: ${cfg.ancho}mm auto; margin: 2mm; }`}</style>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontWeight: 700, fontSize: cfg.tamano + 6, letterSpacing: '0.03em' }}>{cfg.nombreLocal.toUpperCase()}</div>
-        {perfil?.cuit && <div style={{ fontSize: cfg.tamano - 2 }}>CUIT {perfil.cuit}</div>}
-        {perfil?.direccion && <div style={{ fontSize: cfg.tamano - 2 }}>{perfil.direccion}</div>}
-        {perfil?.condicion_iva && <div style={{ fontSize: cfg.tamano - 2 }}>{perfil.condicion_iva}</div>}
+
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, justifyContent: 'center' }}>
         <div
           style={{
-            display: 'inline-block',
-            border: '1px solid #000',
-            borderRadius: 4,
-            padding: '1px 8px',
-            fontWeight: 700,
-            fontSize: cfg.tamano + 2,
-            marginTop: 4,
+            border: '2px solid #000',
+            width: 34,
+            height: 34,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 800,
+            fontSize: 20,
+            flexShrink: 0,
           }}
         >
-          FACTURA {LABEL_TIPO[tipoComprobante] ?? '?'}
+          {letra}
         </div>
-        <div style={{ fontSize: cfg.tamano, fontWeight: 700, marginTop: 2 }}>
-          {String(puntoVenta).padStart(5, '0')}-{String(numero).padStart(8, '0')}
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontWeight: 800, fontSize: cfg.tamano + 6, letterSpacing: '0.06em' }}>{cfg.nombreLocal.toUpperCase()}</div>
+          {perfil?.cuit && <div style={{ fontSize: cfg.tamano - 2 }}>CUIT {perfil.cuit}</div>}
+          {perfil?.condicion_iva && <div style={{ fontSize: cfg.tamano - 2 }}>{perfil.condicion_iva}</div>}
         </div>
       </div>
-      {raya}
+      <div style={{ width: '100%', height: 1.5, background: '#000', margin: '10px 0 8px' }} />
 
+      <div style={{ fontSize: cfg.tamano, display: 'flex', justifyContent: 'space-between' }}>
+        <span>Punto de venta {String(puntoVenta).padStart(4, '0')}</span>
+        <span>N.° {String(numero).padStart(8, '0')}</span>
+      </div>
       <div style={{ fontSize: cfg.tamano }}>
-        {clienteNombre && <div>Cliente: {clienteNombre}</div>}
-        <div>Fecha: {fecha.toLocaleDateString('es-AR')}</div>
+        {fecha.toLocaleDateString('es-AR')} {fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
       </div>
       {raya}
 
-      {items.map((it) => (
-        <div key={it.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 6, fontSize: cfg.tamano }}>
-          <span>
-            {it.cantidad}x {it.productos?.nombre ?? `Producto #${it.producto_id}`}
-          </span>
-          <span>{fmt.format(Number(it.precio_unitario) * Number(it.cantidad))}</span>
-        </div>
-      ))}
+      <div style={{ fontSize: cfg.tamano, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {clienteNombre && <div>Cliente: {clienteNombre}</div>}
+        {clienteCuitDni && <div>CUIT/DNI: {clienteCuitDni}</div>}
+        <div>Cond. IVA: {COND_IVA_COMPRADOR[tipoComprobante] ?? 'Consumidor Final'}</div>
+        <div>Cond. venta: Contado</div>
+      </div>
       {raya}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: cfg.tamano + 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {items.map((it) => (
+          <div key={it.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: cfg.tamano }}>
+            <span>
+              {it.cantidad}x {it.productos?.nombre ?? `Producto #${it.producto_id}`}
+            </span>
+            <span>{fmt.format(Number(it.precio_unitario) * Number(it.cantidad))}</span>
+          </div>
+        ))}
+      </div>
+      {raya}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: cfg.tamano + 6, marginTop: 6 }}>
         <span>Total</span>
         <span>{fmt.format(total)}</span>
       </div>
@@ -97,10 +122,10 @@ export function FacturaTicket({
         <div>CAE: {cae}</div>
         <div>Vto. CAE: {new Date(`${caeVencimiento}T00:00:00`).toLocaleDateString('es-AR')}</div>
       </div>
-      <div style={{ textAlign: 'center', marginTop: 6 }}>
+      <div style={{ textAlign: 'center', marginTop: 8 }}>
         <img src={qrDataUrl} alt="QR de verificación en ARCA" width={120} height={120} />
       </div>
-      <div style={{ textAlign: 'center', fontSize: cfg.tamano - 1, marginTop: 4 }}>{cfg.pie}</div>
+      <div style={{ textAlign: 'center', fontSize: cfg.tamano - 1, marginTop: 8 }}>{cfg.pie}</div>
     </div>
   );
 }
