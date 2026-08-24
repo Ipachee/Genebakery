@@ -12,6 +12,7 @@ type TablaSoftDelete = Exclude<
   | 'credenciales_facturacion'
   | 'roles_personalizados'
   | 'permisos_navegacion'
+  | 'configuracion_turnos'
 >;
 
 const TABLA_POR_TIPO: Record<string, TablaSoftDelete> = {

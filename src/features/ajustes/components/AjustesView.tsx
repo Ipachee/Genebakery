@@ -3,6 +3,7 @@ import { TipografiaTicketView } from './TipografiaTicketView';
 import { PerfilNegocioView } from '../../negocio/components/PerfilNegocioView';
 import { FacturacionView } from '../../facturacion/components/FacturacionView';
 import { PermisosRolesView } from '../../permisos/components/PermisosRolesView';
+import { HorariosTurnoView } from '../../configuracion-turnos/components/HorariosTurnoView';
 
 // Reportes vivía acá adentro como pestaña porque todavía no existía un
 // lugar propio en la navegación -- con el sidebar nuevo pasó a ser su
@@ -13,6 +14,7 @@ const TABS = [
   { id: 'facturacion', label: 'Facturación electrónica', Componente: FacturacionView },
   { id: 'tipografia', label: 'Tipografía del ticket', Componente: TipografiaTicketView },
   { id: 'roles', label: 'Roles y permisos', Componente: PermisosRolesView },
+  { id: 'horarios', label: 'Horarios de turno', Componente: HorariosTurnoView },
 ] as const;
 
 export function AjustesView() {

@@ -165,6 +165,27 @@ export type Database = {
         }
         Relationships: []
       }
+      configuracion_turnos: {
+        Row: {
+          activo: boolean
+          dia_isodow: number
+          etiqueta: string
+          id: number
+        }
+        Insert: {
+          activo?: boolean
+          dia_isodow: number
+          etiqueta: string
+          id?: never
+        }
+        Update: {
+          activo?: boolean
+          dia_isodow?: number
+          etiqueta?: string
+          id?: never
+        }
+        Relationships: []
+      }
       credenciales_facturacion: {
         Row: {
           actualizado_at: string

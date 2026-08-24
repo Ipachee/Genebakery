@@ -25,6 +25,7 @@ de nuevo cada vez, ya es parte del flujo.
 - [[Categorias-y-Recetas]] — separación de tickets cocina/barra
 - [[Permisos]] — modelo Ver/Editar por sección y cargos dinámicos
 - [[Print-bridge]] — programa aparte que imprime los tickets
+- [[Configuracion-turnos]] — qué turnos existen cada día de la semana, lo lee el login
 
 ## Resto de las secciones (stubs — completar cuando se trabaje ahí)
 

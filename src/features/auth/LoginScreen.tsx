@@ -2,12 +2,16 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { useTurnosPublico } from '../turnos/hooks';
 import { useRolesPersonalizados } from '../permisos/hooks';
+import { useConfiguracionTurnos } from '../configuracion-turnos/hooks';
+import { etiquetasActivasHoy } from '../configuracion-turnos/turnosActivosHoy';
 import { CUENTAS } from './accounts';
 
 // Admin no se loguea acá — se accede desde adentro de un turno con el
 // candadito 🔑 del header, sin perder la sesión de mozo abierta.
-// Turnos (Mañana/Tarde/Noche): acceso de todos los días, tarjetas grandes.
-const TURNOS = CUENTAS.filter((c) => c.id !== 'admin' && 'etiqueta' in c);
+// Turnos (Mañana/Tarde/Noche): cuáles se muestran hoy depende de
+// configuracion_turnos (Ajustes → Horarios de turno), no son todos
+// siempre -- ver el filtro por etiquetasActivasHoy más abajo.
+const TODOS_LOS_TURNOS = CUENTAS.filter((c) => c.id !== 'admin' && 'etiqueta' in c);
 import './LoginScreen.css';
 
 // Un "cargo" (RRHH y lo que se vaya agregando con + Nuevo cargo) es
@@ -43,8 +47,15 @@ export function LoginScreen() {
   const ahora = useReloj();
   const { data: turnosPublico } = useTurnosPublico();
   const { data: rolesPersonalizados } = useRolesPersonalizados();
+  const { data: configuracionTurnos } = useConfiguracionTurnos();
 
   const cargos: Cargo[] = (rolesPersonalizados ?? []).map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, icono: r.icono ?? '🗂️' }));
+
+  // Mientras no cargó la config (o falló), se muestran todos los turnos
+  // -- que el login se caiga por un fetch que falla sería peor que
+  // mostrar un turno de más por un rato.
+  const activasHoy = configuracionTurnos ? etiquetasActivasHoy(configuracionTurnos) : null;
+  const TURNOS = activasHoy ? TODOS_LOS_TURNOS.filter((t) => activasHoy.includes(t.etiqueta)) : TODOS_LOS_TURNOS;
 
   function turnoAbierto(opcion: (typeof TURNOS)[number]) {
     return turnosPublico?.some((t) => t.etiqueta === opcion.etiqueta && t.estado === 'abierto') ?? false;
