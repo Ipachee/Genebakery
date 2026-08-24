@@ -43,13 +43,22 @@ export function LoginScreen() {
   const { data: rolesPersonalizados } = useRolesPersonalizados();
   const { data: configuracionTurnos } = useConfiguracionTurnos();
 
+  const abierto = (etiqueta: string) => turnosPublico?.some((t) => t.etiqueta === etiqueta && t.estado === 'abierto') ?? false;
+
   // Mientras no cargó la config (o falló), se muestran todos los turnos --
   // que el login se caiga por un fetch que falla sería peor que mostrar un
   // turno de más por un rato. Ver docs/Configuracion-turnos.md.
+  //
+  // Un turno que quedó ABIERTO de verdad se muestra siempre, aunque hoy no
+  // le toque por configuración -- si no, un Noche que quedó sin cerrar de
+  // un domingo se vuelve imposible de cerrar un lunes (no aparece su
+  // tarjeta para entrar y cerrarlo). El filtro por día solo esconde la
+  // opción de EMPEZAR un turno que no corresponde hoy, nunca la de
+  // terminar uno que quedó corriendo de antes.
   const activasHoy = configuracionTurnos ? etiquetasActivasHoy(configuracionTurnos) : null;
-  const turnosHoy = activasHoy ? TODOS_LOS_TURNOS.filter((t) => activasHoy.includes(t.etiqueta)) : TODOS_LOS_TURNOS;
-
-  const abierto = (etiqueta: string) => turnosPublico?.some((t) => t.etiqueta === etiqueta && t.estado === 'abierto') ?? false;
+  const turnosHoy = activasHoy
+    ? TODOS_LOS_TURNOS.filter((t) => activasHoy.includes(t.etiqueta) || abierto(t.etiqueta))
+    : TODOS_LOS_TURNOS;
 
   const personasTurno: Persona[] = turnosHoy.map((t) => ({
     id: t.id,

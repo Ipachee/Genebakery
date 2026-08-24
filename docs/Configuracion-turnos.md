@@ -30,6 +30,14 @@ calendario cargado tarde tumbe el login de un turno que sí existe hoy.
 la consulta a `configuracion_turnos` todavía no cargó (o falla), se muestran **todos** los turnos como
 fallback — que el login se caiga por un fetch que falla sería peor que mostrar una tarjeta de más.
 
+**Bug real ya corregido:** un turno que quedó realmente ABIERTO en la base se muestra siempre, aunque
+hoy no le toque por configuración. Pasó de verdad: quedó un turno Noche sin cerrar de un fin de semana, y
+el lunes siguiente (Noche desactivado ese día) no había forma de entrar a esa cuenta para cerrarlo —
+`fn_resolver_turno` bloquea abrir Tarde mientras Noche siga abierto, y su tarjeta de login no aparecía.
+Se salvó por Admin (bypassea esa regla), pero no era la solución real. El filtro por día ahora es
+`activasHoy.includes(etiqueta) || abierto(etiqueta)` — solo esconde la opción de EMPEZAR un turno fuera
+de horario, nunca la de terminar uno que quedó corriendo de antes.
+
 ## Ojo con tablas nuevas y la Papelera
 
 `src/features/papelera/api.ts` arma `TablaSoftDelete` como `Exclude<keyof Database['public']['Tables'],
