@@ -99,17 +99,24 @@ export function FacturaTicket({
       </div>
       {raya}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: cfg.tamano }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '14% 46% 20% 20%', fontWeight: 700 }}>
+          <span>Cant.</span>
+          <span>Descripción</span>
+          <span style={{ textAlign: 'right' }}>SubTot.</span>
+          <span style={{ textAlign: 'right' }}>Total</span>
+        </div>
         {items.map((it) => (
-          <div key={it.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: cfg.tamano }}>
-            <span>
-              {it.cantidad}x {it.productos?.nombre ?? `Producto #${it.producto_id}`}
-            </span>
-            <span>{fmt.format(Number(it.precio_unitario) * Number(it.cantidad))}</span>
+          <div key={it.id} style={{ display: 'grid', gridTemplateColumns: '14% 46% 20% 20%' }}>
+            <span>{it.cantidad}</span>
+            <span>{it.productos?.nombre ?? `Producto #${it.producto_id}`}</span>
+            <span style={{ textAlign: 'right' }}>{fmt.format(Number(it.precio_unitario))}</span>
+            <span style={{ textAlign: 'right' }}>{fmt.format(Number(it.precio_unitario) * Number(it.cantidad))}</span>
           </div>
         ))}
       </div>
       {raya}
+      <div style={{ height: 10 }} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: cfg.tamano + 6, marginTop: 6 }}>
         <span>Total</span>

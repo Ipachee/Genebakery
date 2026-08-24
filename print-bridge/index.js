@@ -118,14 +118,25 @@ async function enviarAImpresora(printer, tempPath) {
   }
 }
 
-// Fila de items con cantidad/nombre a la izquierda y precio a la derecha,
-// en columnas -- mismo criterio visual que TicketCobro/FacturaTicket en
-// la web (ahí es flex space-between, acá es tableCustom).
+// Tabla de 4 columnas (Cant. / Descripción / SubTot. / Total) con
+// encabezado -- SubTot. es el precio unitario, Total es cantidad x precio
+// unitario. Mismo criterio visual que TicketCobro/FacturaTicket en la web
+// (ahí es CSS grid, acá son columnas con tableCustom).
 function imprimirItemsTabla(printer, items) {
+  printer.bold(true);
+  printer.tableCustom([
+    { text: 'Cant.', align: 'LEFT', width: 0.14 },
+    { text: 'Descripción', align: 'LEFT', width: 0.46 },
+    { text: 'SubTot.', align: 'RIGHT', width: 0.2 },
+    { text: 'Total', align: 'RIGHT', width: 0.2 },
+  ]);
+  printer.bold(false);
   for (const it of items) {
     printer.tableCustom([
-      { text: `${it.cantidad}x ${it.nombre}`, align: 'LEFT', width: 0.7 },
-      { text: fmtMoney(it.precioUnitario * it.cantidad), align: 'RIGHT', width: 0.3 },
+      { text: String(it.cantidad), align: 'LEFT', width: 0.14 },
+      { text: it.nombre, align: 'LEFT', width: 0.46 },
+      { text: fmtMoney(it.precioUnitario), align: 'RIGHT', width: 0.2 },
+      { text: fmtMoney(it.precioUnitario * it.cantidad), align: 'RIGHT', width: 0.2 },
     ]);
   }
 }
@@ -184,6 +195,7 @@ async function imprimirCobro(venta) {
 
   imprimirItemsTabla(printer, venta.items);
   printer.drawLine();
+  printer.newLine();
 
   if (venta.descuento > 0) {
     printer.tableCustom([
@@ -209,6 +221,10 @@ async function imprimirCobro(venta) {
   printer.println(`${venta.fecha} ${venta.hora}${venta.atendidoPor ? ` · ${venta.atendidoPor}` : ''}`);
   printer.alignCenter();
   printer.println(config.PIE_TICKET);
+  // Solo acá, no en la Factura -- este comprobante NO es un documento
+  // fiscal válido (la Factura A/B/C sí lo es, con CAE de ARCA).
+  printer.setTextNormal();
+  printer.println('DOCUMENTO NO VÁLIDO COMO FACTURA');
   printer.cut();
   return enviarAImpresora(printer, tempPath);
 }
@@ -242,6 +258,7 @@ async function imprimirFactura(f) {
 
   imprimirItemsTabla(printer, f.items);
   printer.drawLine();
+  printer.newLine();
 
   printer.setTextDoubleHeight();
   printer.bold(true);

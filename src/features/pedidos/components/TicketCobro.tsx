@@ -85,17 +85,24 @@ export function TicketCobro({
       </div>
       {raya}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: cfg.tamano }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '14% 46% 20% 20%', fontWeight: 700 }}>
+          <span>Cant.</span>
+          <span>Descripción</span>
+          <span style={{ textAlign: 'right' }}>SubTot.</span>
+          <span style={{ textAlign: 'right' }}>Total</span>
+        </div>
         {items.map((it) => (
-          <div key={it.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: cfg.tamano }}>
-            <span>
-              {it.cantidad}x {it.productos?.nombre ?? `Producto #${it.producto_id}`}
-            </span>
-            <span>{fmt.format(Number(it.precio_unitario) * Number(it.cantidad))}</span>
+          <div key={it.id} style={{ display: 'grid', gridTemplateColumns: '14% 46% 20% 20%' }}>
+            <span>{it.cantidad}</span>
+            <span>{it.productos?.nombre ?? `Producto #${it.producto_id}`}</span>
+            <span style={{ textAlign: 'right' }}>{fmt.format(Number(it.precio_unitario))}</span>
+            <span style={{ textAlign: 'right' }}>{fmt.format(Number(it.precio_unitario) * Number(it.cantidad))}</span>
           </div>
         ))}
       </div>
       {raya}
+      <div style={{ height: 10 }} />
 
       {descuento > 0 && (
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: cfg.tamano }}>
@@ -122,6 +129,11 @@ export function TicketCobro({
         {atendidoPor && ` · ${atendidoPor}`}
       </div>
       <div style={{ textAlign: 'center', fontSize: cfg.tamano - 1, marginTop: 8 }}>{cfg.pie}</div>
+      {/* Este comprobante NO es un documento fiscal válido -- la Factura
+          A/B/C sí lo es, con CAE de ARCA (ver FacturaTicket.tsx). */}
+      <div style={{ textAlign: 'center', fontSize: cfg.tamano - 2, marginTop: 10, color: '#555' }}>
+        DOCUMENTO NO VÁLIDO COMO FACTURA
+      </div>
     </div>
   );
 }
