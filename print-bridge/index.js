@@ -76,6 +76,14 @@ function nuevaImpresora() {
     interface: MODO_RED ? `tcp://${config.PRINTER_IP}:${config.PRINTER_PORT || 9100}` : tempPath,
     width: config.ANCHO_CARACTERES,
     removeSpecialCharacters: false,
+    // Sin esto, cada instancia arranca sin código de página elegido -- la
+    // librería igual se las arregla sola probando todas hasta encontrar
+    // una que sepa imprimir el primer acento/símbolo que aparezca (por
+    // eso los tickets salían bien), pero de paso tira un "Error: Encoding
+    // not recognized" por consola cada vez (no rompe nada, solo asusta).
+    // Fijando el código de página de entrada, ese paso de prueba y error
+    // no hace falta -- WPC1252 cubre bien acentos y ñ en español.
+    characterSet: 'WPC1252',
   });
   return { printer, tempPath };
 }
