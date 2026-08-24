@@ -51,6 +51,11 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
   const colaRef = useRef<Promise<void>>(Promise.resolve());
   const { confirm, dialog } = useConfirm();
   const [recibo, setRecibo] = useState<ReciboCobro | null>(null);
+  // Vista previa a pedido del cliente, ANTES de elegir método de pago (por
+  // eso es un print del navegador y no print-bridge -- todavía no existe
+  // ninguna venta en la base para que print-bridge la detecte). Es
+  // deliberadamente manual y ocasional, no automático como el ticket real.
+  const [previsualizando, setPrevisualizando] = useState(false);
   const online = useOnlineStatus();
 
   // Arranca vacío en vez de una categoría fija a mano -- las categorías
@@ -163,6 +168,17 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recibo]);
+
+  useEffect(() => {
+    if (!previsualizando) return;
+    const id = requestAnimationFrame(() => window.print());
+    const cerrar = () => setPrevisualizando(false);
+    window.addEventListener('afterprint', cerrar);
+    return () => {
+      cancelAnimationFrame(id);
+      window.removeEventListener('afterprint', cerrar);
+    };
+  }, [previsualizando]);
 
   function cerrarTransferencia() {
     setTransfiriendo(false);
@@ -431,6 +447,7 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
                     pendiente={mutations.cobrar.isPending}
                     error={mutations.cobrar.error?.message ?? null}
                     onCancelar={() => setCobrando(false)}
+                    onImprimirPreview={() => setPrevisualizando(true)}
                   />
                 )}
               </div>
@@ -450,6 +467,20 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
           descuento={recibo.descuento}
           total={recibo.total}
           metodoPago={recibo.metodoPago}
+          perfil={perfilNegocio ?? null}
+        />
+      )}
+      {previsualizando && pedido && (
+        <TicketCobro
+          pedidoId={pedido.id}
+          mesaLabel={mesa.label ?? String(mesa.id)}
+          atendidoPor={profile?.nombre ?? null}
+          clienteNombre={nombreCliente()}
+          items={items}
+          subtotal={subtotal}
+          descuento={descuento}
+          total={total}
+          metodoPago="A confirmar"
           perfil={perfilNegocio ?? null}
         />
       )}

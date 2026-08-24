@@ -25,6 +25,7 @@ export function PedidoFooterCobro({
   pendiente,
   error,
   onCancelar,
+  onImprimirPreview,
 }: {
   clientes: Cliente[] | undefined;
   clienteId: number | '';
@@ -40,6 +41,11 @@ export function PedidoFooterCobro({
   pendiente: boolean;
   error: string | null;
   onCancelar: () => void;
+  /** Ticket con el total, para el cliente que quiere verlo en papel antes
+   * de decidir cómo paga -- todavía no hay venta cargada en este punto,
+   * así que no es el comprobante final (dice "A confirmar" en vez del
+   * método de pago real). */
+  onImprimirPreview: () => void;
 }) {
   const [dividir, setDividir] = useState(false);
   const [pagos, setPagos] = useState<Pago[]>([
@@ -120,6 +126,9 @@ export function PedidoFooterCobro({
         <span className="label">Total</span>
         <span>{fmt.format(total)}</span>
       </div>
+      <Button variant="ghost" size="sm" onClick={onImprimirPreview}>
+        🖨️ Imprimir ticket (por si quiere verlo antes de pagar)
+      </Button>
 
       {!dividir ? (
         <>
