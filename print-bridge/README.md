@@ -1,6 +1,12 @@
 # Bridge de impresión — ComandaCafé
 
-Programa chico que corre en una compu de la red y le manda los tickets a la impresora térmica **directo en ESC/POS** (el lenguaje nativo de la impresora), sin pasar por el driver de Windows que venía imprimiendo todo desordenado. Revisa la base de datos cada 8 segundos buscando comandas nuevas ("Enviar a cocina") y las imprime -- separando automáticamente cocina de barra según cómo esté configurada cada categoría en la web (Categorías → columna "Destino").
+Programa chico que corre en una compu de la red y le manda los tickets a la impresora térmica **directo en ESC/POS** (el lenguaje nativo de la impresora), sin pasar por el driver de Windows/Chrome que venía imprimiendo todo desordenado (o directamente en blanco, cuando el navegador usaba un tamaño de papel guardado de otro programa). Revisa la base de datos cada pocos segundos buscando:
+
+- **Comandas nuevas** ("Enviar a cocina") -- separando automáticamente cocina de barra según cómo esté configurada cada categoría en la web (Categorías → columna "Destino").
+- **Cobros nuevos** -- imprime el ticket de cobro apenas se cierra una venta, sin que nadie tenga que tocar nada en el navegador.
+- **Facturas electrónicas ya emitidas** (con CAE real) -- imprime la Factura A/B/C con el QR fiscal, generado nativo por la impresora (no una imagen, el comando QR propio de la impresora).
+
+Los tres tipos de ticket quedan marcados como "ya impresos" en la base (no solo en memoria, así sobrevive un reinicio del programa) para no repetirlos.
 
 No reemplaza a la página web — sigue siendo la misma ComandaCafé de siempre. Esto es solo un ayudante que corre al lado, mirando la misma base de datos, encargado nada más que de imprimir bien.
 

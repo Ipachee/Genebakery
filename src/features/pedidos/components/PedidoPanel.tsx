@@ -148,22 +148,19 @@ export function PedidoPanel({ mesa, onClose }: { mesa: Mesa; onClose: () => void
     return !estadoDeMesas?.has(m.id);
   });
 
-  // Después de cobrar se imprime el ticket para el cliente antes de cerrar
-  // el panel -- si cerráramos enseguida, el nodo del ticket se desmontaría
-  // en medio de la impresión. 'afterprint' dispara igual si el mozo
-  // cancela el diálogo, así que el panel no se queda trabado esperando.
+  // El ticket de cobro ya NO se imprime desde acá -- print-bridge lo
+  // imprime solo por ESC/POS apenas detecta la venta nueva (ver
+  // print-bridge/index.js), sin pasar por el driver de Windows/Chrome que
+  // daba tickets en blanco o con el tamaño de papel de otro programa. Acá
+  // solo queda cerrar el panel; `recibo` se deja seteado un instante por
+  // si algo lo lee antes de cerrar, pero no dispara ningún print().
   useEffect(() => {
     if (!recibo) return;
-    const id = requestAnimationFrame(() => window.print());
-    const cerrarTodo = () => {
+    const id = setTimeout(() => {
       setRecibo(null);
       onClose();
-    };
-    window.addEventListener('afterprint', cerrarTodo);
-    return () => {
-      cancelAnimationFrame(id);
-      window.removeEventListener('afterprint', cerrarTodo);
-    };
+    }, 300);
+    return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recibo]);
 

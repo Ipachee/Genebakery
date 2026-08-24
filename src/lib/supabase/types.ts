@@ -365,6 +365,7 @@ export type Database = {
           numero: number | null
           pdf_url: string | null
           punto_venta: number | null
+          ticket_impreso_at: string | null
           tipo_comprobante: string
           venta_id: number
         }
@@ -384,6 +385,7 @@ export type Database = {
           numero?: number | null
           pdf_url?: string | null
           punto_venta?: number | null
+          ticket_impreso_at?: string | null
           tipo_comprobante?: string
           venta_id: number
         }
@@ -403,6 +405,7 @@ export type Database = {
           numero?: number | null
           pdf_url?: string | null
           punto_venta?: number | null
+          ticket_impreso_at?: string | null
           tipo_comprobante?: string
           venta_id?: number
         }
@@ -1193,6 +1196,7 @@ export type Database = {
           mozo_id: string
           pedido_id: number
           subtotal: number
+          ticket_impreso_at: string | null
           total: number
           turno_id: number
         }
@@ -1207,6 +1211,7 @@ export type Database = {
           mozo_id: string
           pedido_id: number
           subtotal: number
+          ticket_impreso_at?: string | null
           total: number
           turno_id: number
         }
@@ -1221,6 +1226,7 @@ export type Database = {
           mozo_id?: string
           pedido_id?: number
           subtotal?: number
+          ticket_impreso_at?: string | null
           total?: number
           turno_id?: number
         }

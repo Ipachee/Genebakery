@@ -36,12 +36,22 @@ module.exports = {
   // para cómo compartirla y qué nombre ponerle).
   PRINTER_SHARE_NAME: 'PONÉ_ACÁ_EL_NOMBRE_COMPARTIDO',
 
-  // Cada cuántos milisegundos revisa si hay comandas nuevas.
-  INTERVALO_MS: 8000,
+  // Cada cuántos milisegundos revisa si hay algo nuevo para imprimir
+  // (comandas, cobros, facturas). Bajalo si un día de mucho movimiento se
+  // siente lento -- 3 segundos ya es bastante seguido sin exigir tanto a
+  // la base.
+  INTERVALO_MS: 3000,
 
   // Caracteres por línea -- 42 para 80mm con letra chica de fábrica es lo
   // habitual en impresoras ESC/POS de este ancho. Si el texto sale
   // cortado o con mucho margen vacío al costado, este es el primer número
   // para ajustar.
   ANCHO_CARACTERES: 42,
+
+  // Encabezado y pie del ticket de cobro/factura -- este programa no
+  // puede leer la config de "Ajustes → Tipografía del ticket" de la web
+  // (esa vive en el navegador, no en la base), así que se repite acá.
+  // Si cambiás el nombre del local ahí, cambialo también en esta línea.
+  NOMBRE_LOCAL: 'ComandaCafé',
+  PIE_TICKET: '¡Gracias por tu visita!',
 };
