@@ -34,6 +34,15 @@ Los roles (`profiles.rol`, `permisos_navegacion.rol`) no son un enum fijo — se
 crea de punta a punta con la Edge Function `crear-cargo`. Un cargo recién creado arranca **sin** ningún
 acceso por default.
 
+## Cambiar contraseñas/PIN reales de cuentas
+
+El clasificador de seguridad de auto mode bloquea cualquier comando que toque credenciales de cuenta
+reales (contraseñas, tokens de servicio), incluso con permiso explícito del usuario en el chat — es un
+nivel aparte, no se destraba desde el chat. Camino que sí funciona: SQL Editor del dashboard de Supabase,
+pisando `auth.users.encrypted_password` directo con `pgcrypto` (`crypt('nuevo', gen_salt('bf'))`) — lo
+corre el usuario mismo, no hace falta la Admin API ni el service_role key. Ver [[Auth]] para el caso real
+(PIN de las cuentas de turno).
+
 ## Flujo de git
 
 `localhost` OK → commit a `feat/rediseno-navegacion` (esto ya dispara deploy a preview, ver

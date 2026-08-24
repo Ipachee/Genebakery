@@ -1,29 +1,31 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../auth/useAuth';
 import { useTurnosPublico } from '../turnos/hooks';
 import { useRolesPersonalizados } from '../permisos/hooks';
 import { useConfiguracionTurnos } from '../configuracion-turnos/hooks';
 import { etiquetasActivasHoy } from '../configuracion-turnos/turnosActivosHoy';
+import { turnoPorHora } from './turnoPorHora';
 import { CUENTAS } from './accounts';
-
-// Admin no se loguea acá — se accede desde adentro de un turno con el
-// candadito 🔑 del header, sin perder la sesión de mozo abierta.
-// Turnos (Mañana/Tarde/Noche): cuáles se muestran hoy depende de
-// configuracion_turnos (Ajustes → Horarios de turno), no son todos
-// siempre -- ver el filtro por etiquetasActivasHoy más abajo.
-const TODOS_LOS_TURNOS = CUENTAS.filter((c) => c.id !== 'admin' && 'etiqueta' in c);
 import './LoginScreen.css';
 
-// Un "cargo" (RRHH y lo que se vaya agregando con + Nuevo cargo) es
-// cualquier fila de roles_personalizados -- a diferencia de los turnos,
-// no vive hardcodeado en accounts.ts, así que un cargo nuevo aparece acá
-// solo con insertar la fila, sin tocar código. El email de login se arma
-// con la misma convención que ya usan las cuentas fijas (clave@dominio).
-type Cargo = { clave: string; etiqueta: string; icono: string };
+// Admin y turnos (Mañana/Tarde/Noche) viven hardcodeados en accounts.ts;
+// los cargos (RRHH y lo que se agregue con + Nuevo cargo) son dinámicos,
+// de roles_personalizados -- ver docs/Permisos.md.
+const TODOS_LOS_TURNOS = CUENTAS.filter((c) => c.id !== 'admin' && 'etiqueta' in c);
+const ADMIN = CUENTAS.find((c) => c.id === 'admin')!;
+
+const NOMBRE_TURNO: Record<string, string> = { Mañana: 'Encargada Mañana', Tarde: 'Encargada Tarde', Noche: 'Encargada Noche' };
+const COLOR_TURNO: Record<string, { fondo: string; texto: string }> = {
+  Mañana: { fondo: '#e0793d', texto: '#1a1210' },
+  Tarde: { fondo: '#e0793d', texto: '#1a1210' },
+  Noche: { fondo: '#4a3e6b', texto: '#e8ddd4' },
+};
 
 function emailDeCargo(clave: string) {
   return `${clave}@comandacafe.local`;
 }
+
+type Persona = { id: string; email: string; nombre: string; letra: string; fondo: string; texto: string; abierto: boolean };
 
 function useReloj() {
   const [ahora, setAhora] = useState(new Date());
@@ -36,147 +38,155 @@ function useReloj() {
 
 export function LoginScreen() {
   const { signIn } = useAuth();
-  const [passwords, setPasswords] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [menuCargosAbierto, setMenuCargosAbierto] = useState(false);
-  const [cargoAbierto, setCargoAbierto] = useState<Cargo | null>(null);
-  const [passwordCargo, setPasswordCargo] = useState('');
-  const [errorCargo, setErrorCargo] = useState<string | null>(null);
-  const [entrandoCargo, setEntrandoCargo] = useState(false);
   const ahora = useReloj();
   const { data: turnosPublico } = useTurnosPublico();
   const { data: rolesPersonalizados } = useRolesPersonalizados();
   const { data: configuracionTurnos } = useConfiguracionTurnos();
 
-  const cargos: Cargo[] = (rolesPersonalizados ?? []).map((r) => ({ clave: r.clave, etiqueta: r.etiqueta, icono: r.icono ?? '🗂️' }));
-
-  // Mientras no cargó la config (o falló), se muestran todos los turnos
-  // -- que el login se caiga por un fetch que falla sería peor que
-  // mostrar un turno de más por un rato.
+  // Mientras no cargó la config (o falló), se muestran todos los turnos --
+  // que el login se caiga por un fetch que falla sería peor que mostrar un
+  // turno de más por un rato. Ver docs/Configuracion-turnos.md.
   const activasHoy = configuracionTurnos ? etiquetasActivasHoy(configuracionTurnos) : null;
-  const TURNOS = activasHoy ? TODOS_LOS_TURNOS.filter((t) => activasHoy.includes(t.etiqueta)) : TODOS_LOS_TURNOS;
+  const turnosHoy = activasHoy ? TODOS_LOS_TURNOS.filter((t) => activasHoy.includes(t.etiqueta)) : TODOS_LOS_TURNOS;
 
-  function turnoAbierto(opcion: (typeof TURNOS)[number]) {
-    return turnosPublico?.some((t) => t.etiqueta === opcion.etiqueta && t.estado === 'abierto') ?? false;
+  const abierto = (etiqueta: string) => turnosPublico?.some((t) => t.etiqueta === etiqueta && t.estado === 'abierto') ?? false;
+
+  const personasTurno: Persona[] = turnosHoy.map((t) => ({
+    id: t.id,
+    email: t.email,
+    nombre: NOMBRE_TURNO[t.etiqueta] ?? t.label,
+    letra: t.etiqueta[0],
+    fondo: COLOR_TURNO[t.etiqueta]?.fondo ?? '#e0793d',
+    texto: COLOR_TURNO[t.etiqueta]?.texto ?? '#1a1210',
+    abierto: abierto(t.etiqueta),
+  }));
+
+  const personasCargo: Persona[] = (rolesPersonalizados ?? []).map((r) => ({
+    id: r.clave,
+    email: emailDeCargo(r.clave),
+    nombre: r.etiqueta,
+    letra: r.etiqueta[0]?.toUpperCase() ?? '?',
+    fondo: '#3f5a52',
+    texto: '#e8ddd4',
+    abierto: false,
+  }));
+
+  const personaAdmin: Persona = { id: 'admin', email: ADMIN.email, nombre: 'Administración', letra: '★', fondo: '', texto: '#c9a24a', abierto: false };
+
+  const personasGrilla = [...personasTurno, ...personasCargo];
+  const personasTodas = [...personasGrilla, personaAdmin];
+
+  const turnoDetectado = turnoPorHora(ahora);
+  const personaDetectada = personasTurno.find((p) => p.nombre === NOMBRE_TURNO[turnoDetectado]);
+
+  const [seleccionId, setSeleccionId] = useState<string | null>(null);
+  const personaSeleccionada = personasTodas.find((p) => p.id === seleccionId) ?? personaDetectada ?? personasGrilla[0] ?? null;
+
+  const [pin, setPin] = useState('');
+  const [estado, setEstado] = useState<'idle' | 'verificando' | 'ok' | 'error'>('idle');
+
+  function elegirPersona(id: string) {
+    setSeleccionId(id);
+    setPin('');
+    setEstado('idle');
   }
 
-  async function handleSubmit(e: FormEvent, opcion: (typeof TURNOS)[number]) {
-    e.preventDefault();
-    setError(null);
-    setSubmitting(opcion.id);
-    const { error } = await signIn(opcion.email, passwords[opcion.id] ?? '');
-    setSubmitting(null);
-    if (error) setError(`${opcion.label}: contraseña incorrecta`);
-  }
-
-  async function handleSubmitCargo(e: FormEvent) {
-    e.preventDefault();
-    if (!cargoAbierto) return;
-    setErrorCargo(null);
-    setEntrandoCargo(true);
-    const { error } = await signIn(emailDeCargo(cargoAbierto.clave), passwordCargo);
-    setEntrandoCargo(false);
-    if (error) setErrorCargo('Contraseña incorrecta');
-    else {
-      setCargoAbierto(null);
-      setPasswordCargo('');
+  async function presionar(digito: string) {
+    if (!personaSeleccionada || estado === 'verificando' || estado === 'ok' || pin.length >= 4) return;
+    const nuevo = pin + digito;
+    setPin(nuevo);
+    if (nuevo.length !== 4) return;
+    setEstado('verificando');
+    const { error } = await signIn(personaSeleccionada.email, nuevo);
+    if (error) {
+      setEstado('error');
+      setTimeout(() => {
+        setPin('');
+        setEstado('idle');
+      }, 900);
+    } else {
+      setEstado('ok');
     }
+  }
+
+  function borrar() {
+    if (estado === 'verificando' || estado === 'ok') return;
+    setPin((p) => p.slice(0, -1));
   }
 
   return (
     <div className="login-screen">
-      <div className="login-brand">
-        <div className="login-mark">☕</div>
-        <h1 className="login-title">ComandaCafé</h1>
-        <p className="login-subtitle">Elegí tu acceso e ingresá la contraseña</p>
-        <span className="login-clock">
-          🕐 {ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} ·{' '}
-          {ahora.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </span>
-      </div>
+      <div className="login-card-container">
+        <div className="login-brand">
+          <div className="login-mark">☕</div>
+          <div className="login-name">ComandaCafé</div>
+          <div className="login-badge">
+            <span className="login-badge-dot" /> Turno {turnoDetectado.toLowerCase()} en curso
+          </div>
+          <div className="login-fecha">
+            {ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })} ·{' '}
+            {ahora.toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </div>
+        </div>
 
-      <div className="shift-cards">
-        {TURNOS.map((opcion) => (
-          <form key={opcion.id} className="shift-card" onSubmit={(e) => handleSubmit(e, opcion)}>
-            <span className="shift-icon-wrap">
-              <span className="shift-icon">{opcion.icon}</span>
-            </span>
-            <span className="shift-name">{opcion.label}</span>
-            {turnoAbierto(opcion) && (
-              <span className="shift-status-abierto">
-                <span className="shift-status-dot" /> turno abierto
+        <div className="login-grid">
+          {personasGrilla.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className={`login-card ${personaSeleccionada?.id === p.id ? 'seleccionada' : ''}`}
+              onClick={() => elegirPersona(p.id)}
+            >
+              <span className="login-avatar" style={{ background: p.fondo, color: p.texto }}>
+                {p.letra}
+                {p.abierto && <span className="login-avatar-dot" aria-label="turno abierto" />}
               </span>
-            )}
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={passwords[opcion.id] ?? ''}
-              onChange={(e) => setPasswords({ ...passwords, [opcion.id]: e.target.value })}
-              required
-            />
-            <button type="submit" disabled={submitting === opcion.id}>
-              {submitting === opcion.id ? 'Entrando…' : 'Entrar'}
+              <span className="login-card-nombre">{p.nombre}</span>
             </button>
-          </form>
-        ))}
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className={`login-card-admin ${personaSeleccionada?.id === 'admin' ? 'seleccionada' : ''}`}
+          onClick={() => elegirPersona('admin')}
+        >
+          ★ Administración
+        </button>
+
+        {personaSeleccionada && (
+          <div className="login-pin-panel">
+            <div className="login-pin-label">PIN — {personaSeleccionada.nombre}</div>
+            <div className="login-pin-dots">
+              {[0, 1, 2, 3].map((i) => (
+                <span key={i} className={`login-pin-dot ${pin.length > i ? (estado === 'error' ? 'error' : 'lleno') : ''}`} />
+              ))}
+            </div>
+            <div className={`login-keypad ${estado === 'error' ? 'shake' : ''}`}>
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+                <button key={d} type="button" disabled={estado === 'verificando' || estado === 'ok'} onClick={() => presionar(d)}>
+                  {d}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="login-key-borrar"
+                aria-label="Borrar"
+                disabled={estado === 'verificando' || estado === 'ok'}
+                onClick={borrar}
+              >
+                ⌫
+              </button>
+              <button type="button" disabled={estado === 'verificando' || estado === 'ok'} onClick={() => presionar('0')}>
+                0
+              </button>
+              <span />
+            </div>
+            {estado === 'ok' && <p className="login-pin-ok">✓ Acceso concedido</p>}
+            {estado === 'error' && <p className="login-pin-error">PIN incorrecto</p>}
+          </div>
+        )}
       </div>
-      {error && <p className="login-error">{error}</p>}
-
-      {cargos.length > 0 && (
-        <div className="cargos-flotante">
-          {menuCargosAbierto && (
-            <>
-              <div className="cargos-fondo" onClick={() => setMenuCargosAbierto(false)} />
-              <div className="cargos-panel">
-                <span className="cargos-panel-titulo">Cargos</span>
-                {cargos.map((c) => (
-                  <button
-                    key={c.clave}
-                    type="button"
-                    className="cargos-item"
-                    onClick={() => {
-                      setMenuCargosAbierto(false);
-                      setCargoAbierto(c);
-                      setErrorCargo(null);
-                      setPasswordCargo('');
-                    }}
-                  >
-                    <span className="cargos-item-icono">{c.icono}</span>
-                    {c.etiqueta}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          <button type="button" className="cargos-boton" onClick={() => setMenuCargosAbierto((v) => !v)}>
-            🗂️ Cargos
-          </button>
-        </div>
-      )}
-
-      {cargoAbierto && (
-        <div className="cargo-modal-fondo" onClick={() => setCargoAbierto(null)}>
-          <form className="cargo-modal" onClick={(e) => e.stopPropagation()} onSubmit={handleSubmitCargo}>
-            <span className="shift-icon-wrap">
-              <span className="shift-icon">{cargoAbierto.icono}</span>
-            </span>
-            <span className="shift-name">{cargoAbierto.etiqueta}</span>
-            <input
-              type="password"
-              autoFocus
-              placeholder="Contraseña"
-              value={passwordCargo}
-              onChange={(e) => setPasswordCargo(e.target.value)}
-              required
-            />
-            {errorCargo && <p className="login-error">{errorCargo}</p>}
-            <button type="submit" disabled={entrandoCargo}>
-              {entrandoCargo ? 'Entrando…' : 'Entrar'}
-            </button>
-          </form>
-        </div>
-      )}
     </div>
   );
 }
