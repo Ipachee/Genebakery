@@ -65,11 +65,26 @@ pida a mano.
 
 Es una decisión tuya porque toca datos reales del negocio.
 
-### 3. Papelera: sin expiración automática (issue #11)
+### 3. ~~Papelera: sin expiración automática~~ — resuelto el 25/08/2026
 
-Eliminar definitivamente **ya funciona** (sólo admin). Lo que no hay es purga por antigüedad, porque
-requiere elegir un plazo de retención: ¿30 días? ¿90? Equivocarse **destruye datos reales sin que nadie
-lo pida**, así que no lo decidí yo. Cuando definas el plazo es una migración aparte (necesita `pg_cron`).
+Se definió el plazo (60 días) y ya está andando sola, todos los días a las 3am Argentina. Ver
+[[Papelera#Expiración automática]].
+
+---
+
+### 4. Proyecto de Supabase para dev/testing — creado, pausado esperando el plan Pro
+
+`comandacafe-dev` (ref `lycyfxxyfexvpjutiyai`) ya existe, con las 47 migraciones aplicadas, las 5 cuentas
+reales (PIN 1234) y datos mínimos de prueba. Verificado de punta a punta por API (login → resolver turno
+→ crear pedido → cobrar → stock descontado bien).
+
+**Queda pausado a propósito**, como pediste: el free tier sólo permite 2 proyectos activos, y ya estaban
+ocupados por el real y por "stash" (que pausamos para hacer lugar -- avisame si lo necesitás activo de
+nuevo antes del plan Pro). Credenciales completas guardadas en la memoria de Claude, no en este repo.
+Ver [[Arquitectura#Segundo proyecto de Supabase]].
+
+**Cuando actives el plan Pro:** decime y activo comandacafe-dev (y stash si querés), y termino de
+conectarlo -- cambiar las env vars de Vercel Preview para que dev deje de compartir base con producción.
 
 ---
 

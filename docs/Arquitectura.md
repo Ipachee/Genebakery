@@ -47,6 +47,33 @@ Antes de agregar un CHECK nuevo en una tabla existente, correr una query de cont
 que ninguna fila real lo viola (si la hay, migrar esos datos antes, no ajustar el constraint para
 esquivarlos). Ver `20260825040000_check_integridad_numerica.sql`.
 
+## Segundo proyecto de Supabase, para desarrollo/testing (desde el 25/08/2026)
+
+Hasta el 25/08/2026, `comandacafe.vercel.app` (producción) y `comandacafedev.vercel.app` (dev) compartían
+la MISMA base de Supabase -- ver más abajo por qué eso venía siendo un problema real (stock consumido por
+tests, un producto que casi traba un cobro real). Se creó un proyecto de Supabase aparte
+(`comandacafe-dev`, ref `lycyfxxyfexvpjutiyai`) con las 47 migraciones corridas de punta a punta, las 5
+cuentas reales (mismo PIN 1234) y datos mínimos de prueba.
+
+**Queda pausado a propósito** -- el free tier de Supabase permite sólo 2 proyectos activos por
+organización, y ya están ocupados por el proyecto real y otro (`stash`, ajeno a este). Se activa cuando
+el dueño del proyecto pague el plan Pro. Credenciales completas (DB password, anon key, service_role
+key) en la memoria de Claude (`comandacafe-dev-supabase-credenciales`) -- no están en este repo por ser
+secretas.
+
+**Cuando se active:** hay que actualizar las env vars de Vercel Preview
+(`VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY`) para que `comandacafedev.vercel.app` apunte ahí en vez de
+compartir la base con producción, y correr cualquier migración nueva que haya quedado pendiente con
+`npx supabase db push --project-ref lycyfxxyfexvpjutiyai -p <password>`.
+
+**Bug real encontrado al crear la base nueva:** `20260821020000_take_away.sql` asumía que ya existía un
+salón (cierto en producción, cargado a mano hace tiempo) -- en cualquier base nueva sin salones, esa
+migración falla. Arreglado con `20260821015000_fix_salon_para_bases_nuevas.sql`, fechada a propósito
+justo *antes* de `take_away` (no se edita una migración ya aplicada en producción) para que quede en el
+orden correcto en cualquier proyecto nuevo. Aplicarla en producción necesitó `db push --include-all`
+(el CLI protege contra insertar migraciones "en el pasado" salvo que se confirme a propósito) -- ahí no
+hizo nada, porque ya había salones.
+
 ## Índices (desde el 25/08/2026)
 
 Hasta el 25/08/2026 no había ningún índice más allá de las primary keys y los unique — cada reporte por
