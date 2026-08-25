@@ -1,10 +1,15 @@
 name: E2E
 
+# DESACTIVADO el 25/08/2026: estos tests pegan contra la base REAL
+# compartida con producción (ver docs/E2E-tests.md) y mandan pedidos de
+# verdad a cocina -- con el print-bridge corriendo en el bar, cada push
+# imprimía una comanda física real. Encontramos el problema porque el
+# bar reportó que la impresora estaba tirando comandas de la nada.
+# No reactivar sin resolver antes docs/Pendientes-y-bloqueos.md#2 (base
+# de datos aparte para los tests -- ya existe comandacafe-dev, pausada,
+# ver docs/Arquitectura.md).
 on:
-  push:
-    branches: [master, feat/rediseno-navegacion]
-  pull_request:
-    branches: [master, feat/rediseno-navegacion]
+  workflow_dispatch: {}
 
 jobs:
   playwright:
