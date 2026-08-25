@@ -28,7 +28,11 @@ export async function actualizarMetodoPago(id: number, metodoPago: string) {
   if (error) throw error;
 }
 
+// RPC en vez de un update directo -- fn_anular_venta no solo marca
+// deleted_at, también revierte el stock que se había descontado al cobrar
+// (salvo que el mismo pedido tenga otra venta activa por un pago
+// dividido, ahí espera a que se anule esa también).
 export async function borrarVenta(id: number) {
-  const { error } = await supabase.from('ventas').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+  const { error } = await supabase.rpc('fn_anular_venta', { p_venta_id: id });
   if (error) throw error;
 }

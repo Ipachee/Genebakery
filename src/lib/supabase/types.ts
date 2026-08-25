@@ -1281,6 +1281,7 @@ export type Database = {
       }
     }
     Functions: {
+      fn_anular_venta: { Args: { p_venta_id: number }; Returns: undefined }
       fn_cobrar_pedido: {
         Args: {
           p_cliente_id?: number

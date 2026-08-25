@@ -31,6 +31,15 @@ cobro sin esperar confirmación) podían duplicar la venta y el descuento de sto
 que termina la transacción, así una segunda llamada concurrente espera y después corta con
 `raise exception` en vez de duplicar todo. Ver `20260825010000_cobro_idempotente.sql`.
 
+## Anular una venta revierte el stock (desde el 25/08/2026)
+
+`borrarVenta` ya no es un `update` directo a `deleted_at` -- pasa por `fn_anular_venta` (RPC), que además
+de marcar la venta borrada revierte el stock consumido al cobrar (inserta un movimiento `tipo='anulacion'`,
+nuevo valor agregado al `CHECK` de `movimientos.tipo`). Ojo con el caso de pago dividido: un mismo
+`pedido_id` puede tener varias filas en `ventas` (una por forma de pago) -- la función NO revierte stock
+hasta que se anule la ÚLTIMA venta activa de ese pedido, para no revertir de más si solo se anula uno de
+varios pagos parciales.
+
 ## Facturación desde acá
 
 El badge de factura (emitida/error/pendiente/sin factura) y el botón de imprimir ticket con QR viven en
