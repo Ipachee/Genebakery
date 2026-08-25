@@ -37,6 +37,16 @@ Todo cambio de schema sigue el mismo orden, siempre:
 Si una función de Postgres cambia el tipo de retorno, `create or replace function` falla — hay que hacer
 `drop function if exists ...()` antes de recrearla.
 
+## CHECK de integridad numérica (desde el 25/08/2026)
+
+Las tablas núcleo (`productos`, `insumos`, `recetas`, `elaborados`, `producciones`, `pedido_items`,
+`ventas`, `gastos`) tienen CHECK constraints que impiden stock/precio/cantidad/monto negativo a nivel de
+base -- antes solo lo evitaba (a veces) la lógica de la app. `movimientos.cantidad` queda afuera a
+propósito: es un delta con signo (negativo al descontar, positivo al reponer), no una cantidad absoluta.
+Antes de agregar un CHECK nuevo en una tabla existente, correr una query de conteo primero para confirmar
+que ninguna fila real lo viola (si la hay, migrar esos datos antes, no ajustar el constraint para
+esquivarlos). Ver `20260825040000_check_integridad_numerica.sql`.
+
 ## `print-bridge` es un programa aparte
 
 Vive en `print-bridge/` pero **no** es parte del build de Vite ni pasa por `tsc`/`lint` del proyecto
