@@ -5,7 +5,8 @@ real -- no hay tests unitarios, solo E2E, porque la lógica pesada de este proye
 (RLS, funciones SQL) más que en funciones puras de JS. Correrlos: `npm run test:e2e`.
 
 **Archivos:** `playwright.config.ts` (raíz), `e2e/helpers.ts`, `e2e/login.spec.ts`,
-`e2e/pedido-cobro.spec.ts`, `e2e/facturacion.spec.ts`
+`e2e/pedido-cobro.spec.ts`, `e2e/facturacion.spec.ts`, `e2e/anular-venta.spec.ts`,
+`.github/workflows/e2e.yml` (CI)
 
 ## Corren contra comandacafedev.vercel.app, no local
 
@@ -39,5 +40,16 @@ Los tests apuntan a texto/roles reales de la UI (`getByRole('button', { name: /E
 vez de agregar atributos `data-testid` al código de producción -- para un proyecto de este tamaño no vale
 la pena el mantenimiento extra. Si un texto de botón cambia, el test que lo usa rompe y hay que
 actualizarlo ahí -- es la señal de que cambió algo real, no ruido.
+
+## CI (desde el 25/08/2026): corren solos en cada push/PR
+
+`.github/workflows/e2e.yml` corre `npm run test:e2e` en GitHub Actions en cada push a `master`/
+`feat/rediseno-navegacion` y en cada PR contra esas ramas -- ya no hace falta acordarse de correrlo a
+mano. Ojo: como siguen apuntando a `comandacafedev.vercel.app` (ver arriba), **cada push a esas ramas
+también deja datos reales en la base de dev**, ahora automáticamente. Si en algún momento se vuelve
+molesto (mucho ruido de pedidos/ventas de prueba, o se pega contra el límite de llamadas demo de
+AfipSDK), la salida más simple es acotar el trigger a menos ramas o pasar `facturacion.spec.ts` a un job
+aparte que corra menos seguido -- no hay Supabase local para este proyecto, así que "correr contra una
+base descartable" no es una opción sin armar eso primero.
 
 **Relacionado:** [[Auth]], [[Salon]], [[Turnos]], [[Facturacion-electronica]], [[Arquitectura]], [[Index]]
