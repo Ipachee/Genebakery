@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchProductoMasVendido, fetchResumenGastosRango, fetchVentasDesde } from './api';
+import { fetchAlertasStock, fetchProductoMasVendido, fetchResumenGastosRango, fetchVentasDesde } from './api';
 
 function inicioDeRango(rango: 'semana' | 'mes') {
   const d = new Date();
@@ -45,4 +45,8 @@ export function useProductoMasVendido(rango: 'semana' | 'mes') {
     queryKey: ['reportes-productos', rango],
     queryFn: () => fetchProductoMasVendido(desde),
   });
+}
+
+export function useAlertasStock() {
+  return useQuery({ queryKey: ['alertas-stock'], queryFn: fetchAlertasStock });
 }

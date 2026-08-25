@@ -1290,6 +1290,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      fn_alertas_stock: {
+        Args: never
+        Returns: {
+          id: number
+          minimo: number
+          nombre: string
+          stock: number
+          tipo: string
+          unidad: string
+        }[]
+      }
       fn_anular_venta: { Args: { p_venta_id: number }; Returns: undefined }
       fn_cobrar_pedido: {
         Args: {

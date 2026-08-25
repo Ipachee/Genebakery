@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useGastosPorRango, useProductoMasVendido, useVentasPorRango } from '../hooks';
+import { useAlertasStock, useGastosPorRango, useProductoMasVendido, useVentasPorRango } from '../hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { EmptyState } from '../../../components/EmptyState';
+import { Badge } from '../../../components/Badge';
 import { fmtMoney as fmt } from '../../../lib/format';
 
 export function ReportesView() {
@@ -9,6 +10,7 @@ export function ReportesView() {
   const { data: ventas, isLoading } = useVentasPorRango(rango);
   const { data: itemsVendidos } = useProductoMasVendido(rango);
   const { data: gastosRango } = useGastosPorRango(rango);
+  const { data: alertas } = useAlertasStock();
   const totalGastos = (gastosRango ?? []).reduce((s, g) => s + Number(g.monto), 0);
 
   const porDia = new Map<string, number>();
@@ -90,6 +92,37 @@ export function ReportesView() {
           </div>
         }
       />
+
+      {/* Va afuera del condicional de ventas a propósito: lo que falta
+          comprar no depende de que haya habido ventas en el período, y si
+          estuviera adentro desaparecería justo cuando no hay ninguna --
+          que es cuando más se mira esta pantalla. */}
+      {!!alertas?.length && (
+        <div className="card card-pad">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <strong>Stock bajo</strong>
+            <Badge tone="warn">{alertas.length}</Badge>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {alertas.map((a) => (
+              <div
+                key={`${a.tipo}-${a.id}`}
+                style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13.5 }}
+              >
+                <span>
+                  {a.nombre}{' '}
+                  <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>
+                    {a.tipo === 'elaborado' ? 'elaborado' : 'insumo'}
+                  </span>
+                </span>
+                <span style={{ color: 'var(--red)', whiteSpace: 'nowrap' }}>
+                  {Number(a.stock)} / {Number(a.minimo)} {a.unidad}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <EmptyState>Cargando…</EmptyState>

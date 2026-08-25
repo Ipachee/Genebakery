@@ -30,9 +30,10 @@ de nuevo cada vez, ya es parte del flujo.
 - [[Clientes]] — alta/edición, descuento por fidelización, permisos alineados con RLS
 - [[Papelera]] — soft-delete unificado de 17 tipos, restaurar y eliminar definitivamente
 - [[Movimientos]] — historial de stock, los 5 tipos de movimiento y el ajuste manual
+- [[Reportes]] — ventas por período, alertas de stock bajo, por qué van por security definer
 
 ## Resto de las secciones (stubs — completar cuando se trabaje ahí)
 
 - [[Ajustes]] · [[Auth]] · [[Comandera]] · [[Elaborados]] · [[Empleados]] · [[Gastos]] ·
   [[Insumos]] · [[Negocio]] · [[Pedidos]] · [[Proveedores]] ·
-  [[Reportes]] · [[Cobranzas]]
+  [[Cobranzas]]

@@ -30,3 +30,14 @@ export async function fetchProductoMasVendido(desde: string) {
   if (error) throw error;
   return data;
 }
+
+// Alertas de stock bajo, consolidadas de insumos + elaborados en una sola
+// lista. Va por función security definer (igual que fn_resumen_gastos_rango
+// acá arriba) porque quien mira Reportes no necesariamente tiene "Ver"
+// tildado en Insumos/Elaborados -- sin eso la lista le saldría siempre
+// vacía en vez de avisarle qué falta.
+export async function fetchAlertasStock() {
+  const { data, error } = await supabase.rpc('fn_alertas_stock');
+  if (error) throw error;
+  return data;
+}
