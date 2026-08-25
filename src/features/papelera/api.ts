@@ -48,3 +48,12 @@ export async function restaurar(tipo: string, id: number) {
   const { error } = await supabase.from(tabla).update({ deleted_at: null }).eq('id', id);
   if (error) throw error;
 }
+
+// Borrado definitivo -- va por RPC y no por un delete directo porque la
+// función es la que exige que sea admin (restaurar es reversible, esto no)
+// y la que traduce el error de foreign key a algo que se entienda cuando
+// hay historial dependiendo del registro. Ver docs/Papelera.md.
+export async function purgar(tipo: string, id: number) {
+  const { error } = await supabase.rpc('fn_purgar_papelera', { p_tipo: tipo, p_id: id });
+  if (error) throw error;
+}

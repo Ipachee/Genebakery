@@ -12,5 +12,9 @@ export function usePapeleraMutations() {
       mutationFn: (v: { tipo: string; id: number }) => api.restaurar(v.tipo, v.id),
       onSuccess: () => qc.invalidateQueries(),
     }),
+    purgar: useMutation({
+      mutationFn: (v: { tipo: string; id: number }) => api.purgar(v.tipo, v.id),
+      onSuccess: () => qc.invalidateQueries(),
+    }),
   };
 }

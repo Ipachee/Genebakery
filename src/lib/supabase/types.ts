@@ -1348,6 +1348,10 @@ export type Database = {
           nombre: string
         }[]
       }
+      fn_purgar_papelera: {
+        Args: { p_id: number; p_tipo: string }
+        Returns: undefined
+      }
       fn_registrar_gasto: {
         Args: {
           p_cantidad: number

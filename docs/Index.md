@@ -28,9 +28,10 @@ de nuevo cada vez, ya es parte del flujo.
 - [[Configuracion-turnos]] — qué turnos existen cada día de la semana, lo lee el login
 - [[E2E-tests]] — tests automáticos con Playwright de los flujos críticos (`npm run test:e2e`)
 - [[Clientes]] — alta/edición, descuento por fidelización, permisos alineados con RLS
+- [[Papelera]] — soft-delete unificado de 17 tipos, restaurar y eliminar definitivamente
 
 ## Resto de las secciones (stubs — completar cuando se trabaje ahí)
 
 - [[Ajustes]] · [[Auth]] · [[Comandera]] · [[Elaborados]] · [[Empleados]] · [[Gastos]] ·
-  [[Insumos]] · [[Movimientos]] · [[Negocio]] · [[Papelera]] · [[Pedidos]] · [[Proveedores]] ·
+  [[Insumos]] · [[Movimientos]] · [[Negocio]] · [[Pedidos]] · [[Proveedores]] ·
   [[Reportes]] · [[Cobranzas]]
