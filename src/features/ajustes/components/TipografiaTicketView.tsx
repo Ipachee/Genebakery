@@ -34,7 +34,7 @@ export function TipografiaTicketView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Tipografía del ticket" subtitle="Cómo se ve el ticket que se imprime desde la Comandera." />
+      <PageHeader title="Tipografía del ticket" />
 
       <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', minWidth: 260 }}>
@@ -76,9 +76,6 @@ export function TipografiaTicketView() {
           <Button variant="primary" onClick={guardar}>
             {guardado ? '✓ Guardado' : 'Guardar'}
           </Button>
-          <p style={{ fontSize: 11.5, color: 'var(--text-dim)', margin: 0 }}>
-            Se guarda en esta computadora — es la que va a estar conectada a la impresora.
-          </p>
         </div>
 
         <div>

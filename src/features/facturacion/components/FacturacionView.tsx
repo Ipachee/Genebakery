@@ -34,7 +34,6 @@ export function FacturacionView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', maxWidth: 480 }}>
       <PageHeader
         title="Facturación electrónica"
-        subtitle="Credenciales para AFIP/ARCA (directo o vía un intermediario). Se guardan de forma write-only: una vez cargadas, ni siquiera un admin puede volver a leerlas desde acá -- solo actualizarlas."
       />
 
       <div className="card card-pad" style={{ fontSize: 13 }}>
@@ -116,10 +115,6 @@ export function FacturacionView() {
         <p style={{ color: 'var(--red)', fontSize: 12, margin: 0 }}>{guardar.error?.message}</p>
       )}
 
-      <p style={{ fontSize: 11.5, color: 'var(--text-dim)', margin: 0 }}>
-        Con AfipSDK configurado, "🧾 Generar factura" en Ventas ya llama de verdad a ARCA (real o de prueba según el
-        modo de arriba) y trae el CAE. Los demás proveedores todavía dejan el pedido en "pendiente" nomás.
-      </p>
     </div>
   );
 }

@@ -51,7 +51,7 @@ export function PapeleraView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Papelera" subtitle="Todo lo borrado en el sistema, unificado. Restaurar es un click." />
+      <PageHeader title="Papelera" />
 
       {errorPurga && (
         <div className="card card-pad" style={{ color: 'var(--red)', fontSize: 13 }}>

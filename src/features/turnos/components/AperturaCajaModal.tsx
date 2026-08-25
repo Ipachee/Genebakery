@@ -26,8 +26,7 @@ export function AperturaCajaModal({ turno, onClose }: { turno: Turno; onClose: (
         </div>
         <div style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0 }}>
-            ¿Cuánto efectivo hay en la caja para arrancar el turno {turno.etiqueta}? Sirve para poder comparar contra
-            lo contado al cerrar.
+            ¿Cuánto efectivo hay en la caja para arrancar el turno {turno.etiqueta}?
           </p>
           <TextInput
             type="number"

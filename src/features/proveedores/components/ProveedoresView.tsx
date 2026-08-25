@@ -30,7 +30,7 @@ export function ProveedoresView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Proveedores" subtitle="Cargá tus proveedores y sus facturas de compra, y buscá el historial de cada uno." />
+      <PageHeader title="Proveedores" />
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <TextInput

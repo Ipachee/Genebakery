@@ -328,11 +328,6 @@ export function CierreTurnoModal({ turno, onClose }: { turno: Turno; onClose: ()
             <div className="field-label" style={{ marginBottom: 8 }}>
               Resumen en PDF <span style={{ color: 'var(--red)' }}>*</span>
             </div>
-            <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '0 0 8px' }}>
-              Incluye membrete del negocio, gráfico de ventas por medio de pago y el detalle completo. Se manda de
-              verdad por mail (no abre tu programa de correo). El mail de abajo es obligatorio para poder cerrar el
-              turno, aunque no llegues a apretar "Enviar por mail".
-            </p>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <Button variant="secondary" onClick={descargarPdf}>
                 📄 Descargar PDF

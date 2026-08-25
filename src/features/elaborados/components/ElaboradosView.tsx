@@ -45,7 +45,6 @@ export function ElaboradosView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <PageHeader
         title="Elaborados"
-        subtitle="Se producen en unidades (ej. una torta entera) y se venden por porción."
         action={
           puedeEditar ? (
             <Button variant="primary" onClick={() => setModalAbierto(true)}>

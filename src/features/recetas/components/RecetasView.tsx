@@ -55,7 +55,7 @@ export function RecetasView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', maxWidth: 520 }}>
-      <PageHeader title="Recetas" subtitle="Qué insumos y en qué cantidad lleva cada producto. Para un elaborado, es la receta de UNA unidad completa." />
+      <PageHeader title="Recetas" />
 
       <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
         <Select value={productoId ?? ''} onChange={(e) => setProductoId(e.target.value ? Number(e.target.value) : null)} style={{ flex: 1 }}>
@@ -132,11 +132,6 @@ export function RecetasView() {
               </Button>
             )}
           </div>
-          {!productoSeleccionado.activo && (
-            <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
-              Pausado: no aparece en el menú de Comandar pedidos hasta que se reactive. La receta sigue acá, intacta.
-            </p>
-          )}
 
           <Field label="A qué ticket sale">
             {puedeEditar ? (

@@ -54,7 +54,7 @@ export function InsumosView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Insumos" subtitle="Stock y costo por promedio ponderado. Se recalcula solo con cada compra." />
+      <PageHeader title="Insumos" />
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', flex: 1 }}>

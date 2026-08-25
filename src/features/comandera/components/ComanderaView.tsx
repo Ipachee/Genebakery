@@ -84,7 +84,6 @@ export function ComanderaView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <PageHeader
         title="Comandera — pedidos enviados a cocina/barra"
-        subtitle="Cada tanda enviada con 'Enviar a cocina' es un ticket aparte, aunque sea la misma mesa -- así no se mezcla con lo que ya salió antes. Estas comandas son solo para cocina/barra (sin precios, sin cobro); el cobro se hace desde la mesa."
       />
 
       {isLoading ? (

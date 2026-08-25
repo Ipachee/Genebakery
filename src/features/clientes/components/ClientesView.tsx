@@ -50,7 +50,7 @@ export function ClientesView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Clientes" subtitle="Habituales y facturación. El % de descuento se aplica solo al elegirlos en el cobro." />
+      <PageHeader title="Clientes" />
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <TextInput

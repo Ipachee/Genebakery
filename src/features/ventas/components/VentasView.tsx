@@ -211,7 +211,7 @@ export function VentasView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Ventas" subtitle="Últimas 100 ventas. El método de pago se puede corregir después de cobrar." />
+      <PageHeader title="Ventas" subtitle="Últimas 100 ventas." />
 
       {ventas?.length ? (
         <>

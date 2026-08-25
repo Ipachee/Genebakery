@@ -27,8 +27,8 @@ export function PedidoFooterTransferir({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       <p style={{ fontSize: 11.5, color: 'var(--text-dim)', margin: 0 }}>
         {totalUnidadesSeleccionadas > 0
-          ? `Se transfieren ${totalUnidadesSeleccionadas} unidad(es). Si un producto tiene más de 1, podés bajarle la cantidad con −/+.`
-          : 'Sin elegir nada se transfiere la mesa entera. Tocá los items para elegir solo algunos (shift+click para un rango).'}
+          ? `Se transfieren ${totalUnidadesSeleccionadas} unidad(es).`
+          : 'Sin elegir nada se transfiere la mesa entera.'}
       </p>
       <Select value={mesaDestino} onChange={(e) => onMesaDestino(e.target.value ? Number(e.target.value) : '')} style={{ fontSize: 12.5 }}>
         <option value="">Elegí la mesa destino…</option>

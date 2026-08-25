@@ -37,12 +37,7 @@ export function PermisosRolesView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
-        <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0, maxWidth: '60ch' }}>
-          Qué sección del menú ve cada rol, y si además puede agregar/editar/borrar ahí adentro.{' '}
-          <strong>Admin siempre ve y edita todo</strong> (no se puede restringir, para no quedarse afuera de esta misma
-          pantalla por error). Los cambios se guardan solos, no hace falta un botón "Guardar".
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-start', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
         <Button variant="secondary" size="sm" onClick={() => setCreandoCargo(true)}>
           + Nuevo cargo
         </Button>
@@ -122,9 +117,6 @@ export function PermisosRolesView() {
               </tbody>
             </DataTable>
           </div>
-          <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
-            "Ver" muestra la sección (y su tabla) sin poder tocar nada. "Editar" agrega los botones de cargar/editar/borrar.
-          </p>
         </>
       )}
 
@@ -161,10 +153,6 @@ function NuevoCargoModal({ onClose }: { onClose: () => void }) {
       <Field label="Contraseña de acceso">
         <TextInput type="password" placeholder="Al menos 6 caracteres" value={password} onChange={(e) => setPassword(e.target.value)} />
       </Field>
-      <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: 0 }}>
-        Va a aparecer como una opción más en "Cargos" en la pantalla de login. Después de crearlo, tildá qué puede ver y
-        editar acá abajo -- arranca sin ningún permiso.
-      </p>
     </FormModal>
   );
 }

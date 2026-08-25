@@ -44,7 +44,7 @@ export function ArqueoCajaModal({ turno, onClose }: { turno: Turno; onClose: () 
         </div>
         <div style={{ padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
           <p style={{ fontSize: 13, color: 'var(--text-dim)', margin: 0 }}>
-            Efectivo con el que arrancó el turno {turno.etiqueta}. Se compara contra lo contado al cerrar.
+            Efectivo con el que arrancó el turno {turno.etiqueta}.
           </p>
           {turno.efectivo_apertura != null && (
             <p style={{ fontSize: 12.5, color: 'var(--text-dim)', margin: 0 }}>

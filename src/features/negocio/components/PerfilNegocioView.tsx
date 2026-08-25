@@ -41,7 +41,6 @@ export function PerfilNegocioView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)', maxWidth: 480 }}>
       <PageHeader
         title="Perfil del negocio"
-        subtitle="Datos fiscales y de contacto — no son secretos, son los mismos que van en cualquier factura. Se usan como membrete en el PDF de cierre de turno."
       />
 
       <Field label="Nombre fiscal / razón social">
@@ -67,10 +66,6 @@ export function PerfilNegocioView() {
         {guardado ? '✓ Guardado' : 'Guardar'}
       </Button>
 
-      <p style={{ fontSize: 11.5, color: 'var(--text-dim)', margin: 0 }}>
-        Las credenciales de AFIP o Mercado Pago no van acá — esas se configuran aparte, como secretos de servidor, para
-        que ni siquiera queden visibles dentro de la app.
-      </p>
     </div>
   );
 }

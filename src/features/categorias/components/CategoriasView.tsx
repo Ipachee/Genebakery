@@ -29,7 +29,6 @@ export function CategoriasView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <PageHeader
         title="Categorías"
-        subtitle="Las pestañas que se ven al armar un pedido y al cargar un producto nuevo. El orden acá define el orden de las pestañas. El destino define si el ticket de esa categoría sale para cocina o para la barra."
       />
 
       {puedeEditar && (

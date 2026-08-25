@@ -42,7 +42,7 @@ export function CobranzasView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Cobranzas" subtitle="Pagos a empleados -- sueldos, adelantos, lo que haga falta registrar." />
+      <PageHeader title="Cobranzas" />
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <TextInput

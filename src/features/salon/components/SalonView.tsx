@@ -648,9 +648,6 @@ function PanelMesa({
           onChange={(e) => setNombre(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && cambio && guardar()}
         />
-        <div style={{ fontSize: 10.5, color: 'var(--text-dim)', marginTop: 4 }}>
-          Para separar mesas de gente conocida, poné un nombre en vez del número.
-        </div>
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
         <Button

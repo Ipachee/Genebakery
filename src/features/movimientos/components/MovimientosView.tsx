@@ -53,7 +53,7 @@ export function MovimientosView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Movimientos" subtitle="Auditoría de stock — no editable. Últimos 100 movimientos." />
+      <PageHeader title="Movimientos" subtitle="Últimos 100 movimientos." />
 
       {movimientos?.length ? (
         <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>

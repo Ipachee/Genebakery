@@ -48,7 +48,7 @@ export function EmpleadosView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Empleados" subtitle="Equipo del local. El % de descuento aplica cuando consumen durante su turno." />
+      <PageHeader title="Empleados" />
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <TextInput

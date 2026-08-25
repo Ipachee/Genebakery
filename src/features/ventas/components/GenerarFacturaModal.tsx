@@ -51,15 +51,10 @@ export function GenerarFacturaModal({
     >
       {resultado ? (
         <p style={{ fontSize: 13, color: 'var(--green)', margin: 0 }}>
-          ✓ Factura emitida -- CAE {resultado.cae}, comprobante N° {resultado.numero}. Ya se puede reimprimir con el
-          QR desde Ventas.
+          ✓ Factura emitida -- CAE {resultado.cae}, comprobante N° {resultado.numero}.
         </p>
       ) : (
         <>
-          <p style={{ fontSize: 12.5, color: 'var(--text-dim)', margin: 0 }}>
-            Al confirmar se le pide el CAE a ARCA en el momento (real o de prueba, según el modo configurado en
-            Ajustes → Facturación electrónica).
-          </p>
           <Field label="Tipo de comprobante">
             <Select value={tipo} onChange={(e) => setTipo(e.target.value as typeof tipo)}>
               <option value="factura_b">Factura B (consumidor final)</option>

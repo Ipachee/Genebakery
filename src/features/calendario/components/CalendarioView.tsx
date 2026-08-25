@@ -255,7 +255,6 @@ export function CalendarioView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <PageHeader
         title="Calendario de equipo"
-        subtitle="Quién trabaja qué turno cada día, vacaciones y eventos generales, todo en un solo lugar."
       />
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -332,11 +331,6 @@ export function CalendarioView() {
           <span className="calendario-chip-dot" />
           Evento
         </span>
-        {puedeEditar && (
-          <span className="calendario-leyenda-texto">
-            Los items se pueden arrastrar: soltalos en un día para moverlos, o encima de otro turno para intercambiarlos.
-          </span>
-        )}
       </div>
 
       {isLoading ? (

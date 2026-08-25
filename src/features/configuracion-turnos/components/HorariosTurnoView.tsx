@@ -29,7 +29,6 @@ export function HorariosTurnoView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
       <PageHeader
         title="Horarios de turno"
-        subtitle="Elegí qué turnos existen cada día. El login solo muestra los turnos activos del día de hoy."
       />
 
       <div className="card card-pad" style={{ overflowX: 'auto' }}>

@@ -47,7 +47,7 @@ export function GastosView() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
-      <PageHeader title="Gastos" subtitle="Compras de insumos (recalculan el costo promedio ponderado automáticamente) y servicios sueltos como luz, gas o alquiler." />
+      <PageHeader title="Gastos" />
 
       <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <TextInput
