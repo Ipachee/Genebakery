@@ -1281,6 +1281,15 @@ export type Database = {
       }
     }
     Functions: {
+      fn_ajustar_stock: {
+        Args: {
+          p_id: number
+          p_motivo: string
+          p_stock_real: number
+          p_tipo: string
+        }
+        Returns: undefined
+      }
       fn_anular_venta: { Args: { p_venta_id: number }; Returns: undefined }
       fn_cobrar_pedido: {
         Args: {

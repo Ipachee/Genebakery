@@ -29,9 +29,10 @@ de nuevo cada vez, ya es parte del flujo.
 - [[E2E-tests]] — tests automáticos con Playwright de los flujos críticos (`npm run test:e2e`)
 - [[Clientes]] — alta/edición, descuento por fidelización, permisos alineados con RLS
 - [[Papelera]] — soft-delete unificado de 17 tipos, restaurar y eliminar definitivamente
+- [[Movimientos]] — historial de stock, los 5 tipos de movimiento y el ajuste manual
 
 ## Resto de las secciones (stubs — completar cuando se trabaje ahí)
 
 - [[Ajustes]] · [[Auth]] · [[Comandera]] · [[Elaborados]] · [[Empleados]] · [[Gastos]] ·
-  [[Insumos]] · [[Movimientos]] · [[Negocio]] · [[Pedidos]] · [[Proveedores]] ·
+  [[Insumos]] · [[Negocio]] · [[Pedidos]] · [[Proveedores]] ·
   [[Reportes]] · [[Cobranzas]]

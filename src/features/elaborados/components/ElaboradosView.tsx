@@ -11,6 +11,7 @@ import { useConfirm } from '../../../components/ConfirmDialog';
 import { Card } from '../../../components/Card';
 import { fmtMoneyDecimal as fmt } from '../../../lib/format';
 import { NuevoElaboradoModal } from './NuevoElaboradoModal';
+import { AjusteStockModal } from '../../ajuste-stock/AjusteStockModal';
 
 type Elaborado = NonNullable<ReturnType<typeof useElaborados>['data']>[number];
 
@@ -24,6 +25,7 @@ export function ElaboradosView() {
   const [error, setError] = useState<string | null>(null);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState<Elaborado | null>(null);
+  const [ajustando, setAjustando] = useState<Elaborado | null>(null);
   const { confirm, dialog } = useConfirm();
 
   async function producir(elaboradoId: number) {
@@ -91,6 +93,9 @@ export function ElaboradosView() {
                     <Button variant="secondary" size="sm" aria-label={`Editar ${e.nombre}`} onClick={() => setEditando(e)}>
                       ✏️
                     </Button>
+                    <Button variant="secondary" size="sm" aria-label={`Ajustar stock de ${e.nombre}`} onClick={() => setAjustando(e)}>
+                      📋
+                    </Button>
                     <Button
                       variant="danger"
                       size="sm"
@@ -111,6 +116,18 @@ export function ElaboradosView() {
 
       {modalAbierto && <NuevoElaboradoModal onClose={() => setModalAbierto(false)} />}
       {editando && <NuevoElaboradoModal elaborado={editando} onClose={() => setEditando(null)} />}
+      {ajustando && (
+        <AjusteStockModal
+          item={{
+            tipo: 'elaborado',
+            id: ajustando.id,
+            nombre: ajustando.nombre,
+            stockActual: Number(ajustando.stock_porciones),
+            unidad: 'porciones',
+          }}
+          onClose={() => setAjustando(null)}
+        />
+      )}
       {dialog}
     </div>
   );

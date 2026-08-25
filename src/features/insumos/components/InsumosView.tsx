@@ -10,6 +10,7 @@ import { EmptyState } from '../../../components/EmptyState';
 import { useConfirm } from '../../../components/ConfirmDialog';
 import { fmtMoneyDecimal as fmt } from '../../../lib/format';
 import { NuevoInsumoModal } from './NuevoInsumoModal';
+import { AjusteStockModal } from '../../ajuste-stock/AjusteStockModal';
 import type { Database } from '../../../lib/supabase/types';
 
 type Insumo = Database['public']['Tables']['insumos']['Row'];
@@ -23,6 +24,7 @@ export function InsumosView() {
   const [unidad, setUnidad] = useState('');
   const [modalAbierto, setModalAbierto] = useState(false);
   const [editando, setEditando] = useState<Insumo | null>(null);
+  const [ajustando, setAjustando] = useState<Insumo | null>(null);
   const { orden, alClickear } = useOrdenTabla<ColumnaOrden>('nombre');
   const { confirm, dialog } = useConfirm();
 
@@ -121,6 +123,9 @@ export function InsumosView() {
                       <Button variant="secondary" size="sm" aria-label={`Editar ${i.nombre}`} onClick={() => setEditando(i)}>
                         ✏️
                       </Button>
+                      <Button variant="secondary" size="sm" aria-label={`Ajustar stock de ${i.nombre}`} onClick={() => setAjustando(i)}>
+                        📋
+                      </Button>
                       <Button
                         variant="danger"
                         size="sm"
@@ -142,6 +147,18 @@ export function InsumosView() {
 
       {modalAbierto && <NuevoInsumoModal onClose={() => setModalAbierto(false)} />}
       {editando && <NuevoInsumoModal insumo={editando} onClose={() => setEditando(null)} />}
+      {ajustando && (
+        <AjusteStockModal
+          item={{
+            tipo: 'insumo',
+            id: ajustando.id,
+            nombre: ajustando.nombre,
+            stockActual: Number(ajustando.stock),
+            unidad: ajustando.unidad,
+          }}
+          onClose={() => setAjustando(null)}
+        />
+      )}
       {dialog}
     </div>
   );
