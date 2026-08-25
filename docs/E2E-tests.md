@@ -34,6 +34,16 @@ para ningún test que corra después. Si un test nuevo interactúa con Salón/Ta
 modal puede aparecer en cualquier punto de la sesión, con un delay async (espera a que resuelva el turno
 desde la base), no solo una vez al loguear.
 
+## Corren en serie (`workers: 1`), y tiene que quedar así
+
+`fullyParallel: false` **no alcanza**: ese flag sólo serializa los tests dentro de un mismo archivo, los
+archivos distintos igual arrancan en paralelo (Playwright levantaba 4 workers). Como todos pegan contra
+la misma base, eso hacía fallar a `anular-venta.spec.ts` de forma intermitente — ese test cuenta las
+filas de Ventas antes y después de anular una, y otro test cobrando en paralelo le cambiaba el total
+abajo de los pies. Falla que sólo aparecía corriendo el suite completo, nunca corriendo ese archivo solo.
+Por eso está `workers: 1` en `playwright.config.ts`. Si algún día se quiere volver a paralelizar, primero
+hay que sacar los tests que dependen de conteos globales de la base.
+
 ## Selectores frágiles a propósito, no con `data-testid`
 
 Los tests apuntan a texto/roles reales de la UI (`getByRole('button', { name: /Enviar a cocina/ })`) en

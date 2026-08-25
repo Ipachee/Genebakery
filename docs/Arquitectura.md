@@ -47,6 +47,21 @@ Antes de agregar un CHECK nuevo en una tabla existente, correr una query de cont
 que ninguna fila real lo viola (si la hay, migrar esos datos antes, no ajustar el constraint para
 esquivarlos). Ver `20260825040000_check_integridad_numerica.sql`.
 
+## Índices (desde el 25/08/2026)
+
+Hasta el 25/08/2026 no había ningún índice más allá de las primary keys y los unique — cada reporte por
+turno o por fecha era un full scan. `20260825050000_indices_alto_volumen.sql` agrega 16 índices sobre las
+tablas que crecen para siempre (`ventas`, `pedidos`, `pedido_items`, `movimientos`, `gastos`) más las
+columnas que recorren las funciones SQL en loop (`elaborados.producto_id`, `pedido_items.pedido_id`).
+
+Criterio, para no repetir el error al revés: hay **32 foreign keys sin índice** y se indexaron sólo las
+que alguna consulta real filtra u ordena (verificado leyendo `src/features/*/api.ts` y las funciones SQL,
+no a ojo). Quedan sin índice a propósito las columnas de auditoría (`creado_por`, `usuario_id`,
+`mozo_id`, `cargado_por`, `abierto_por`) — nadie filtra por ellas — y las tablas chicas de catálogo
+(`mesas`, `salones`, `empleados`, `profiles`), donde escanear unas decenas de filas sale más barato que
+mantener el índice en cada escritura. Varios son índices parciales (`where deleted_at is null`) porque
+todas las consultas de esas tablas filtran los borrados.
+
 ## `print-bridge` es un programa aparte
 
 Vive en `print-bridge/` pero **no** es parte del build de Vite ni pasa por `tsc`/`lint` del proyecto

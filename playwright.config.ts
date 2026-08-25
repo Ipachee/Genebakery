@@ -8,7 +8,15 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   timeout: 30000,
+  // `workers: 1` no es de más junto a `fullyParallel: false`: ese flag sólo
+  // serializa los tests DENTRO de un archivo, pero los archivos distintos
+  // igual salen en paralelo. Como todos pegan contra la MISMA base, eso
+  // hacía fallar a anular-venta.spec.ts de forma intermitente -- cuenta las
+  // filas de Ventas antes y después de anular una, y otro test creando una
+  // venta al mismo tiempo le cambiaba el total abajo de los pies. En serie
+  // no hay carrera posible.
   fullyParallel: false,
+  workers: 1,
   retries: 0,
   reporter: 'list',
   use: {
