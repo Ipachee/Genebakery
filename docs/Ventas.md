@@ -21,6 +21,16 @@ Si se toca `compararMesas` de nuevo, no reintroducir ese atajo.
 no bloquea nada — solo saca el foco del input (`.blur()`) para que un toque de más no se meta en la
 casilla y sume dígitos de más.
 
+## fn_cobrar_pedido es idempotente (desde el 25/08/2026)
+
+Bug real encontrado en un audit externo y confirmado leyendo el código: la función no tenía ningún lock
+ni chequeo de "¿este pedido ya está cobrado?" antes de insertar en `ventas` y descontar stock. Dos
+llamadas simultáneas para el mismo pedido (doble click, reintento de red, el modo offline que dispara el
+cobro sin esperar confirmación) podían duplicar la venta y el descuento de stock. Arreglado con un
+`select ... for update` sobre la fila de `pedidos` al principio de la función -- bloquea la fila hasta
+que termina la transacción, así una segunda llamada concurrente espera y después corta con
+`raise exception` en vez de duplicar todo. Ver `20260825010000_cobro_idempotente.sql`.
+
 ## Facturación desde acá
 
 El badge de factura (emitida/error/pendiente/sin factura) y el botón de imprimir ticket con QR viven en
