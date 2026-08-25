@@ -44,6 +44,24 @@ abajo de los pies. Falla que sólo aparecía corriendo el suite completo, nunca 
 Por eso está `workers: 1` en `playwright.config.ts`. Si algún día se quiere volver a paralelizar, primero
 hay que sacar los tests que dependen de conteos globales de la base.
 
+## ⚠️ Los tests CONSUMEN stock real, y desde el issue #2 eso los rompe
+
+Cada corrida cobra un pedido con "Agua mineral", y cobrar descuenta stock de verdad. Antes eso pasaba
+desapercibido (el stock se iba a negativo en silencio); desde que `fn_cobrar_pedido` **valida stock antes
+de cobrar** (issue #2), cuando el insumo llega a 0 el cobro corta con "Stock insuficiente" y **la suite
+entera se pone en rojo** — falla `pedido-cobro`, y en cascada `anular-venta` y `facturacion`, que
+dependen de que haya una venta recién creada.
+
+Pasó de verdad el 25/08/2026: 39 corridas dejaron "Agua mineral" en 0. Se repuso con `fn_ajustar_stock`
+dejando el motivo escrito ("consumidas por corridas de tests E2E, no fueron ventas reales") para que el
+historial de movimientos no mienta.
+
+Con el CI del issue #7 esto ya no es hipotético: **cada push consume stock**. Si la suite empieza a
+fallar con "Stock insuficiente", el problema no es el test — es que se acabó el insumo. Opciones reales,
+ninguna gratis: reponer a mano cada tanto, hacer que el helper reponga stock como parte del setup (ojo:
+estaría escribiendo inventario en la misma base que usa el bar), o mover los tests a productos sin
+receta. Elegir esto es una decisión del dueño del proyecto, no técnica.
+
 ## Selectores frágiles a propósito, no con `data-testid`
 
 Los tests apuntan a texto/roles reales de la UI (`getByRole('button', { name: /Enviar a cocina/ })`) en
