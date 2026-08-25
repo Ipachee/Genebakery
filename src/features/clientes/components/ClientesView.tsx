@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useClienteMutations, useClientes } from '../hooks';
+import { usePuedeEditar } from '../../permisos/hooks';
 import { PageHeader } from '../../../components/PageHeader';
 import { DataTable, ThOrdenable, useOrdenTabla } from '../../../components/DataTable';
 import { Button } from '../../../components/Button';
@@ -13,6 +14,7 @@ type Cliente = Database['public']['Tables']['clientes']['Row'];
 type ColumnaOrden = 'nombre' | 'dni' | 'fiscal' | 'descuento' | 'visitas' | 'gastado';
 
 export function ClientesView() {
+  const puedeEditar = usePuedeEditar('clientes');
   const { data: clientes, isLoading } = useClientes();
   const { borrar } = useClienteMutations();
   const [busqueda, setBusqueda] = useState('');
@@ -57,9 +59,11 @@ export function ClientesView() {
           onChange={(e) => setBusqueda(e.target.value)}
           style={{ maxWidth: 260, flex: 1 }}
         />
-        <Button variant="primary" onClick={() => setModalAbierto(true)}>
-          + Nuevo cliente
-        </Button>
+        {puedeEditar && (
+          <Button variant="primary" onClick={() => setModalAbierto(true)}>
+            + Nuevo cliente
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -90,7 +94,7 @@ export function ClientesView() {
               <ThOrdenable col="gastado" orden={orden} onOrdenar={alClickear}>
                 Total gastado
               </ThOrdenable>
-              <th></th>
+              {puedeEditar && <th></th>}
             </tr>
           </thead>
           <tbody>
@@ -104,21 +108,23 @@ export function ClientesView() {
                 <td>{c.descuento_pct}%</td>
                 <td>{c.visitas}</td>
                 <td>${Number(c.total_gastado).toLocaleString('es-AR')}</td>
-                <td style={{ display: 'flex', gap: 6 }}>
-                  <Button variant="secondary" size="sm" aria-label={`Editar ${c.nombre} ${c.apellido}`} onClick={() => setEditando(c)}>
-                    ✏️
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    aria-label={`Borrar ${c.nombre} ${c.apellido}`}
-                    onClick={async () => {
-                      if (await confirm(`¿Borrar a ${c.nombre} ${c.apellido}?`)) borrar.mutate(c.id);
-                    }}
-                  >
-                    🗑
-                  </Button>
-                </td>
+                {puedeEditar && (
+                  <td style={{ display: 'flex', gap: 6 }}>
+                    <Button variant="secondary" size="sm" aria-label={`Editar ${c.nombre} ${c.apellido}`} onClick={() => setEditando(c)}>
+                      ✏️
+                    </Button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      aria-label={`Borrar ${c.nombre} ${c.apellido}`}
+                      onClick={async () => {
+                        if (await confirm(`¿Borrar a ${c.nombre} ${c.apellido}?`)) borrar.mutate(c.id);
+                      }}
+                    >
+                      🗑
+                    </Button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
