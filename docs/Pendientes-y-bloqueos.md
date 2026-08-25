@@ -3,24 +3,35 @@
 Estado al **25/08/2026**. Todo lo que quedó a medias, bloqueado esperando algo, o que puede volver a
 romper. Ordenado por lo que más conviene resolver primero.
 
+**Ya resuelto en esta tanda:** el merge a `master` (producción corre el código nuevo), los textos
+descriptivos sacados de la interfaz, y "Torta del día" desactivada — tenía stock 0 y desde el issue #2
+eso **trababa el cobro en el bar**, porque las migraciones aplicadas desde dev ya están vivas en
+producción (ver punto 4). La impresora quedó decidida: se usa `print-bridge`.
+
 ---
 
 ## 🔴 Bloqueado esperando una decisión o una acción tuya
 
-### 1. Turnstile: falta activar el enforcement (issue #6)
+### 1. Turnstile: falta el último paso, en el dashboard de Supabase (issue #6)
 
-El código del widget **ya está y funciona** en dev, pero **todavía no protege nada**: manda el token y
-Supabase lo ignora, porque el enforcement se activa del lado de Supabase (`[auth.captcha]`), no del lado
-de la app.
+El widget **ya está desplegado en las dos puntas** (dev y producción, verificado: el bundle de
+`comandacafe.vercel.app` incluye el script y la site key). Lo único que falta es **activar el
+enforcement**, que vive del lado de Supabase — hasta que se active, el login manda el token y Supabase lo
+ignora.
 
-**Por qué no lo activé:** Supabase Auth es **un solo proyecto compartido** entre
-`comandacafe.vercel.app` (producción, branch `master`) y `comandacafedev.vercel.app` (dev, branch
-`feat/rediseno-navegacion`). El código del widget hoy sólo está en la branch de dev. Si activo el
-enforcement ahora, **el login de producción deja de funcionar**: manda el login sin token y Supabase lo
-rechaza. No hay forma de activarlo sólo para dev.
+**Son 3 clicks en el dashboard:** Authentication → Attack Protection → activar "Enable Captcha
+protection", proveedor **Cloudflare Turnstile**, y pegar la **secret key**.
 
-**Qué falta:** que el código del widget llegue a `master`. Recién ahí se activa el enforcement, y hay que
-hacerlo en ese orden.
+**Por qué no lo hice por CLI:** la única vía del CLI es `supabase config push`, que sube el
+`config.toml` **entero**, no sólo el captcha. Y ese archivo tiene los valores por defecto de desarrollo:
+`site_url = "http://127.0.0.1:3000"`, `additional_redirect_urls` a localhost, y secretos de proveedores
+externos (Apple, Twilio) que apuntan a variables de entorno vacías. Pushear eso pisaría la configuración
+de auth de un negocio en vivo para ahorrar tres clicks. No existe `--dry-run` ni forma de pushear sólo
+una sección.
+
+**El orden ya está resuelto:** antes había que mergear a `master` primero (si no, activar el enforcement
+tumbaba el login de producción, que no tenía el widget). Eso ya se hizo el 25/08/2026, así que activarlo
+ahora es seguro.
 
 **Ojo con el sitekey:** el widget se renderiza en un contenedor oculto. Eso funciona bien si el sitekey
 está en modo **Invisible** en el dashboard de Cloudflare. Si quedó en **Managed** (el default), Cloudflare
@@ -63,6 +74,13 @@ lo pida**, así que no lo decidí yo. Cuando definas el plazo es una migración 
 ---
 
 ## 🟡 Cosas que conviene tener presentes
+
+### 3.b El test de facturación falla de vez en cuando
+
+`facturacion.spec.ts` llama **de verdad** a AfipSDK, un servicio externo. El 25/08/2026 falló una vez en
+la suite completa y pasó sola al reintentar, sin ningún cambio de código en el medio. Si falla suelto en
+CI y el resto está verde, reintentar antes de buscar un bug — es la causa más probable. Si se vuelve
+molesto, ese test puede ir a un job aparte que corra menos seguido.
 
 ### 4. Dev y producción comparten la MISMA base de datos
 
