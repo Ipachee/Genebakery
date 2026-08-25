@@ -32,10 +32,29 @@ columna. **Si se agrega una tabla nueva con `deleted_at`, hay que sumarla a tres
   `foreign_key_violation` a "hay otros registros que todavía dependen de este" en vez del texto crudo de
   Postgres. Verificado con un pedido real que tenía una venta asociada: rebota y el pedido queda intacto.
 
-## Sin expiración automática (a propósito)
+## Expiración automática: 60 días (desde el 25/08/2026)
 
-No hay purga por antigüedad. Hacerla requiere elegir un plazo de retención (¿30 días? ¿90?) y eso es una
-decisión del negocio, no técnica — con el agravante de que equivocarse destruye datos reales sin que
-nadie lo haya pedido. Si algún día se define un plazo, es una migración aparte (necesitaría `pg_cron`).
+`fn_purgar_papelera_vencidos()` corre sola todos los días a las 6am UTC (3am Argentina, fuera del
+horario de un café) vía `pg_cron`, y elimina definitivamente todo lo que lleva más de 60 días en la
+papelera. Plazo decidido por el dueño del proyecto — no es un número técnico.
+
+Decisiones:
+
+- **No se le da permiso a `authenticated`.** A diferencia de `fn_purgar_papelera` (la manual), esta sólo
+  la dispara el cron como `postgres` — nadie debería poder llamarla desde la app.
+- **Recorre registro por registro**, no un `DELETE` masivo por tabla, para poder atrapar
+  `foreign_key_violation` de a uno: si un pedido viejo todavía tiene una venta activa apuntándole, ese
+  registro puntual se salta y sigue en la papelera — se reintenta solo al día siguiente, sin abortar el
+  resto de la tabla por un solo registro bloqueado.
+- **Sin tabla de log propia.** `pg_cron` ya guarda el historial de cada corrida en
+  `cron.job_run_details` (duración, si falló, qué devolvió) — armar una tabla de auditoría aparte sería
+  I/O de más para algo que ya viene gratis. Si hace falta algo más rico algún día, es el issue #17.
+
+Verificado con dos casos reales antes de dejarlo andando: un registro descartable con `deleted_at`
+retrocedido a 70 días se purgó ✅; un pedido con una venta real todavía apuntándole, con el mismo
+`deleted_at` retrocedido, **no se tocó** ✅ (se restauró su fecha original después de la prueba).
+
+Para ver la próxima corrida o el historial: `select * from cron.job_run_details order by start_time desc
+limit 10;` contra la base.
 
 **Relacionado:** [[Permisos]], [[Arquitectura]], [[Ventas]], [[Index]]
