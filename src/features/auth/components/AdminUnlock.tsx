@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../../auth/useAuth';
 import { CUENTAS } from '../accounts';
+import { obtenerTokenTurnstile, turnstileHabilitado } from '../turnstile';
 
 const ADMIN = CUENTAS.find((c) => c.id === 'admin')!;
 
@@ -15,7 +16,8 @@ export function AdminUnlock({ onSuccess }: { onSuccess?: () => void }) {
     e.preventDefault();
     setEntrando(true);
     setError(null);
-    const { error } = await entrarComoAdmin(ADMIN.email, password);
+    const captchaToken = turnstileHabilitado() ? await obtenerTokenTurnstile().catch(() => undefined) : undefined;
+    const { error } = await entrarComoAdmin(ADMIN.email, password, captchaToken);
     setEntrando(false);
     if (error) {
       setError('Contraseña incorrecta');

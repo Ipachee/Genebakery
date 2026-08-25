@@ -6,6 +6,7 @@ import { useConfiguracionTurnos } from '../configuracion-turnos/hooks';
 import { etiquetasActivasHoy } from '../configuracion-turnos/turnosActivosHoy';
 import { turnoPorHora } from './turnoPorHora';
 import { CUENTAS } from './accounts';
+import { obtenerTokenTurnstile, turnstileHabilitado } from './turnstile';
 import './LoginScreen.css';
 
 // Admin y turnos (Mañana/Tarde/Noche) viven hardcodeados en accounts.ts;
@@ -106,7 +107,8 @@ export function LoginScreen() {
     setPin(nuevo);
     if (nuevo.length !== 4) return;
     setEstado('verificando');
-    const { error } = await signIn(personaSeleccionada.email, nuevo);
+    const captchaToken = turnstileHabilitado() ? await obtenerTokenTurnstile().catch(() => undefined) : undefined;
+    const { error } = await signIn(personaSeleccionada.email, nuevo, captchaToken);
     if (error) {
       setEstado('error');
       setTimeout(() => {

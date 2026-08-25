@@ -33,10 +33,10 @@ type AuthContextValue = {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   /** Cambia la sesión activa a la cuenta admin sin perder la sesión actual (mozo). */
-  entrarComoAdmin: (email: string, password: string) => Promise<{ error: string | null }>;
+  entrarComoAdmin: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>;
   /** true mientras hay una sesión de mozo guardada esperando a que se vuelva. */
   puedeVolverATurno: boolean;
   volverATurno: () => Promise<{ error: string | null }>;
@@ -81,8 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, [session]);
 
-  async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+  async function signIn(email: string, password: string, captchaToken?: string) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
     return { error: error ? error.message : null };
   }
 
@@ -92,10 +92,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }
 
-  async function entrarComoAdmin(email: string, password: string) {
+  async function entrarComoAdmin(email: string, password: string, captchaToken?: string) {
     if (!session) return { error: 'No hay sesión activa' };
     const sesionActual = session;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
     if (error) return { error: error.message };
     guardarSesion(sesionActual);
     setPuedeVolverATurno(true);
