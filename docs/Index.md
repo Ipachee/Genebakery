@@ -10,6 +10,10 @@ actualiza la nota del área tocada como un paso más del checklist de cierre (ju
 commit y deploy). Si una nota queda desactualizada, es porque ese paso se saltó — no hace falta pedirlo
 de nuevo cada vez, ya es parte del flujo.
 
+## Estado actual
+
+- [[Pendientes-y-bloqueos]] — qué quedó bloqueado, qué puede volver a romper, y los issues abiertos
+
 ## Base
 
 - [[Arquitectura]] — stack, cómo se despliega, cómo se migran cambios de base de datos
