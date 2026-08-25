@@ -40,3 +40,10 @@ print-bridge/config.js
 
 # Config local de Obsidian (workspace/plugins de esta máquina, no del vault en sí)
 docs/.obsidian/
+
+# Salida de las corridas de Playwright (screenshots/traces de fallos) --
+# se regenera en cada corrida, no hace falta versionarla.
+test-results/
+playwright-report/
+blob-report/
+

@@ -26,6 +26,7 @@ de nuevo cada vez, ya es parte del flujo.
 - [[Permisos]] — modelo Ver/Editar por sección y cargos dinámicos
 - [[Print-bridge]] — programa aparte que imprime los tickets
 - [[Configuracion-turnos]] — qué turnos existen cada día de la semana, lo lee el login
+- [[E2E-tests]] — tests automáticos con Playwright de los flujos críticos (`npm run test:e2e`)
 
 ## Resto de las secciones (stubs — completar cuando se trabaje ahí)
 
